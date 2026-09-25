@@ -24,4 +24,10 @@ python3 -m http.server 8765 --directory site
 
 Vercel에는 `SUPABASE_URL`과 `SUPABASE_PUBLISHABLE_KEY`가 설정되어 있습니다. 로컬 연결은 `supabase link --project-ref lvtdnrmwunahgwutafhv`로 재현할 수 있습니다. 키 값과 `.env.local`은 Git에 올리지 않습니다.
 
-현재 사이트는 원고·참가정보를 수집하지 않습니다. 논문 일정, 주최기관, 접수처, 건물·호실은 확정 전이며 사이트에 초안으로 표시됩니다. 데이터 수집 기능은 개인정보·권한·보존기간 설계 후 추가합니다.
+## 논문 투고·심사
+
+[`site/submission.html`](site/submission.html)은 저자·심사위원·위원장 작업 공간입니다. 원고, 공동저자, PDF 버전, 심사 배정과 판정은 Supabase Postgres·비공개 Storage에 저장되며 RLS가 역할별 접근을 제한합니다. 참가등록과 투고는 별개입니다.
+
+DB 마이그레이션은 `supabase/migrations/`에 있고 연결된 `Co-RnBD-2026` 프로젝트에 적용했습니다. 접수 스위치는 기본적으로 **닫힘**입니다. 논문 일정·주최기관·개인정보 보존 기준이 확정되면 위원장 계정에서 접수를 열 수 있습니다. Google/Naver OAuth 제공자 등록과 최초 위원장 지정 방법은 [운영 설정](site/README.md#투고-시스템-운영-설정)에 있습니다.
+
+기존 `python3 -m http.server` 미리보기는 정적 화면만 제공합니다. 투고 기능은 Vercel의 `/api/config`와 `/api/naver-userinfo` 함수가 동작하는 환경에서 확인해야 합니다.

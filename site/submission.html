@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#08201e" />
+    <meta name="description" content="Co-R&BD Conference 2026 논문·실천사례 투고 및 심사" />
+    <title>논문 투고·심사 | Co-R&amp;BD 2026</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./submission.css" />
+    <script type="module" src="./submission.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">본문으로 바로가기</a>
+    <div class="draft-bar" role="note"><span class="draft-dot" aria-hidden="true"></span><span>투고 시스템 시범 운영 · 접수 일정 확정 후 제출 기능을 엽니다.</span></div>
+    <header class="site-header">
+      <div class="shell header-inner">
+        <a class="brand" href="./index.html" aria-label="Co-R&BD 2026 홈"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span><span class="brand-text">Co-R<span>&amp;</span>BD <small>2026</small></span></a>
+        <nav class="portal-nav" aria-label="주 메뉴"><a href="./index.html">행사 안내</a><a href="./cfp.html">모집공고</a><a href="./submission.html" aria-current="page">투고·심사</a></nav>
+      </div>
+    </header>
+    <main id="main" class="portal-main">
+      <div class="shell">
+        <div class="portal-intro"><p class="section-index">CO-R&amp;BD 2026 / PAPER PORTAL</p><h1>논문·실천사례 <em>투고</em></h1><p>원고 제출부터 간단한 심사와 결과 확인까지 한곳에서 진행합니다.</p></div>
+        <div id="notice" class="portal-notice" role="status">시스템 연결 중입니다…</div>
+        <div id="message" class="portal-message" role="status" aria-live="polite" hidden></div>
+
+        <section id="auth-panel" class="portal-card auth-card" aria-labelledby="auth-title" hidden>
+          <div><span class="portal-kicker">START HERE</span><h2 id="auth-title">계정으로 시작하기</h2><p>Google 또는 Naver 계정으로 로그인하면 저자 대시보드를 이용할 수 있습니다. 심사위원은 배정된 원고가 추가로 표시됩니다.</p></div>
+          <div class="auth-actions"><button type="button" class="portal-button" data-login="google">Google로 로그인</button><button type="button" class="portal-button secondary" data-login="custom:naver">Naver로 로그인</button></div>
+        </section>
+
+        <div id="workspace" hidden>
+          <div class="workspace-top"><div><span class="portal-kicker">MY WORKSPACE</span><h2 id="welcome">내 작업 공간</h2><p id="account-email"></p></div><button id="sign-out" type="button" class="portal-button secondary">로그아웃</button></div>
+          <div class="portal-tabs" role="tablist" aria-label="작업 영역"><button type="button" class="active" data-tab="author" role="tab" aria-selected="true">내 투고</button><button type="button" data-tab="reviewer" role="tab" aria-selected="false" hidden>심사 배정</button><button type="button" data-tab="chair" role="tab" aria-selected="false" hidden>위원장 관리</button><button type="button" data-tab="profile" role="tab" aria-selected="false">내 정보</button></div>
+
+          <section id="tab-author" class="tab-panel" role="tabpanel" aria-label="내 투고">
+            <div class="section-head"><div><span class="portal-kicker">AUTHOR DESK</span><h2>내 원고</h2></div><button id="new-paper" type="button" class="portal-button">새 원고 작성</button></div>
+            <div id="my-papers" class="paper-grid"></div>
+            <form id="paper-form" class="portal-card portal-form" hidden>
+              <div class="form-heading"><div><span class="portal-kicker">SUBMISSION</span><h3 id="paper-form-title">새 원고</h3></div><button type="button" id="cancel-paper" class="text-action">닫기</button></div>
+              <input type="hidden" id="paper-id" />
+              <div class="form-grid"><label class="full">원고 제목 <input id="paper-title" required minlength="5" maxlength="250" placeholder="연구 또는 실천사례의 제목" /></label><label>모집 분야 <select id="paper-track" required><option value="applied">전문기술석사 응용연구</option><option value="industry">산학공동기술개발 성과</option><option value="convergence">산업융합기술</option><option value="education">전문기술석사 교육·운영</option></select></label><label>제출 유형 <select id="paper-type" required><option value="research">응용연구</option><option value="case">실천사례</option><option value="poster">진행연구·포스터</option></select></label><label>희망 발표 형태 <select id="paper-presentation" required><option value="oral">구두</option><option value="poster">포스터</option><option value="demo">데모</option></select></label><label class="full">초록 <textarea id="paper-abstract" required minlength="20" maxlength="5000" rows="6" placeholder="연구 목적, 방법, 결과와 현장 활용성을 간략히 적어 주세요."></textarea></label></div>
+              <fieldset><legend>저자 정보</legend><p class="field-help">한 줄에 한 명씩 <strong>이름 | 소속 | 이메일(선택)</strong> 형식으로 적어 주세요. 첫 번째 저자가 대표저자입니다.</p><textarea id="paper-authors" required rows="3" placeholder="김연구 | 울산과학대학교 | author@example.com"></textarea></fieldset>
+              <label class="file-label">원고 PDF <small>20 MB 이하, 버전별 보관</small><input id="paper-file" type="file" accept="application/pdf,.pdf" /></label>
+              <p class="field-help">기업 기밀·미공개 정보는 제외하세요. 자료집 또는 웹 공개는 별도 승인을 받습니다.</p>
+              <div class="form-actions"><button type="submit" class="portal-button secondary" data-save="draft">초안 저장</button><button type="submit" class="portal-button" data-save="submitted">저장하고 제출</button></div>
+            </form>
+          </section>
+
+          <section id="tab-reviewer" class="tab-panel" role="tabpanel" aria-label="심사 배정" hidden><div class="section-head"><div><span class="portal-kicker">REVIEWER DESK</span><h2>배정된 원고</h2></div></div><div id="review-list" class="paper-grid"></div><form id="review-form" class="portal-card portal-form" hidden><div class="form-heading"><h3 id="review-title">심사 입력</h3><button type="button" id="cancel-review" class="text-action">닫기</button></div><input type="hidden" id="review-id" /><p id="review-paper-summary"></p><label class="checkbox-row"><input id="review-conflict" type="checkbox" required /> 저자·소속·과제 관계를 확인했으며 이해관계가 없습니다.</label><label>권고 <select id="review-recommendation" required><option value="">선택하세요</option><option value="accept">채택 권고</option><option value="revise">수정 권고</option><option value="reject">반려 권고</option></select></label><label>저자에게 전할 의견 <textarea id="review-comments" required minlength="10" rows="5"></textarea></label><div class="form-actions"><button type="submit" class="portal-button">심사 저장</button></div></form></section>
+
+          <section id="tab-chair" class="tab-panel" role="tabpanel" aria-label="위원장 관리" hidden><div class="section-head"><div><span class="portal-kicker">CHAIR DESK</span><h2>접수와 판정</h2></div><button id="refresh-chair" type="button" class="portal-button secondary">목록 새로고침</button></div><div class="portal-card intake-control"><div><strong>접수 운영</strong><p>일정 확정 후 접수를 열어 주세요. 닫힌 상태에서도 접수된 원고의 심사는 가능합니다.</p></div><button id="toggle-intake" type="button" class="portal-button secondary">접수 열기</button></div><div id="chair-list" class="paper-grid"></div><form id="chair-form" class="portal-card portal-form" hidden><div class="form-heading"><h3 id="chair-title">원고 관리</h3><button type="button" id="cancel-chair" class="text-action">닫기</button></div><input type="hidden" id="chair-paper-id" /><div id="chair-paper-summary"></div><label>심사위원 이메일 <input id="reviewer-email" type="email" placeholder="가입한 심사위원의 이메일" /></label><button type="button" id="assign-reviewer" class="portal-button secondary">심사위원 배정</button><div id="assigned-reviewers" class="muted-list"></div><div class="form-grid"><label>판정 <select id="chair-status"><option value="">판정 보류</option><option value="under_review">심사 중</option><option value="revision">수정 요청</option><option value="accepted">채택</option><option value="rejected">반려</option></select></label><label>발표 형태 <select id="chair-presentation"><option value="">추후 결정</option><option value="oral">구두</option><option value="poster">포스터</option><option value="demo">데모</option></select></label><label class="full">판정 메모 <textarea id="chair-note" rows="3" placeholder="저자에게 안내할 수정 또는 판정 사유"></textarea></label></div><div class="form-actions"><button type="submit" class="portal-button">판정 저장</button></div></form></section>
+
+          <section id="tab-profile" class="tab-panel" role="tabpanel" aria-label="내 정보" hidden><div class="section-head"><div><span class="portal-kicker">PROFILE</span><h2>내 정보</h2></div></div><form id="profile-form" class="portal-card portal-form"><div class="form-grid"><label>이름 <input id="profile-name" required maxlength="120" /></label><label>소속 <input id="profile-affiliation" required maxlength="200" /></label></div><p class="field-help">계정 이메일은 OAuth 제공자에서 관리합니다.</p><div class="form-actions"><button type="submit" class="portal-button">정보 저장</button></div></form></section>
+        </div>
+      </div>
+    </main>
+    <footer class="site-footer"><div class="shell footer-inner"><div><strong>Co-R&amp;BD Conference 2026</strong><p>College–Industry Cooperation for Research and Business Development</p></div><p>투고 시스템 시범 운영</p></div></footer>
+  </body>
+</html>
