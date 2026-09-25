@@ -25,6 +25,16 @@
         <div id="notice" class="portal-notice" role="status">시스템 연결 중입니다…</div>
         <div id="message" class="portal-message" role="status" aria-live="polite" hidden></div>
 
+        <section class="workflow-guide" aria-labelledby="workflow-title">
+          <div class="section-head"><div><span class="portal-kicker">SUBMISSION GUIDE</span><h2 id="workflow-title">투고부터 심사까지</h2></div><a class="guide-link" href="./cfp.html">모집 분야·분량·가안 일정 보기 ↗</a></div>
+          <div class="workflow-grid">
+            <article class="portal-card"><span class="workflow-step">01 / 저자</span><h3>원고 투고</h3><p>계정으로 로그인한 뒤 분야, 제목·초록, 저자와 소속을 입력합니다. 원고는 PDF 1개 이상, 파일당 20 MB 이하입니다.</p><p>초안은 접수가 아니며, PDF를 올리고 <strong>저장하고 제출</strong>을 눌러야 접수번호가 발급됩니다. 수정 요청을 받으면 같은 원고에서 새 버전을 제출할 수 있습니다.</p></article>
+            <article class="portal-card"><span class="workflow-step">02 / 심사위원</span><h3>배정과 심사</h3><p>배정된 원고의 저자·소속을 확인하고 이해관계가 있으면 사유를 남겨 배정을 거절합니다. 심사를 맡을 경우 원고 PDF를 읽고 의견을 임시저장하거나 권고와 함께 제출합니다.</p><p>임시저장한 의견은 판정에 반영되지 않습니다. 제출 후에도 위원장 판정 전에는 의견을 수정할 수 있습니다.</p></article>
+            <article class="portal-card"><span class="workflow-step">03 / 위원장</span><h3>판정과 결과</h3><p>위원장이 심사위원을 배정하고 제출된 심사 의견을 참고해 수정 요청·채택·반려를 결정합니다. 결과와 판정 메모는 저자의 작업 공간에서 확인할 수 있습니다.</p></article>
+          </div>
+          <p class="guide-footnote">공동저자 이메일의 계정 보유·실제 수신 여부는 자동 확인되지 않습니다. 제출 전 각 저자의 이름·소속·이메일을 직접 확인해 주세요. 논문 일정과 위원회 문의처는 확정 후 모집공고에 반영됩니다.</p>
+        </section>
+
         <section id="auth-panel" class="portal-card auth-card" aria-labelledby="auth-title" hidden>
           <div><span class="portal-kicker">START HERE</span><h2 id="auth-title">계정으로 시작하기</h2><p>이메일로 가입하거나 로그인해 원고를 관리하세요. 심사위원에게는 배정된 원고가 추가로 표시됩니다.</p></div>
           <div class="auth-actions">
@@ -61,14 +71,26 @@
               <div class="form-heading"><div><span class="portal-kicker">SUBMISSION</span><h3 id="paper-form-title">새 원고</h3></div><button type="button" id="cancel-paper" class="text-action">닫기</button></div>
               <input type="hidden" id="paper-id" />
               <div class="form-grid"><label class="full">원고 제목 <input id="paper-title" required minlength="5" maxlength="250" placeholder="연구 또는 실천사례의 제목" /></label><label>모집 분야 <select id="paper-track" required><option value="applied">전문기술석사 응용연구</option><option value="industry">산학공동기술개발 성과</option><option value="convergence">산업융합기술</option><option value="education">전문기술석사 교육·운영</option></select></label><label>제출 유형 <select id="paper-type" required><option value="research">응용연구</option><option value="case">실천사례</option><option value="poster">진행연구·포스터</option></select></label><label>희망 발표 형태 <select id="paper-presentation" required><option value="oral">구두</option><option value="poster">포스터</option><option value="demo">데모</option></select></label><label class="full">초록 <textarea id="paper-abstract" required minlength="20" maxlength="5000" rows="6" placeholder="연구 목적, 방법, 결과와 현장 활용성을 간략히 적어 주세요."></textarea></label></div>
-              <fieldset><legend>저자 정보</legend><p class="field-help">한 줄에 한 명씩 <strong>이름 | 소속 | 이메일(선택)</strong> 형식으로 적어 주세요. 첫 번째 저자가 대표저자입니다.</p><textarea id="paper-authors" required rows="3" placeholder="김연구 | 울산과학대학교 | author@example.com"></textarea></fieldset>
+              <fieldset><legend>저자 정보</legend><p class="field-help">한 줄에 한 명씩 <strong>이름 | 소속 | 이메일(선택)</strong> 형식으로 적어 주세요. 첫 번째 저자가 대표저자입니다. 공동저자 정보는 제출 전 직접 확인해 주세요.</p><textarea id="paper-authors" required rows="3" placeholder="김연구 | 울산과학대학교 | author@example.com"></textarea></fieldset>
               <label class="file-label">원고 PDF <small>20 MB 이하, 버전별 보관</small><input id="paper-file" type="file" accept="application/pdf,.pdf" /></label>
               <p class="field-help">기업 기밀·미공개 정보는 제외하세요. 자료집 또는 웹 공개는 별도 승인을 받습니다.</p>
+              <div id="paper-receipt" class="receipt-note" hidden></div>
               <div class="form-actions"><button type="submit" class="portal-button secondary" data-save="draft">초안 저장</button><button type="submit" class="portal-button" data-save="submitted">저장하고 제출</button></div>
             </form>
           </section>
 
-          <section id="tab-reviewer" class="tab-panel" role="tabpanel" aria-label="심사 배정" hidden><div class="section-head"><div><span class="portal-kicker">REVIEWER DESK</span><h2>배정된 원고</h2></div></div><div id="review-list" class="paper-grid"></div><form id="review-form" class="portal-card portal-form" hidden><div class="form-heading"><h3 id="review-title">심사 입력</h3><button type="button" id="cancel-review" class="text-action">닫기</button></div><input type="hidden" id="review-id" /><p id="review-paper-summary"></p><label class="checkbox-row"><input id="review-conflict" type="checkbox" required /> 저자·소속·과제 관계를 확인했으며 이해관계가 없습니다.</label><label>권고 <select id="review-recommendation" required><option value="">선택하세요</option><option value="accept">채택 권고</option><option value="revise">수정 권고</option><option value="reject">반려 권고</option></select></label><label>저자에게 전할 의견 <textarea id="review-comments" required minlength="10" rows="5"></textarea></label><div class="form-actions"><button type="submit" class="portal-button">심사 저장</button></div></form></section>
+          <section id="tab-reviewer" class="tab-panel" role="tabpanel" aria-label="심사 배정" hidden>
+            <div class="section-head"><div><span class="portal-kicker">REVIEWER DESK</span><h2>배정된 원고</h2></div></div><div id="review-list" class="paper-grid"></div>
+            <form id="review-form" class="portal-card portal-form" hidden>
+              <div class="form-heading"><h3 id="review-title">심사 입력</h3><button type="button" id="cancel-review" class="text-action">닫기</button></div>
+              <input type="hidden" id="review-id" /><p id="review-paper-summary"></p><div id="review-authors" class="muted-list"></div><p id="review-state-notice" class="field-help"></p>
+              <label class="checkbox-row"><input id="review-conflict" type="checkbox" required /> 저자·소속·과제 관계를 확인했으며 이해관계가 없습니다.</label>
+              <label>권고 <select id="review-recommendation" required><option value="">선택하세요</option><option value="accept">채택 권고</option><option value="revise">수정 권고</option><option value="reject">반려 권고</option></select></label>
+              <label>저자에게 전할 의견 <textarea id="review-comments" required minlength="10" rows="5"></textarea></label>
+              <div class="form-actions"><button type="submit" class="portal-button secondary" data-review-action="draft" formnovalidate>임시저장</button><button type="submit" class="portal-button" data-review-action="submit">심사 제출</button></div>
+              <details id="review-decline-panel" class="conflict-action"><summary>이해관계가 있어 심사를 맡을 수 없나요?</summary><label>배정 거절 사유 <textarea id="review-decline-reason" rows="3" maxlength="1000" placeholder="저자·소속·과제 등 이해관계를 간략히 적어 주세요."></textarea></label><button type="button" id="decline-review" class="portal-button secondary">배정 거절</button></details>
+            </form>
+          </section>
 
           <section id="tab-chair" class="tab-panel" role="tabpanel" aria-label="위원장 관리" hidden><div class="section-head"><div><span class="portal-kicker">CHAIR DESK</span><h2>접수와 판정</h2></div><button id="refresh-chair" type="button" class="portal-button secondary">목록 새로고침</button></div><div class="portal-card intake-control"><div><strong>접수 운영</strong><p>일정 확정 후 접수를 열어 주세요. 닫힌 상태에서도 접수된 원고의 심사는 가능합니다.</p></div><button id="toggle-intake" type="button" class="portal-button secondary">접수 열기</button></div><div id="chair-list" class="paper-grid"></div><form id="chair-form" class="portal-card portal-form" hidden><div class="form-heading"><h3 id="chair-title">원고 관리</h3><button type="button" id="cancel-chair" class="text-action">닫기</button></div><input type="hidden" id="chair-paper-id" /><div id="chair-paper-summary"></div><label>심사위원 이메일 <input id="reviewer-email" type="email" placeholder="가입한 심사위원의 이메일" /></label><button type="button" id="assign-reviewer" class="portal-button secondary">심사위원 배정</button><div id="assigned-reviewers" class="muted-list"></div><div class="form-grid"><label>판정 <select id="chair-status"><option value="">판정 보류</option><option value="under_review">심사 중</option><option value="revision">수정 요청</option><option value="accepted">채택</option><option value="rejected">반려</option></select></label><label>발표 형태 <select id="chair-presentation"><option value="">추후 결정</option><option value="oral">구두</option><option value="poster">포스터</option><option value="demo">데모</option></select></label><label class="full">판정 메모 <textarea id="chair-note" rows="3" placeholder="저자에게 안내할 수정 또는 판정 사유"></textarea></label></div><div class="form-actions"><button type="submit" class="portal-button">판정 저장</button></div></form></section>
 

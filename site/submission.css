@@ -58,6 +58,21 @@
 .paper-card p { margin: 0 0 24px; color: #63756b; font-size: 12px; line-height: 1.6; }
 .card-action { display: flex; justify-content: space-between; width: 100%; margin-top: auto; padding: 13px 0 0; border: 0; border-top: 1px solid #edf0ea; background: transparent; color: #286046; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
 .empty-state { grid-column: 1/-1; border: 1px dashed #bfd0bd; border-radius: 12px; padding: 34px; color: #64776a; background: #fbfcf8; }
+.workflow-guide { margin: 34px 0 44px; }
+.workflow-guide .section-head { align-items: end; }
+.workflow-guide h2 { margin: 6px 0 0; font-size: clamp(24px, 3vw, 34px); }
+.guide-link { color: #286046; font-size: 13px; font-weight: 800; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+.workflow-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.workflow-grid .portal-card { padding: 24px; }
+.workflow-step { color: #527144; font-size: 11px; font-weight: 900; letter-spacing: .1em; }
+.workflow-grid h3 { margin: 9px 0 12px; font-size: 20px; }
+.workflow-grid p { margin: 0 0 11px; color: #596d61; font-size: 13px; line-height: 1.7; }
+.workflow-grid p:last-child { margin-bottom: 0; }
+.guide-footnote { margin: 16px 0 0; color: #60736a; font-size: 12px; line-height: 1.7; }
+.receipt-note { margin: 16px 0; padding: 15px 18px; border: 1px solid #bfdbbf; border-radius: 8px; background: #f3faf1; color: #254a34; font-size: 13px; line-height: 1.7; }
+.conflict-action { margin-top: 23px; padding-top: 17px; border-top: 1px solid #dfe7dc; }
+.conflict-action summary { color: #8e4938; font-size: 13px; font-weight: 800; cursor: pointer; }
+.conflict-action label { margin: 16px 0 10px; }
 .intake-control { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 18px; }
 .intake-control strong { font-size: 15px; }
 .intake-control p { margin: 5px 0 0; color: #65776a; font-size: 12px; }
@@ -99,6 +114,8 @@
   .form-grid .full { grid-column: auto; }
   .portal-tabs button { padding: 13px 15px; }
   .paper-grid { grid-template-columns: 1fr; }
+  .workflow-grid { grid-template-columns: 1fr; }
+  .workflow-guide .section-head { align-items: start; }
 }
 @media (max-width: 440px) {
   .portal-nav a:first-child { display: none; }

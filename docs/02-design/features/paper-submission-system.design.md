@@ -12,6 +12,13 @@
 - 위원장: 접수 목록 → 등록 계정에서 심사위원 배정 → 원고/심사 조회 → `accepted`/`revision`/`rejected` 판정, 발표형태 기록.
 - 원고 상태: `draft`, `submitted`, `under_review`, `revision`, `accepted`, `rejected`. 저자는 `draft` 또는 `revision`만 수정하며 `submitted`로 재제출한다. 위원장이 나머지 전이를 관리한다.
 
+## CMT 참고 운영 흐름
+공개 투고 화면에 CFP·가안 일정으로 이동하는 링크와 저자/심사위원 안내를 둔다. 저자 안내는 계정 생성, 분야·제목·초록·공동저자 정보 확인, PDF 형식과 20 MB 제한, 초안 저장과 제출의 차이, 접수번호·상태 확인, 수정 요청 후 재제출 순서로 쓴다. 공동저자 이메일은 실제 계정이나 수신 여부가 자동 검증되지 않음을 명시한다. 심사 안내는 배정 확인, 저자·소속을 보고 이해관계 확인, PDF 열람, 의견 임시저장, 권고 제출, 위원장 판정 순서로 쓴다. CMT의 사이트 개설 요청이나 특정 대학 이메일 제한, 별도 CMT 계정, CMT 감사 문구는 이 자체 운영 시스템에 적용하지 않는다. 일정과 프로그램위원회 연락처는 확정 전이므로 임의의 확정 정보로 표시하지 않는다.
+
+심사 행은 `review_state`(`assigned`/`draft`/`submitted`/`declined`), `decline_reason`, `declined_at`을 가진다. 심사위원은 진행 중인 배정에서 임시저장하거나 권고·의견·이해관계 없음 확인을 갖춰 제출한다. 이해관계가 있으면 사유를 적어 배정을 거절할 수 있다. 거절 후에는 해당 원고와 PDF 열람 권한이 사라지고 위원장에게는 거절 사유가 표시되어 다른 심사위원을 배정할 수 있다. 기존 권고가 저장된 행은 마이그레이션 때 `submitted`로 옮긴다. 위원장 화면은 심사 상태를 구분하고 제출된 의견만 판정 근거로 표시한다.
+
+참고: [CMT 사이트 요청 안내](https://cmt3.research.microsoft.com/docs/help/general/request-conference.html), [CMT 저자 투고 안내](https://cmt3.research.microsoft.com/docs/help/author/author-submission-form.html), [CMT 심사위원 안내](https://cmt3.research.microsoft.com/docs/help/reviewer/reviewing-guide.html).
+
 ## 권한과 보안
 이메일·비밀번호 가입/로그인은 Supabase Auth를 사용한다. 확인 메일을 거쳐 로그인하며 비밀번호 재설정 링크는 동일한 투고 화면의 새 비밀번호 입력 폼으로 돌아온다. 비밀번호는 브라우저 상태나 DB 테이블에 별도 저장하지 않는다. Google 기본 provider와 Naver 사용자 지정 `custom:naver` provider도 지원한다. Naver의 중첩 프로필 응답은 Vercel 사용자 정보 함수에서 표준 필드로 변환한다. 간편 로그인 버튼은 Naver 초록색 N 및 Google의 다색 G 로고와 검은 배경을 사용하고, Kakao는 제공하지 않는다. OAuth 설정·Secret은 Supabase 대시보드에 두며 웹 코드에 넣지 않는다. `profiles`는 본인 수정, 위원장 조회. 원고·저자·파일 메타데이터는 소유자, 배정 심사위원, 위원장만 조회. 원고 수정과 업로드는 소유자 및 수정 가능 상태로 제한. 심사는 해당 심사위원이 자기 배정 행만 갱신하고, 위원장은 전체 조회·배정 가능. 비공개 Storage도 동일한 조회 범위. 위원장 지정은 서비스 운영자가 `staff_roles`에 Auth 사용자 ID를 직접 등록하며 웹에서 셀프 승격은 불가. 제출시 PDF 1개 이상 필수. 저자의 원고 생성에서는 판정용 필드를 비워야 하고, 심사위원 배정에서는 평가·이해관계 확인 필드를 비워야 한다. 원고와 심사의 ID·생성/배정 시각은 수정할 수 없다.
 
