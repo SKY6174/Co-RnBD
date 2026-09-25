@@ -33,6 +33,7 @@ python3 -m http.server 8765 --directory site
 2. Supabase Auth의 Site URL을 `https://co-rnbd.org`로, 허용 Redirect URL에 `https://co-rnbd.org/submission.html`을 등록합니다.
 3. Google Cloud OAuth 웹 앱을 만들고 Google 제공자 화면에 표시된 Supabase callback URL을 Google의 승인된 리다이렉트 URI에 등록합니다. Client ID/Secret은 Supabase Auth Providers의 Google 설정에만 입력합니다.
 4. Naver 개발자 앱에 Supabase 사용자 지정 provider의 callback URL을 등록합니다. Supabase Auth의 Custom OAuth Provider를 `custom:naver`로 만들고 Authorization URL `https://nid.naver.com/oauth2.0/authorize`, Token URL `https://nid.naver.com/oauth2.0/token`, UserInfo URL `https://co-rnbd.org/api/naver-userinfo`를 사용합니다. Naver 프로필의 중첩된 `response` 객체를 Vercel 함수가 표준 `sub`/`email`/`name`으로 변환합니다. Naver의 PKCE 지원 여부 및 토큰 교환 방식은 실제 앱 자격증명으로 확인해야 합니다. 제공자 설정이 지원하지 않으면 Naver 버튼은 열지 말고 별도 인증 어댑터를 검토합니다.
+   로그인 검증이 끝나면 Vercel 환경변수 `NAVER_OAUTH_ENABLED=true`를 설정하고 다시 배포합니다. 그전에는 Naver 버튼이 비활성화됩니다. Google 버튼은 Supabase의 제공자 활성화 상태를 자동으로 따릅니다.
 5. 위원장으로 사용할 계정이 한 번 로그인한 후 Supabase SQL Editor에서 해당 이메일을 확인하고 아래처럼 최초 역할을 부여합니다. 이 역할은 웹에서 셀프 부여할 수 없습니다.
 
 ```sql

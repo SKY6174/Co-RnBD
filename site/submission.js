@@ -46,6 +46,23 @@ async function loadSettings() {
   $('#toggle-intake').textContent = submissionsOpen ? '접수 닫기' : '접수 열기';
 }
 
+async function loadAuthAvailability(config) {
+  let settings = {};
+  try {
+    const response = await fetch(`${config.url}/auth/v1/settings`, {
+      headers: { apikey: config.publishableKey }, cache: 'no-store',
+    });
+    if (response.ok) settings = await response.json();
+  } catch { /* Leave providers disabled; the rest of the portal can still load. */ }
+  const googleReady = settings.external?.google === true;
+  const naverReady = config.naverEnabled === true;
+  $('[data-login="google"]').disabled = !googleReady;
+  $('[data-login="custom:naver"]').disabled = !naverReady;
+  $('#auth-availability').textContent = googleReady || naverReady
+    ? '가입과 로그인은 연결된 제공자를 통해 진행됩니다.'
+    : 'Google·Naver 로그인 연동 준비 중입니다. 제공자 설정 후 이용할 수 있습니다.';
+}
+
 async function loadWorkspace() {
   const session = check(await client.auth.getSession()).session;
   const current = session ? check(await client.auth.getUser()).user : null;
@@ -296,6 +313,7 @@ async function start() {
     if (!response.ok) throw new Error('Supabase 공개 설정이 연결되지 않았습니다. Vercel 환경변수를 확인해 주세요.');
     const config = await response.json();
     client = createClient(config.url, config.publishableKey);
+    await loadAuthAvailability(config);
     await loadSettings();
     await loadWorkspace();
     client.auth.onAuthStateChange((_event, session) => {
