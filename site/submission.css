@@ -82,6 +82,7 @@
 .text-action { border: 0; background: transparent; color: #5c7163; font: inherit; font-weight: 800; cursor: pointer; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .form-grid .full { grid-column: 1/-1; }
+.paper-extra-fields { margin-top: 19px; }
 .portal-form label, .portal-form fieldset { display: grid; gap: 8px; color: #314b3e; font-size: 13px; font-weight: 800; }
 .portal-form label { margin-bottom: 18px; }
 .portal-form input:not([type="checkbox"]):not([type="file"]), .portal-form select, .portal-form textarea { width: 100%; min-width: 0; border: 1px solid #cbd7ca; border-radius: 7px; background: #fff; color: #21392d; padding: 12px 13px; font: inherit; font-size: 14px; font-weight: 400; }
@@ -90,6 +91,10 @@
 .portal-form fieldset { border: 0; padding: 0; margin: 7px 0 18px; }
 .portal-form legend { margin-bottom: 6px; }
 .portal-form fieldset textarea { display: block; }
+.committee-fields { border-top: 1px solid #e2e9df !important; padding-top: 22px !important; margin-top: 20px !important; }
+.choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 5px 0 18px; }
+.portal-form .choice-option { display: flex; align-items: center; gap: 9px; min-height: 44px; margin: 0; padding: 10px 12px; border: 1px solid #d7e2d1; border-radius: 7px; background: #f8faf6; font-weight: 600; line-height: 1.45; cursor: pointer; }
+.choice-option input { flex: 0 0 auto; }
 .field-help { color: #65776a; font-size: 12px; font-weight: 400; line-height: 1.6; }
 .file-label small { color: #77887b; font-size: 11px; font-weight: 400; }
 .file-label input { padding: 10px 0; font-size: 13px; font-weight: 400; }
@@ -112,6 +117,7 @@
   .intake-control { align-items: start; flex-direction: column; }
   .form-grid { grid-template-columns: 1fr; gap: 0; }
   .form-grid .full { grid-column: auto; }
+  .choice-grid { grid-template-columns: 1fr; }
   .portal-tabs button { padding: 13px 15px; }
   .paper-grid { grid-template-columns: 1fr; }
   .workflow-grid { grid-template-columns: 1fr; }

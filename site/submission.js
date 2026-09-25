@@ -31,6 +31,20 @@ function check(result) {
   return result.data;
 }
 
+function hasCompleteProfile() {
+  return Boolean(profile?.full_name?.trim() && profile?.affiliation?.trim());
+}
+
+function parseKeywords(value, forSubmission = false) {
+  const words = value.split(',').map((word) => word.trim()).filter(Boolean);
+  const unique = new Set(words.map((word) => word.toLocaleLowerCase()));
+  if (words.length > 5 || unique.size !== words.length || words.some((word) => word.length > 50)) {
+    throw new Error('키워드는 중복 없이 50자 이하로 최대 5개 입력해 주세요.');
+  }
+  if (forSubmission && words.length === 1) throw new Error('키워드를 입력할 경우 2~5개 적어 주세요. 비워두어도 제출할 수 있습니다.');
+  return words;
+}
+
 function showTab(name) {
   document.querySelectorAll('[data-tab]').forEach((button) => {
     const active = button.dataset.tab === name;
@@ -81,6 +95,14 @@ async function loadWorkspace() {
   $('#account-email').textContent = profile.email || user.email || '이메일 정보 없음';
   $('#profile-name').value = profile.full_name || '';
   $('#profile-affiliation').value = profile.affiliation || '';
+  $('#profile-department').value = profile.department || '';
+  $('#profile-position').value = profile.position_title || '';
+  $('#profile-orcid').value = profile.orcid || '';
+  $('#profile-email').value = profile.email || user.email || '';
+  $('#profile-listing-consent').checked = Boolean(profile.committee_listing_consent);
+  document.querySelectorAll('[name="expertise-track"]').forEach((input) => {
+    input.checked = (profile.expertise_tracks || []).includes(input.value);
+  });
   $('[data-tab="chair"]').hidden = !isChair;
   await Promise.all([loadMyPapers(), loadReviews(), isChair ? loadChairPapers() : Promise.resolve()]);
 }
@@ -150,6 +172,9 @@ async function openAuthor(paperId = '') {
     $('#paper-track').value = paper.track;
     $('#paper-type').value = paper.paper_type;
     $('#paper-presentation').value = paper.preferred_presentation;
+    $('#paper-keywords').value = (paper.keywords || []).join(', ');
+    $('#paper-contact-name').value = paper.contact_name || '';
+    $('#paper-contact-email').value = paper.contact_email || '';
     const authors = check(await client.from('paper_authors').select('*').eq('paper_id', paperId).order('sort_order'));
     $('#paper-authors').value = authors.map((author) => [author.full_name, author.affiliation, author.email].filter(Boolean).join(' | ')).join('\n');
     const files = check(await client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }));
@@ -160,7 +185,11 @@ async function openAuthor(paperId = '') {
       $('#paper-receipt').hidden = false;
     }
     if (paper.decision_note) message(`위원장 메모: ${paper.decision_note}`);
-  } else document.getElementById('paper-file-links')?.remove();
+  } else {
+    $('#paper-contact-name').value = profile.full_name || '';
+    $('#paper-contact-email').value = profile.email || user.email || '';
+    document.getElementById('paper-file-links')?.remove();
+  }
   $('#paper-form').querySelectorAll('input:not([type="hidden"]),select,textarea,button[type="submit"]').forEach((field) => { field.disabled = !editable; });
   if (editable && !submissionsOpen) $('#paper-form').querySelector('[data-save="submitted"]').disabled = true;
   $('#paper-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -182,8 +211,18 @@ async function savePaper(event) {
   const paperId = $('#paper-id').value;
   try {
     const authors = parseAuthors($('#paper-authors').value);
-    const input = { title: $('#paper-title').value.trim(), abstract: $('#paper-abstract').value.trim(), track: $('#paper-track').value, paper_type: $('#paper-type').value, preferred_presentation: $('#paper-presentation').value };
+    const keywords = parseKeywords($('#paper-keywords').value, submit);
+    const input = {
+      title: $('#paper-title').value.trim(), abstract: $('#paper-abstract').value.trim(),
+      track: $('#paper-track').value, paper_type: $('#paper-type').value,
+      preferred_presentation: $('#paper-presentation').value,
+      contact_name: $('#paper-contact-name').value.trim(),
+      contact_email: $('#paper-contact-email').value.trim(), keywords,
+    };
     if (input.title.length < 5 || input.abstract.length < 20) throw new Error('제목과 초록을 확인해 주세요.');
+    if (input.contact_email && !/^\S+@\S+\.\S+$/.test(input.contact_email)) throw new Error('연락 이메일 형식을 확인해 주세요.');
+    if (submit && !hasCompleteProfile()) throw new Error('원고 제출 전에 내 정보에서 이름·소속기관을 저장해 주세요. 초안은 먼저 저장할 수 있습니다.');
+    if (submit && (!input.contact_name || !input.contact_email)) throw new Error('원고 제출에는 연락 담당자 이름과 이메일이 필요합니다.');
     let id = paperId;
     if (id) {
       check(await client.from('papers').update(input).eq('id', id));
@@ -238,14 +277,15 @@ async function openChair(paperId) {
   const paper = chairPapers.find((row) => row.id === paperId);
   $('#chair-paper-id').value = paperId;
   $('#chair-title').textContent = paper.title;
-  $('#chair-paper-summary').innerHTML = `<p>${esc(paper.abstract)}</p><p class="field-help">접수번호 ${esc(paperId.slice(0, 8).toUpperCase())}</p>`;
+  $('#chair-paper-summary').innerHTML = `<p>${esc(paper.abstract)}</p><p class="field-help">키워드: ${esc((paper.keywords || []).join(', ') || '미입력')}<br>연락 담당자: ${esc(paper.contact_name || '미입력')} · ${esc(paper.contact_email || '미입력')}<br>접수번호 ${esc(paperId.slice(0, 8).toUpperCase())}</p>`;
   $('#chair-status').value = paper.status;
   $('#chair-presentation').value = paper.final_presentation || '';
   $('#chair-note').value = paper.decision_note || '';
-  selectedChairReviews = check(await client.from('reviews').select('id,reviewer_id,review_state,recommendation,comments,decline_reason,submitted_at,profiles(full_name,email)').eq('paper_id', paperId));
+  selectedChairReviews = check(await client.from('reviews').select('id,reviewer_id,review_state,recommendation,comments,decline_reason,submitted_at,profiles(full_name,email,expertise_tracks)').eq('paper_id', paperId));
   $('#assigned-reviewers').innerHTML = selectedChairReviews.length ? selectedChairReviews.map((review) => {
     const detail = review.review_state === 'declined' ? review.decline_reason : review.review_state === 'submitted' ? review.comments : '';
-    return `<p>${esc(review.profiles?.full_name || review.profiles?.email || '심사위원')} · ${esc(REVIEW_STATES[review.review_state] || '심사 대기')}${review.review_state === 'submitted' ? ` · ${esc(RECOMMENDATIONS[review.recommendation])}` : ''}${detail ? `<br><small>${esc(detail)}</small>` : ''}</p>`;
+    const expertise = (review.profiles?.expertise_tracks || []).map((track) => TRACKS[track] || track).join(', ');
+    return `<p>${esc(review.profiles?.full_name || review.profiles?.email || '심사위원')} · ${esc(REVIEW_STATES[review.review_state] || '심사 대기')}${review.review_state === 'submitted' ? ` · ${esc(RECOMMENDATIONS[review.recommendation])}` : ''}<br><small>전문 분야: ${esc(expertise || '미입력')}</small>${detail ? `<br><small>${esc(detail)}</small>` : ''}</p>`;
   }).join('') : '<p>아직 배정된 심사위원이 없습니다. 2명 배정을 권장합니다.</p>';
   const files = check(await client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }));
   showFiles(files, $('#chair-form'), 'chair-file-links');
@@ -350,9 +390,19 @@ $('#recovery-form').addEventListener('submit', async (event) => {
 $('#profile-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   try {
-    check(await client.from('profiles').update({ full_name: $('#profile-name').value.trim(), affiliation: $('#profile-affiliation').value.trim() }).eq('user_id', user.id));
-    message('내 정보를 저장했습니다.');
+    const expertiseTracks = [...document.querySelectorAll('[name="expertise-track"]:checked')].map((input) => input.value);
+    if (expertiseTracks.length > 3) throw new Error('전문 분야는 최대 3개 선택할 수 있습니다.');
+    const input = {
+      full_name: $('#profile-name').value.trim(), affiliation: $('#profile-affiliation').value.trim(),
+      department: $('#profile-department').value.trim(), position_title: $('#profile-position').value.trim(),
+      orcid: $('#profile-orcid').value.trim(), expertise_tracks: expertiseTracks,
+      committee_listing_consent: $('#profile-listing-consent').checked,
+    };
+    if (!input.full_name || !input.affiliation) throw new Error('이름과 소속기관을 입력해 주세요.');
+    if (input.orcid && !/^([0-9]{4}-){3}[0-9]{3}[0-9X]$/.test(input.orcid)) throw new Error('ORCID iD 형식을 확인해 주세요.');
+    check(await client.from('profiles').update(input).eq('user_id', user.id).select('user_id').single());
     await loadWorkspace();
+    message('내 정보를 저장했습니다.');
   } catch (error) { message(error.message, true); }
 });
 
@@ -361,6 +411,9 @@ $('#review-form').addEventListener('submit', async (event) => {
   try {
     const draft = event.submitter?.dataset.reviewAction === 'draft';
     const comments = $('#review-comments').value.trim();
+    if (!draft && (!hasCompleteProfile() || (profile.expertise_tracks || []).length === 0)) {
+      throw new Error('심사 제출 전에 내 정보에서 이름·소속기관과 전문 분야 1~3개를 저장해 주세요.');
+    }
     if (!draft && (!$('#review-conflict').checked || !$('#review-recommendation').value || comments.length < 10)) {
       throw new Error('이해관계 확인, 권고, 10자 이상의 의견을 입력해 주세요.');
     }
