@@ -29,6 +29,8 @@ python3 -m http.server 8765 --directory site
 
 ## 투고 시스템 운영 설정
 
+Google OAuth 앱에 입력할 공개 문서: [개인정보처리방침](https://co-rnbd.org/privacy.html), [서비스 이용약관](https://co-rnbd.org/terms.html). 홈페이지와 투고 화면의 푸터에서도 연결됩니다. 개인정보처리자·문의처·보유기간은 운영자가 확인한 값으로 기재했습니다. 계정·투고·심사 자료는 학회 종료일인 2026년 12월 18일까지 보유하므로, 종료 후 Supabase Auth·데이터베이스·Storage 및 백업의 파기 절차를 실제 운영 계획에 반영해야 합니다.
+
 1. Vercel 프로젝트 루트가 `site/`인지 확인하고 `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`를 설정합니다. 이 두 값만 `/api/config`에서 공개합니다. 서비스 역할 키는 웹·Vercel 공개 환경변수에 넣지 않습니다.
 2. Supabase Auth의 Site URL을 `https://co-rnbd.org`로, 허용 Redirect URL에 `https://co-rnbd.org/submission.html`을 등록합니다. 이메일 제공자와 이메일 확인을 활성화하고, 본운영 전 전용 SMTP를 연결합니다. 이메일·비밀번호 가입, 로그인, 비밀번호 재설정 메일이 이 설정을 사용합니다. 기본 Supabase 발송 서비스는 테스트 용량이 제한됩니다.
 3. Google Cloud OAuth 웹 앱을 만들고 Google 제공자 화면에 표시된 Supabase callback URL을 Google의 승인된 리다이렉트 URI에 등록합니다. Client ID/Secret은 Supabase Auth Providers의 Google 설정에만 입력합니다.
