@@ -5,3 +5,4 @@
 .vercel/
 supabase/.temp/
 node_modules/
+docs/.pdca-status.json
