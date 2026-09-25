@@ -344,7 +344,7 @@ $('#cancel-chair').addEventListener('click', () => { $('#chair-form').hidden = t
 $('#refresh-chair').addEventListener('click', () => loadChairPapers().catch((error) => message(error.message, true)));
 $('#toggle-intake').addEventListener('click', async () => {
   try {
-    check(await client.from('conference_settings').update({ submissions_open: !submissionsOpen, notice: submissionsOpen ? '투고 접수는 현재 마감되었습니다.' : '논문·실천사례 투고 접수 중입니다.' }).eq('id', true));
+    check(await client.from('conference_settings').update({ submissions_open: !submissionsOpen, notice: submissionsOpen ? '투고 접수는 현재 마감되었습니다.' : '논문·현장사례 투고 접수 중입니다.' }).eq('id', true));
     await loadSettings();
     message(submissionsOpen ? '접수를 열었습니다.' : '접수를 닫았습니다.');
   } catch (error) { message(error.message, true); }

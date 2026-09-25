@@ -1,4 +1,4 @@
-# Co-R&BD Conference 2026 — 논문·실천사례 모집공고 초안
+# Co-R&BD Conference 2026 — 논문·현장사례 모집공고 초안
 
 > **내부 검토용** · 행사일·캠퍼스·일반 참가신청 마감은 확정. 주최·주관, 등록비, 논문 일정, 투고·등록 URL, 문의처와 세부 행사장은 게시 전 확정한다.
 
@@ -10,7 +10,7 @@
 *College–Industry Cooperation for Research and Business Development*<br>
 **전문기술석사 연구와 산학공동기술개발과제의 만남**
 
-전문기술석사 연구성과와 산학공동기술개발과제의 현장 적용 경험을 공유하고, 대학과 기업의 후속 공동과제를 발굴하기 위해 논문 및 실천사례를 모집합니다. 전문기술석사 재학생·졸업생, 전문대학 교수·연구진, 산업체 공동연구자의 참여를 환영합니다.
+전문기술석사 연구성과와 산학공동기술개발과제의 현장 적용 경험을 공유하고, 대학과 기업의 후속 공동과제를 발굴하기 위해 논문 및 현장사례를 모집합니다. 전문기술석사 재학생·졸업생, 전문대학 교수·연구진, 산업체 공동연구자의 참여를 환영합니다.
 
 **모집 분야**
 
@@ -70,7 +70,7 @@ The conference invites applied research and practice cases from professional tec
 
 Submit only information approved for review and presentation. Do not include confidential company information. Release in the proceedings or on the website requires separate approval of the relevant disclosure scope.
 
-**Confirmed conference dates and campus:** December 17–18, 2026, Dongbu Campus, Ulsan College, Ulsan, Republic of Korea. **General attendee application deadline:** October 30, 2026, 18:00 KST. Presenters register separately after acceptance. Proposed paper dates: submissions open October 12; deadline November 6, 18:00 KST; notification November 20; final submission and presenter registration November 27, 18:00 KST. Paper dates, room details, organizers, and URLs require confirmation before publication.
+**Confirmed conference dates and campus:** December 17–18, 2026, Eastern Campus, Ulsan College, Ulsan, Republic of Korea. **General attendee application deadline:** October 30, 2026, 18:00 KST. Presenters register separately after acceptance. Proposed paper dates: submissions open October 12; deadline November 6, 18:00 KST; notification November 20; final submission and presenter registration November 27, 18:00 KST. Paper dates, room details, organizers, and URLs require confirmation before publication.
 
 At least one author of each accepted contribution must register and present onsite. Final contributions approved for release may be included in the conference proceedings.
 
