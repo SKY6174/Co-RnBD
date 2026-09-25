@@ -81,8 +81,23 @@ async function loadAuthAvailability(config) {
 }
 
 async function loadWorkspace() {
-  const session = check(await client.auth.getSession()).session;
-  const current = session ? check(await client.auth.getUser()).user : null;
+  const sessionResult = await client.auth.getSession();
+  let session = sessionResult.data?.session;
+  if (sessionResult.error) {
+    if (!/Auth session missing/i.test(sessionResult.error.message)) throw sessionResult.error;
+    await client.auth.signOut({ scope: 'local' });
+    message('로그인 세션이 만료되었습니다. 다시 로그인해 주세요.');
+    session = null;
+  }
+  let current = null;
+  if (session) {
+    const result = await client.auth.getUser();
+    if (result.error) {
+      if (!/Auth session missing/i.test(result.error.message)) throw result.error;
+      await client.auth.signOut({ scope: 'local' });
+      message('로그인 세션이 만료되었습니다. 다시 로그인해 주세요.');
+    } else current = result.data.user;
+  }
   user = current;
   $('#recovery-panel').hidden = !isRecovery;
   $('#auth-panel').hidden = Boolean(user) || isRecovery;
