@@ -47,7 +47,8 @@ async function loadSettings() {
 }
 
 async function loadWorkspace() {
-  const current = check(await client.auth.getUser()).user;
+  const session = check(await client.auth.getSession()).session;
+  const current = session ? check(await client.auth.getUser()).user : null;
   user = current;
   $('#auth-panel').hidden = Boolean(user);
   $('#workspace').hidden = !user;
