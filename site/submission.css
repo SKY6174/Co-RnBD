@@ -29,7 +29,7 @@
 .social-button svg { width: 24px; height: 24px; flex: 0 0 24px; }
 .naver-button { background: #03c75a; }
 .google-button { background: #191919; }
-.social-button:disabled { opacity: .65; cursor: not-allowed; }
+.social-button:disabled { cursor: not-allowed; }
 .social-button:not(:disabled):hover { filter: brightness(.93); }
 .recovery-card { max-width: 600px; }
 .recovery-card h2 { margin: 7px 0 12px; font-size: 30px; }
