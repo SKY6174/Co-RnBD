@@ -13,13 +13,13 @@
 - 원고 상태: `draft`, `submitted`, `under_review`, `revision`, `accepted`, `rejected`. 저자는 `draft` 또는 `revision`만 수정하며 `submitted`로 재제출한다. 위원장이 나머지 전이를 관리한다.
 
 ## 권한과 보안
-OAuth는 Google 기본 provider와 Naver 사용자 지정 `custom:naver` provider를 사용한다. OAuth 설정·Secret은 Supabase 대시보드에 두며 웹 코드에 넣지 않는다. `profiles`는 본인 수정, 위원장 조회. 원고·저자·파일 메타데이터는 소유자, 배정 심사위원, 위원장만 조회. 원고 수정과 업로드는 소유자 및 수정 가능 상태로 제한. 심사는 해당 심사위원이 자기 배정 행만 갱신하고, 위원장은 전체 조회·배정 가능. 비공개 Storage도 동일한 조회 범위. 위원장 지정은 서비스 운영자가 `staff_roles`에 Auth 사용자 ID를 직접 등록하며 웹에서 셀프 승격은 불가. 제출시 PDF 1개 이상 필수.
+이메일·비밀번호 가입/로그인은 Supabase Auth를 사용한다. 확인 메일을 거쳐 로그인하며 비밀번호 재설정 링크는 동일한 투고 화면의 새 비밀번호 입력 폼으로 돌아온다. 비밀번호는 브라우저 상태나 DB 테이블에 별도 저장하지 않는다. Google 기본 provider와 Naver 사용자 지정 `custom:naver` provider도 지원한다. Naver의 중첩 프로필 응답은 Vercel 사용자 정보 함수에서 표준 필드로 변환한다. 간편 로그인 버튼은 Naver 초록색 N 및 Google의 다색 G 로고와 검은 배경을 사용하고, Kakao는 제공하지 않는다. OAuth 설정·Secret은 Supabase 대시보드에 두며 웹 코드에 넣지 않는다. `profiles`는 본인 수정, 위원장 조회. 원고·저자·파일 메타데이터는 소유자, 배정 심사위원, 위원장만 조회. 원고 수정과 업로드는 소유자 및 수정 가능 상태로 제한. 심사는 해당 심사위원이 자기 배정 행만 갱신하고, 위원장은 전체 조회·배정 가능. 비공개 Storage도 동일한 조회 범위. 위원장 지정은 서비스 운영자가 `staff_roles`에 Auth 사용자 ID를 직접 등록하며 웹에서 셀프 승격은 불가. 제출시 PDF 1개 이상 필수.
 
 ## 데이터 흐름 및 검증
 클라이언트는 Supabase PKCE OAuth 후 세션을 회복하고, `papers`/`paper_authors`/`paper_files`/`reviews`를 Data API로 접근한다. 파일 크기는 20 MiB, MIME은 PDF로 제한한다. UI는 필수값, 길이, 파일 형식을 검사하고 DB 제약으로 재검증한다. 파일 업로드 성공 뒤 메타데이터 삽입이 실패하면 업로드 파일을 삭제한다. 오류는 화면에 알린다.
 
 ## 설정·배포
-마이그레이션으로 테이블, RLS, 버킷을 만든다. Google/Naver 앱과 허용 리다이렉트 URL은 대시보드에서 설정한다. 행사 일정은 CFP의 가안이며 UI에 확정 마감으로 표기하지 않는다. 기본 운영은 접수 기능을 준비 상태로 배포하고, 운영자가 `conference_settings.submissions_open`을 켜야 실제 제출된다.
+마이그레이션으로 테이블, RLS, 버킷을 만든다. 이메일 확인과 재설정 메일은 Supabase Auth가 발송하며 본운영 전에 전용 SMTP와 허용 리다이렉트 URL을 설정한다. Google/Naver 앱도 대시보드에서 설정한다. 행사 일정은 CFP의 가안이며 UI에 확정 마감으로 표기하지 않는다. 기본 운영은 접수 기능을 준비 상태로 배포하고, 운영자가 `conference_settings.submissions_open`을 켜야 실제 제출된다.
 
 ## 확인
 SQL 마이그레이션 구문 검사, 정적 JS 문법 검사, 390px·데스크톱 렌더 확인, 미로그인/역할별 접근과 파일 다운로드 확인. 실제 OAuth 통합은 제공자 자격증명 등록 후 검증한다.

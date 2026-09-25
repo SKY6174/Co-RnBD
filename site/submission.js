@@ -14,6 +14,8 @@ let myPapers = [];
 let reviewRows = [];
 let chairPapers = [];
 let selectedChairReviews = [];
+let isRecovery = new URLSearchParams(location.hash.slice(1)).get('type') === 'recovery'
+  || new URLSearchParams(location.search).get('type') === 'recovery';
 
 function message(text, error = false) {
   const target = $('#message');
@@ -59,17 +61,18 @@ async function loadAuthAvailability(config) {
   $('[data-login="google"]').disabled = !googleReady;
   $('[data-login="custom:naver"]').disabled = !naverReady;
   $('#auth-availability').textContent = googleReady || naverReady
-    ? '가입과 로그인은 연결된 제공자를 통해 진행됩니다.'
-    : 'Google·Naver 로그인 연동 준비 중입니다. 제공자 설정 후 이용할 수 있습니다.';
+    ? '이메일 로그인과 연결된 소셜 계정을 이용할 수 있습니다.'
+    : '소셜 로그인은 연동 준비 중입니다. 이메일로 가입하거나 로그인할 수 있습니다.';
 }
 
 async function loadWorkspace() {
   const session = check(await client.auth.getSession()).session;
   const current = session ? check(await client.auth.getUser()).user : null;
   user = current;
-  $('#auth-panel').hidden = Boolean(user);
-  $('#workspace').hidden = !user;
-  if (!user) return;
+  $('#recovery-panel').hidden = !isRecovery;
+  $('#auth-panel').hidden = Boolean(user) || isRecovery;
+  $('#workspace').hidden = !user || isRecovery;
+  if (!user || isRecovery) return;
   profile = check(await client.from('profiles').select('*').eq('user_id', user.id).single());
   const role = check(await client.from('staff_roles').select('role').eq('user_id', user.id).maybeSingle());
   isChair = role?.role === 'chair';
@@ -259,6 +262,57 @@ $('#toggle-intake').addEventListener('click', async () => {
 });
 $('#sign-out').addEventListener('click', async () => { await client.auth.signOut(); user = null; $('#workspace').hidden = true; $('#auth-panel').hidden = false; showTab('author'); });
 
+$('#email-auth-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const email = $('#auth-email').value.trim().toLowerCase();
+  const password = $('#auth-password').value;
+  const action = event.submitter?.dataset.emailAction || 'login';
+  try {
+    if (action === 'signup') {
+      const result = check(await client.auth.signUp({ email, password, options: {
+        emailRedirectTo: `${location.origin}/submission.html`,
+      } }));
+      if (result.session) {
+        await loadWorkspace();
+        message('회원가입이 완료되었습니다. 내 정보를 입력해 주세요.');
+      } else message('확인 메일을 보냈습니다. 메일의 링크로 인증한 뒤 로그인해 주세요.');
+    } else {
+      check(await client.auth.signInWithPassword({ email, password }));
+      await loadWorkspace();
+      message('로그인했습니다.');
+    }
+  } catch (error) { message(error.message || '이메일 인증을 완료하지 못했습니다.', true); }
+  finally { $('#auth-password').value = ''; }
+});
+
+$('#request-reset').addEventListener('click', async () => {
+  const emailInput = $('#auth-email');
+  if (!emailInput.reportValidity()) return;
+  try {
+    check(await client.auth.resetPasswordForEmail(emailInput.value.trim().toLowerCase(), {
+      redirectTo: `${location.origin}/submission.html`,
+    }));
+    message('해당 계정이 있으면 비밀번호 재설정 메일을 보냅니다. 받은 편지함을 확인해 주세요.');
+  } catch (error) { message(error.message || '재설정 메일을 보내지 못했습니다.', true); }
+});
+
+$('#recovery-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const password = $('#recovery-password').value;
+  if (password !== $('#recovery-confirm').value) {
+    message('새 비밀번호가 서로 다릅니다.', true);
+    return;
+  }
+  try {
+    check(await client.auth.updateUser({ password }));
+    $('#recovery-form').reset();
+    isRecovery = false;
+    history.replaceState(null, '', `${location.pathname}${location.search}`);
+    await loadWorkspace();
+    message('비밀번호가 변경되었습니다.');
+  } catch (error) { message(error.message || '비밀번호를 변경하지 못했습니다.', true); }
+});
+
 $('#profile-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   try {
@@ -313,12 +367,19 @@ async function start() {
     if (!response.ok) throw new Error('Supabase 공개 설정이 연결되지 않았습니다. Vercel 환경변수를 확인해 주세요.');
     const config = await response.json();
     client = createClient(config.url, config.publishableKey);
+    client.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        isRecovery = true;
+        $('#recovery-panel').hidden = false;
+        $('#auth-panel').hidden = true;
+        $('#workspace').hidden = true;
+      } else if (!isRecovery && session?.user?.id !== user?.id) {
+        setTimeout(() => loadWorkspace().catch((error) => message(error.message, true)), 0);
+      }
+    });
     await loadAuthAvailability(config);
     await loadSettings();
     await loadWorkspace();
-    client.auth.onAuthStateChange((_event, session) => {
-      if (session?.user?.id !== user?.id) setTimeout(() => loadWorkspace().catch((error) => message(error.message, true)), 0);
-    });
   } catch (error) { $('#notice').textContent = error.message; message(error.message, true); }
 }
 start();

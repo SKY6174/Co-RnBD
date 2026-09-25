@@ -14,8 +14,27 @@
 .auth-card h2, .workspace-top h2, .section-head h2 { margin: 7px 0 10px; font-size: clamp(26px, 3vw, 37px); letter-spacing: -.035em; }
 .auth-card p, .workspace-top p { margin: 0; color: #60736a; font-size: 14px; line-height: 1.7; }
 .portal-kicker { color: #6d8b48; font-size: 11px; font-weight: 900; letter-spacing: .16em; }
-.auth-actions { display: grid; gap: 10px; min-width: 210px; }
-.auth-actions .field-help { max-width: 220px; margin: 1px 0 0; }
+.auth-actions { display: grid; gap: 10px; width: min(100%, 340px); min-width: 300px; }
+.auth-actions .field-help { margin: 1px 0 0; }
+.email-auth-form { display: grid; gap: 11px; }
+.email-auth-form label { display: grid; gap: 6px; color: #314b3e; font-size: 12px; font-weight: 800; }
+.email-auth-form input, .recovery-card input { width: 100%; min-width: 0; border: 1px solid #cbd7ca; border-radius: 7px; background: #fff; color: #21392d; padding: 11px 12px; font: inherit; font-size: 14px; }
+.email-auth-form input:focus, .recovery-card input:focus { outline: 2px solid #9fcb64; outline-offset: 1px; }
+.auth-links { display: flex; justify-content: space-between; gap: 12px; }
+.auth-links button { border: 0; background: transparent; color: #38694d; padding: 4px 0; font: inherit; font-size: 12px; font-weight: 800; text-decoration: underline; cursor: pointer; }
+.auth-divider { position: relative; margin: 5px 0 2px; color: #7b897e; text-align: center; font-size: 11px; }
+.auth-divider::before { content: ""; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #dfe7dc; }
+.auth-divider span { position: relative; padding: 0 10px; background: #fff; }
+.social-button { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 54px; border: 0; border-radius: 9px; color: #fff; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; }
+.social-button svg { width: 24px; height: 24px; flex: 0 0 24px; }
+.naver-button { background: #03c75a; }
+.google-button { background: #191919; }
+.social-button:disabled { opacity: .65; cursor: not-allowed; }
+.social-button:not(:disabled):hover { filter: brightness(.93); }
+.recovery-card { max-width: 600px; }
+.recovery-card h2 { margin: 7px 0 12px; font-size: 30px; }
+.recovery-card p { color: #60736a; font-size: 14px; }
+.recovery-card .portal-form { padding: 0; border: 0; box-shadow: none; }
 .portal-button { display: inline-flex; align-items: center; justify-content: center; min-height: 43px; border: 1px solid #244d38; border-radius: 7px; background: #244d38; color: #fff; padding: 10px 17px; font: inherit; font-size: 13px; font-weight: 800; text-decoration: none; cursor: pointer; }
 .portal-button:hover { background: #38694d; }
 .portal-button.secondary { background: #fff; color: #244d38; }
@@ -72,7 +91,7 @@
   .portal-nav a { font-size: 11px; }
   .portal-main { padding: 46px 0 80px; }
   .auth-card { grid-template-columns: 1fr; gap: 24px; }
-  .auth-actions { min-width: 0; }
+  .auth-actions { width: 100%; min-width: 0; }
   .portal-card { padding: 22px; }
   .workspace-top, .section-head { align-items: start; flex-direction: column; }
   .intake-control { align-items: start; flex-direction: column; }
