@@ -51,7 +51,8 @@
           <div class="auth-actions">
             <form id="email-auth-form" class="email-auth-form">
               <label>이메일 <input id="auth-email" type="email" autocomplete="email" required placeholder="name@example.edu" /></label>
-              <label>비밀번호 <input id="auth-password" type="password" autocomplete="current-password" required minlength="8" placeholder="8자 이상" /></label>
+              <label>비밀번호 <input id="auth-password" type="password" autocomplete="current-password" required placeholder="비밀번호 입력" /></label>
+              <p class="field-help">회원가입 시 비밀번호는 10자 이상입니다. 기존 계정은 현재 비밀번호로 로그인할 수 있습니다.</p>
               <button type="submit" class="portal-button" data-email-action="login">이메일로 로그인</button>
               <div class="auth-links"><button type="submit" data-email-action="signup">이메일 회원가입</button><button type="button" id="request-reset">비밀번호 재설정</button></div>
             </form>
@@ -68,7 +69,7 @@
         <section id="recovery-panel" class="portal-card recovery-card" aria-labelledby="recovery-title" hidden>
           <span class="portal-kicker">ACCOUNT RECOVERY</span><h2 id="recovery-title">새 비밀번호 설정</h2>
           <p>재설정 메일을 통해 인증되었습니다. 새 비밀번호를 입력해 주세요.</p>
-          <form id="recovery-form" class="portal-form"><label>새 비밀번호 <input id="recovery-password" type="password" autocomplete="new-password" minlength="8" required /></label><label>새 비밀번호 확인 <input id="recovery-confirm" type="password" autocomplete="new-password" minlength="8" required /></label><button type="submit" class="portal-button">비밀번호 변경</button></form>
+          <form id="recovery-form" class="portal-form"><label>새 비밀번호 <input id="recovery-password" type="password" autocomplete="new-password" minlength="10" placeholder="10자 이상" required /></label><label>새 비밀번호 확인 <input id="recovery-confirm" type="password" autocomplete="new-password" minlength="10" placeholder="10자 이상" required /></label><button type="submit" class="portal-button">비밀번호 변경</button></form>
         </section>
 
         <div id="workspace" hidden>

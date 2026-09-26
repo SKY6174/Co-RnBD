@@ -7,6 +7,11 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STATUSES = { draft: '초안', submitted: '제출 완료', under_review: '심사 중', revision: '수정 요청', accepted: '채택', rejected: '반려', declined: '배정 거절' };
 const RECOMMENDATIONS = { accept: '채택 권고', revise: '수정 권고', reject: '반려 권고' };
 const REVIEW_STATES = { assigned: '심사 대기', draft: '임시저장', submitted: '심사 제출', declined: '배정 거절' };
+const EMAIL_LINK_TYPES = { 'auth-signup': 'email', 'auth-magiclink': 'magiclink', 'auth-recovery': 'recovery' };
+const emailLinkParams = new URLSearchParams(location.hash.slice(1));
+const emailLink = Object.entries(EMAIL_LINK_TYPES)
+  .map(([name, type]) => ({ token_hash: emailLinkParams.get(name), type }))
+  .find(({ token_hash }) => token_hash);
 let client;
 let user;
 let profile;
@@ -20,7 +25,8 @@ let reviewRows = [];
 let chairPapers = [];
 let selectedChairReviews = [];
 let isRecovery = new URLSearchParams(location.hash.slice(1)).get('type') === 'recovery'
-  || new URLSearchParams(location.search).get('type') === 'recovery';
+  || new URLSearchParams(location.search).get('type') === 'recovery'
+  || emailLink?.type === 'recovery';
 
 function message(text, error = false) {
   const target = $('#message');
@@ -445,13 +451,17 @@ $('#email-auth-form').addEventListener('submit', async (event) => {
   const action = event.submitter?.dataset.emailAction || 'login';
   try {
     if (action === 'signup') {
+      if (password.length < 10) {
+        message('회원가입 비밀번호는 10자 이상으로 입력해 주세요.', true);
+        return;
+      }
       const result = check(await client.auth.signUp({ email, password, options: {
         emailRedirectTo: `${location.origin}/submission.html`,
       } }));
       if (result.session) {
         await loadWorkspace();
         message('회원가입이 완료되었습니다. 내 정보를 입력해 주세요.');
-      } else message('확인 메일을 보냈습니다. 메일의 링크로 인증한 뒤 로그인해 주세요.');
+      } else message('신규 계정이면 확인 메일이 발송됩니다. 메일의 링크로 인증해 주세요. 이미 가입한 이메일이면 로그인하거나 비밀번호를 재설정해 주세요.');
     } else {
       check(await client.auth.signInWithPassword({ email, password }));
       await loadWorkspace();
@@ -591,7 +601,23 @@ async function start() {
     });
     await loadAuthAvailability(config);
     await loadSettings();
+    let emailLinkMessage;
+    let emailLinkError = false;
+    if (emailLink) {
+      try {
+        check(await client.auth.verifyOtp(emailLink));
+        emailLinkMessage = emailLink.type === 'recovery'
+          ? '이메일 인증이 완료되었습니다. 새 비밀번호를 설정해 주세요.'
+          : '이메일 인증이 완료되었습니다.';
+      } catch (error) {
+        isRecovery = false;
+        emailLinkError = true;
+        emailLinkMessage = '인증 링크가 유효하지 않거나 만료되었습니다. 새 메일을 요청해 주세요.';
+      }
+      history.replaceState(null, '', `${location.pathname}${location.search}`);
+    }
     await loadWorkspace();
+    if (emailLinkMessage) message(emailLinkMessage, emailLinkError);
   } catch (error) { $('#notice').textContent = error.message; message(error.message, true); }
 }
 start();
