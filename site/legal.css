@@ -35,11 +35,14 @@
 @media (max-width: 760px) {
   .legal-header .brand-logo { width: 174px; }
   .legal-header .header-inner { align-items: flex-start; flex-direction: column; gap: 10px; padding-block: 14px; }
-  .legal-nav { gap: 10px 16px; }
-  .legal-nav a { font-size: 12px; }
+  .legal-nav { gap: 0 16px; }
+  .legal-nav a { display: inline-flex; align-items: center; min-height: 42px; font-size: 12px; line-height: 1.3; }
   .legal-hero { padding: 52px 0 48px; }
   .legal-layout { display: block; padding-top: 30px; padding-bottom: 70px; }
   .legal-toc { position: static; display: flex; flex-wrap: wrap; gap: 4px 15px; margin-bottom: 42px; }
   .legal-toc strong { width: 100%; }
   .legal-content section { scroll-margin-top: 155px; }
+}
+@media (max-width: 580px) {
+  .legal-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 8px; width: 100%; }
 }
