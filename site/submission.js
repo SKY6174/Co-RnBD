@@ -36,6 +36,19 @@ function message(text, error = false) {
   if (text) target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+function showAuthMode(mode) {
+  if (mode === 'signup' && !$('#signup-email').value) $('#signup-email').value = $('#auth-email').value.trim();
+  if (mode === 'login' && $('#signup-email').value) $('#auth-email').value = $('#signup-email').value.trim();
+  $('#email-auth-form').hidden = mode !== 'login';
+  $('#signup-form').hidden = mode !== 'signup';
+  $('#signup-pending').hidden = mode !== 'pending';
+  $('#auth-title').textContent = mode === 'signup' ? '이메일 회원가입' : mode === 'pending' ? '이메일 확인 대기' : '계정으로 시작하기';
+  $('#auth-description').textContent = mode === 'signup'
+    ? '이메일과 비밀번호를 설정하고 확인 메일을 받아 주세요.'
+    : mode === 'pending' ? '받은 편지함의 확인 링크를 열면 가입이 완료됩니다.'
+      : '이메일로 가입하거나 로그인해 원고를 관리하세요. 심사위원에게는 배정된 원고가 추가로 표시됩니다.';
+}
+
 function check(result) {
   if (result.error) throw result.error;
   return result.data;
@@ -442,33 +455,52 @@ $('#phase-form').addEventListener('submit', async (event) => {
     message('접수·심사·최종본 운영 설정을 저장했습니다.');
   } catch (error) { message(error.message, true); }
 });
-$('#sign-out').addEventListener('click', async () => { await client.auth.signOut(); user = null; $('#workspace').hidden = true; $('#auth-panel').hidden = false; showTab('author'); });
+$('#sign-out').addEventListener('click', async () => { await client.auth.signOut(); user = null; $('#workspace').hidden = true; $('#auth-panel').hidden = false; showAuthMode('login'); showTab('author'); });
+
+document.querySelectorAll('[data-auth-mode]').forEach((button) => button.addEventListener('click', () => {
+  $('#auth-password').value = '';
+  $('#signup-password').value = '';
+  $('#signup-confirm').value = '';
+  showAuthMode(button.dataset.authMode);
+  message('');
+}));
 
 $('#email-auth-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const email = $('#auth-email').value.trim().toLowerCase();
   const password = $('#auth-password').value;
-  const action = event.submitter?.dataset.emailAction || 'login';
   try {
-    if (action === 'signup') {
-      if (password.length < 10) {
-        message('회원가입 비밀번호는 10자 이상으로 입력해 주세요.', true);
-        return;
-      }
-      const result = check(await client.auth.signUp({ email, password, options: {
-        emailRedirectTo: `${location.origin}/submission.html`,
-      } }));
-      if (result.session) {
-        await loadWorkspace();
-        message('회원가입이 완료되었습니다. 내 정보를 입력해 주세요.');
-      } else message('신규 계정이면 확인 메일이 발송됩니다. 메일의 링크로 인증해 주세요. 이미 가입한 이메일이면 로그인하거나 비밀번호를 재설정해 주세요.');
-    } else {
-      check(await client.auth.signInWithPassword({ email, password }));
-      await loadWorkspace();
-      message('로그인했습니다.');
-    }
+    check(await client.auth.signInWithPassword({ email, password }));
+    await loadWorkspace();
+    message('로그인했습니다.');
   } catch (error) { message(error.message || '이메일 인증을 완료하지 못했습니다.', true); }
   finally { $('#auth-password').value = ''; }
+});
+
+$('#signup-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const email = $('#signup-email').value.trim().toLowerCase();
+  const password = $('#signup-password').value;
+  if (password.length < 10) { message('회원가입 비밀번호는 10자 이상으로 입력해 주세요.', true); return; }
+  if (password !== $('#signup-confirm').value) { message('비밀번호 확인이 일치하지 않습니다.', true); return; }
+  const submitButton = event.submitter;
+  if (submitButton) submitButton.disabled = true;
+  try {
+    const result = check(await client.auth.signUp({ email, password, options: {
+      emailRedirectTo: `${location.origin}/submission.html`,
+    } }));
+    if (result.session) {
+      await client.auth.signOut();
+      throw new Error('가입 확인 메일 설정을 확인해 주세요. 운영자에게 문의해 주세요.');
+    }
+    showAuthMode('pending');
+    message('가입 확인 메일을 요청했습니다. 이메일의 확인 링크를 열면 가입이 완료됩니다.');
+  } catch (error) { message(error.message || '가입 확인 메일을 요청하지 못했습니다.', true); }
+  finally {
+    $('#signup-password').value = '';
+    $('#signup-confirm').value = '';
+    if (submitButton) submitButton.disabled = false;
+  }
 });
 
 $('#request-reset').addEventListener('click', async () => {
@@ -608,7 +640,8 @@ async function start() {
         check(await client.auth.verifyOtp(emailLink));
         emailLinkMessage = emailLink.type === 'recovery'
           ? '이메일 인증이 완료되었습니다. 새 비밀번호를 설정해 주세요.'
-          : '이메일 인증이 완료되었습니다.';
+          : emailLink.type === 'email' ? '이메일 인증이 완료되어 회원가입이 완료되었습니다. 내 정보를 입력해 주세요.'
+            : '이메일 인증이 완료되었습니다.';
       } catch (error) {
         isRecovery = false;
         emailLinkError = true;
@@ -617,6 +650,10 @@ async function start() {
       history.replaceState(null, '', `${location.pathname}${location.search}`);
     }
     await loadWorkspace();
+    if (emailLink?.type === 'email' && !emailLinkError && !user) {
+      showAuthMode('login');
+      emailLinkMessage = '이메일 인증이 완료되어 회원가입이 완료되었습니다. 이메일과 비밀번호로 로그인해 주세요.';
+    }
     if (emailLinkMessage) message(emailLinkMessage, emailLinkError);
   } catch (error) { $('#notice').textContent = error.message; message(error.message, true); }
 }
