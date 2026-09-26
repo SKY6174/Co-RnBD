@@ -8,7 +8,7 @@
 python3 -m http.server 8765 --directory site
 ```
 
-브라우저에서 `http://127.0.0.1:8765/`를 엽니다. 정적 파일만 사용하므로 `site/index.html`을 직접 열어도 볼 수 있습니다.
+브라우저에서 `http://127.0.0.1:8765/`를 엽니다. 행사 안내와 CFP는 정적으로 볼 수 있지만, 투고 화면의 실제 데이터 흐름은 Vercel `/api/config`와 연결된 Supabase 환경에서 확인해야 합니다.
 
 ## 현재 범위
 
@@ -44,6 +44,7 @@ select id, 'chair' from auth.users where email = 'chair@example.edu'
 on conflict (user_id) do update set role = excluded.role;
 ```
 
-6. 개인정보 보존기간·공고 일정·기관 승인 후 위원장 작업 공간에서 **접수 열기**를 누릅니다. 심사위원은 먼저 로그인한 계정 이메일로 배정합니다. 원고당 2명 배정을 권장합니다.
+6. 개인정보 보존기간·공고 일정·기관 승인 후 위원장 작업 공간의 **단계 운영**에서 원고 접수를 엽니다. 마감 시각은 한국시간으로 입력하며, 비워 두면 시간 제한이 없습니다. 심사위원은 먼저 로그인한 계정 이메일로 배정하고 원고당 2명을 권장합니다. 배정 전 저자·소속·과제 이해관계를 확인한 뒤 심사 입력 단계를 엽니다.
+7. 판정은 저장 즉시 저자의 작업 공간에 표시되며 자동 이메일은 발송하지 않습니다. 채택 후 최종본 제출 단계를 열면 저자가 같은 원고에서 최종 PDF를 올릴 수 있습니다. 최종본은 저자와 위원장만 열람합니다. 자료집·웹 공개는 별도 승인 후 진행합니다.
 
 관련 설계: [`docs/02-design/features/paper-submission-system.design.md`](../docs/02-design/features/paper-submission-system.design.md). [Google OAuth](https://supabase.com/docs/guides/auth/social-login/auth-google), [사용자 지정 OAuth](https://supabase.com/docs/guides/auth/custom-oauth-providers), [Naver API](https://developers.naver.com/docs/login/api/api.md).
