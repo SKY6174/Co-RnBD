@@ -113,9 +113,10 @@ async function loadSettings() {
   submissionsOpen = settings.submissions_open && beforeDeadline(settings.submission_deadline);
   reviewsOpen = settings.reviews_open && beforeDeadline(settings.review_deadline);
   finalUploadsOpen = settings.final_uploads_open && beforeDeadline(settings.final_deadline);
+  const publicNotice = settings.notice?.trim() || (submissionsOpen ? '투고 접수 중입니다.' : '투고 접수 준비 중입니다.');
   $('#notice').textContent = settings.submissions_open && !submissionsOpen
-    ? '투고 접수 기간이 종료되었습니다.'
-    : settings.notice || (submissionsOpen ? '투고 접수 중입니다.' : '투고 접수 준비 중입니다.');
+    ? `투고 접수 기간이 종료되었습니다. ${publicNotice}`
+    : publicNotice;
   $('#phase-overview').innerHTML = phaseCard('원고 접수', settings.submissions_open, settings.submission_deadline)
     + phaseCard('심사 입력', settings.reviews_open, settings.review_deadline)
     + phaseCard('최종본 제출', settings.final_uploads_open, settings.final_deadline);
@@ -126,6 +127,7 @@ async function loadSettings() {
   $('#phase-submission-deadline').value = kstInputValue(settings.submission_deadline);
   $('#phase-review-deadline').value = kstInputValue(settings.review_deadline);
   $('#phase-final-deadline').value = kstInputValue(settings.final_deadline);
+  $('#phase-notice').value = settings.notice || '';
 }
 
 async function loadAuthAvailability(config) {
@@ -441,7 +443,8 @@ $('#phase-form').addEventListener('submit', async (event) => {
   try {
     const submissionsRequested = $('#phase-submissions').checked;
     const submissionDeadline = deadlineValue('#phase-submission-deadline');
-    const intakeActive = submissionsRequested && beforeDeadline(submissionDeadline);
+    const notice = $('#phase-notice').value.trim();
+    if (!notice || notice.length > 500) throw new Error('공개 투고 안내문을 1~500자로 입력해 주세요.');
     check(await client.from('conference_settings').update({
       submissions_open: submissionsRequested,
       submission_deadline: submissionDeadline,
@@ -449,10 +452,10 @@ $('#phase-form').addEventListener('submit', async (event) => {
       review_deadline: deadlineValue('#phase-review-deadline'),
       final_uploads_open: $('#phase-final').checked,
       final_deadline: deadlineValue('#phase-final-deadline'),
-      notice: intakeActive ? '논문·현장사례 투고 접수 중입니다.' : '투고 접수는 현재 닫혀 있습니다.',
+      notice,
     }).eq('id', true).select('id').single());
     await loadSettings();
-    message('접수·심사·최종본 운영 설정을 저장했습니다.');
+    message('접수·심사·최종본 운영 설정과 공개 안내문을 저장했습니다.');
   } catch (error) { message(error.message, true); }
 });
 $('#sign-out').addEventListener('click', async () => { await client.auth.signOut(); user = null; $('#workspace').hidden = true; $('#auth-panel').hidden = false; showAuthMode('login'); showTab('author'); });
