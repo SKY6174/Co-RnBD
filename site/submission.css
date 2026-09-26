@@ -146,5 +146,7 @@
   .portal-nav a:first-child { display: none; }
   .portal-nav { gap: 10px; }
   .portal-nav a { white-space: nowrap; }
+  .form-heading { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .form-heading .text-action { min-height: 44px; padding: 8px 0; }
   .form-actions .portal-button { flex: 1 1 100%; }
 }
