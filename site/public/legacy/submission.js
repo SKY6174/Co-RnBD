@@ -25,6 +25,7 @@ let myPapers = [];
 let reviewRows = [];
 let chairPapers = [];
 let selectedChairReviews = [];
+let portalReady = false;
 let isRecovery = new URLSearchParams(location.hash.slice(1)).get('type') === 'recovery'
   || new URLSearchParams(location.search).get('type') === 'recovery'
   || emailLink?.type === 'recovery';
@@ -173,8 +174,12 @@ async function loadWorkspace() {
   $('#auth-panel').hidden = Boolean(user) || isRecovery;
   $('#workspace').hidden = !user || isRecovery;
   if (!user || isRecovery) return;
-  profile = check(await client.from('profiles').select('*').eq('user_id', user.id).single());
-  const role = check(await client.from('staff_roles').select('role').eq('user_id', user.id).maybeSingle());
+  const [profileResult, roleResult] = await Promise.all([
+    client.from('profiles').select('*').eq('user_id', user.id).single(),
+    client.from('staff_roles').select('role').eq('user_id', user.id).maybeSingle(),
+  ]);
+  profile = check(profileResult);
+  const role = check(roleResult);
   isChair = role?.role === 'chair';
   $('#welcome').textContent = `${profile.full_name || '회원'}님의 작업 공간`;
   $('#account-email').textContent = profile.email || user.email || '이메일 정보 없음';
@@ -636,7 +641,7 @@ async function start() {
         $('#recovery-panel').hidden = false;
         $('#auth-panel').hidden = true;
         $('#workspace').hidden = true;
-      } else if (!isRecovery && session?.user?.id !== user?.id) {
+      } else if (portalReady && !isRecovery && session?.user?.id !== user?.id) {
         setTimeout(() => loadWorkspace().catch((error) => message(error.message, true)), 0);
       }
     });
@@ -669,6 +674,7 @@ async function start() {
       history.replaceState(null, '', `${location.pathname}${location.search}`);
     }
     await loadWorkspace();
+    portalReady = true;
     if (emailLink?.type === 'email' && !emailLinkError && !user) {
       showAuthMode('login');
       emailLinkMessage = '이메일 인증이 완료되어 회원가입이 완료되었습니다. 이메일과 비밀번호로 로그인해 주세요.';
