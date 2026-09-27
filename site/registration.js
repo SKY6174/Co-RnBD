@@ -89,8 +89,10 @@ async function start() {
     await load();
     client.auth.onAuthStateChange(() => setTimeout(() => load().catch((error) => notice(error.message, true)), 0));
   } catch (error) {
-    $('#registration-account').textContent = '신청 정보를 불러오지 못했습니다.';
-    notice(error.message, true);
+    const preparing = ['PGRST204', 'PGRST205', '42703'].includes(error.code)
+      || /could not find (the table|the .*column)/i.test(error.message);
+    $('#registration-account').textContent = preparing ? '참가 신청 시스템을 준비 중입니다.' : '신청 정보를 불러오지 못했습니다.';
+    notice(preparing ? '참가 신청은 운영 준비 후 시작됩니다.' : '신청 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', !preparing);
   }
 }
 start();

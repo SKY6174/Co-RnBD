@@ -46,8 +46,15 @@ async function start() {
       }).join('')}</div></section>`).join('');
     status.textContent = '확정되어 공개된 세션만 표시합니다. 세부 일정은 변경될 수 있습니다.';
   } catch (error) {
-    status.textContent = `프로그램을 불러오지 못했습니다: ${error.message}`;
-    status.classList.add('error');
+    const preparing = error.code === 'PGRST205' || /could not find the table/i.test(error.message);
+    status.textContent = preparing
+      ? '확정 프로그램을 준비 중입니다. 세션과 연사는 확정 후 이곳에 공개합니다.'
+      : '프로그램을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
+    if (preparing) {
+      list.innerHTML = '<div class="operations-empty">공개된 세션이 없습니다. 홈페이지의 1박 2일 일정은 운영 가안입니다.</div>';
+    } else {
+      status.classList.add('error');
+    }
   }
 }
 
