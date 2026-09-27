@@ -41,3 +41,5 @@ Vercel에는 `SUPABASE_URL`과 `SUPABASE_PUBLISHABLE_KEY`가 설정되어 있습
 DB 마이그레이션은 `supabase/migrations/`에 있고 연결된 `Co-RnBD-2026` 프로젝트에 적용했습니다. 접수 스위치는 기본적으로 **닫힘**입니다. 논문 일정·주최기관·개인정보 보존 기준이 확정되면 위원장 계정에서 접수를 열 수 있습니다. Google/Naver OAuth 제공자 등록과 최초 위원장 지정 방법은 [운영 설정](site/README.md#투고-시스템-운영-설정)에 있습니다.
 
 Next.js Route Handler가 `/api/config`와 `/api/naver-userinfo`를 제공합니다. 로컬 공개 설정이 없으면 데이터 화면에는 연결 안내가 표시되며, 실제 투고 흐름은 별도의 안전한 Supabase 환경에서 검증해야 합니다.
+
+공동위원장의 [현황 모니터링](https://co-rnbd.org/monitor.html)은 현재 회차의 일반 참가신청과 논문투고 집계를 한곳에 보여 줍니다. `staff_roles`의 위원장 역할과 슈퍼 관리자 표식으로 접근을 제한합니다. 실제 배포 전에는 이 링크가 아직 제공되지 않을 수 있습니다.

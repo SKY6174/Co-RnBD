@@ -59,4 +59,10 @@ on conflict (user_id) do update set role = excluded.role;
 
 연사와 세션은 기본적으로 비공개입니다. 위원장이 사용 동의와 일정·장소를 확인하고 각각 공개로 바꾸면 `program.html`에 표시됩니다. 홈페이지의 1박 2일 시간표는 계속 운영 가안으로 표시됩니다. 결제, 자동 확인 메일, 출석증명서 발급은 확정된 운영 정책이 없으므로 구현하지 않았습니다.
 
+## 공동위원장 현황 모니터링
+
+`staff_roles.is_super_admin`은 위원장 역할에 추가되는 운영 권한 표식입니다. 송경영의 확인된 `kysong@uc.ac.kr` 및 `song.kyoung.young@gmail.com` 계정에만 마이그레이션 `20260927151538_super_admin_monitor.sql`이 이를 부여합니다. 셀프 승격은 불가능합니다. 두 계정은 투고·심사 화면에서 로그인한 뒤 **현황 모니터링** 메뉴로 `monitor.html`에 이동할 수 있습니다.
+
+현재 회차의 일반 참가신청과 논문을 상태별로 집계하고, 목록을 검색·필터링·새로고침할 수 있습니다. 초안과 취소 신청은 별도 집계합니다. 변경이 필요하면 기존 참가·프로그램 관리 또는 투고·심사 관리 화면에서 진행합니다. 이 모니터링 화면은 원고 PDF를 노출하거나 개인정보를 다운로드하지 않습니다.
+
 관련 설계: [`docs/02-design/features/paper-submission-system.design.md`](../docs/02-design/features/paper-submission-system.design.md). [Google OAuth](https://supabase.com/docs/guides/auth/social-login/auth-google), [사용자 지정 OAuth](https://supabase.com/docs/guides/auth/custom-oauth-providers), [Naver API](https://developers.naver.com/docs/login/api/api.md).

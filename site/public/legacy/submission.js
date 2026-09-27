@@ -174,8 +174,9 @@ async function loadWorkspace() {
   $('#workspace').hidden = !user || isRecovery;
   if (!user || isRecovery) return;
   profile = check(await client.from('profiles').select('*').eq('user_id', user.id).single());
-  const role = check(await client.from('staff_roles').select('role').eq('user_id', user.id).maybeSingle());
+  const role = check(await client.from('staff_roles').select('role,is_super_admin').eq('user_id', user.id).maybeSingle());
   isChair = role?.role === 'chair';
+  $('#submission-monitor-link').hidden = !role?.is_super_admin;
   $('#welcome').textContent = `${profile.full_name || '회원'}님의 작업 공간`;
   $('#account-email').textContent = profile.email || user.email || '이메일 정보 없음';
   $('#profile-name').value = profile.full_name || '';
