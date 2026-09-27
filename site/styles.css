@@ -28,7 +28,7 @@ img { max-width: 100%; }
 .skip-link { position: absolute; left: 16px; top: -60px; z-index: 100; padding: 10px 14px; background: white; color: var(--deep); }
 .skip-link:focus { top: 16px; }
 .section { padding: 116px 0; scroll-margin-top: 84px; }
-.section-index { margin: 0 0 20px; color: #56736a; font-size: 11px; font-weight: 700; letter-spacing: .17em; }
+.section-index { margin: 0 0 20px; color: #56736a; font-size: 11px; font-weight: 700; letter-spacing: .085em; }
 h1, h2, h3, p { margin-top: 0; }
 
 .draft-bar { display: flex; justify-content: center; align-items: center; gap: 9px; min-height: 33px; padding: 6px 20px; background: var(--lime); color: #26342a; font-size: 11px; font-weight: 700; letter-spacing: .01em; text-align: center; }
@@ -48,7 +48,7 @@ h1, h2, h3, p { margin-top: 0; }
 .hero::after { content: ""; position: absolute; right: -12%; bottom: -36%; width: 58%; aspect-ratio: 1; border: 1px solid rgba(214,242,109,.12); border-radius: 50%; pointer-events: none; }
 .hero-layout { position: relative; display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(300px, .88fr); align-items: center; min-height: 650px; padding-top: 90px; }
 .hero-copy { position: relative; z-index: 2; align-self: center; padding-bottom: 102px; }
-.eyebrow { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; color: var(--lime); font-size: 11px; font-weight: 700; letter-spacing: .23em; }
+.eyebrow { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; color: var(--lime); font-size: 11px; font-weight: 700; letter-spacing: .115em; }
 .eyebrow-line { width: 30px; height: 1px; background: var(--lime); }
 .hero h1 { margin: 0; max-width: 790px; color: #f6f7ee; font-size: clamp(60px, 6.7vw, 104px); font-weight: 700; line-height: .98; letter-spacing: -.084em; white-space: nowrap; }
 .hero h1 .amp { color: var(--lime); }
