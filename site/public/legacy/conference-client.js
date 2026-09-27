@@ -9,10 +9,14 @@ export function requireData(result) {
   return result.data;
 }
 
-export async function conferenceClient() {
+export async function conferenceConfig() {
   const response = await fetch('/api/config');
   if (!response.ok) throw new Error('사이트 데이터 연결을 확인할 수 없습니다.');
-  const { url, publishableKey } = await response.json();
+  return response.json();
+}
+
+export async function conferenceClient(config) {
+  const { url, publishableKey } = config ?? await conferenceConfig();
   if (!url || !publishableKey) throw new Error('사이트 데이터 설정이 완료되지 않았습니다.');
   return createClient(url, publishableKey);
 }

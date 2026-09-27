@@ -1,4 +1,4 @@
-import { conferenceClient, currentEdition, editionDateRange, escapeHtml, requireData } from './conference-client.js';
+import { conferenceClient, conferenceConfig, currentEdition, editionDateRange, escapeHtml, requireData } from './conference-client.js';
 
 const $ = (selector) => document.querySelector(selector);
 const STATES = { applied: '확인 대기', confirmed: '참가 확정', cancelled: '취소됨' };
@@ -27,20 +27,16 @@ function notice(text, error = false) {
   $('#registration-message').classList.toggle('error', error);
 }
 
-async function loadAuthAvailability() {
-  let config;
+async function loadAuthAvailability(config) {
   let settings = {};
   try {
-    const configResponse = await fetch('/api/config');
-    if (!configResponse.ok) throw new Error('사이트 인증 설정을 확인할 수 없습니다.');
-    config = await configResponse.json();
     const settingsResponse = await fetch(`${config.url}/auth/v1/settings`, {
       headers: { apikey: config.publishableKey }, cache: 'no-store',
     });
     if (settingsResponse.ok) settings = await settingsResponse.json();
   } catch { /* 제공자 설정을 읽지 못해도 이메일 로그인 링크는 이용할 수 있습니다. */ }
   const googleReady = settings.external?.google === true;
-  const naverReady = config?.naverEnabled === true;
+  const naverReady = config.naverEnabled === true;
   $('[data-registration-login="google"]').disabled = !googleReady;
   $('[data-registration-login="custom:naver"]').disabled = !naverReady;
   $('#registration-auth-availability').textContent = googleReady || naverReady
@@ -151,9 +147,9 @@ $('#registration-form').addEventListener('submit', async (event) => {
 
 async function start() {
   try {
-    client = await conferenceClient();
-    await loadAuthAvailability();
-    edition = await currentEdition(client);
+    const config = await conferenceConfig();
+    client = await conferenceClient(config);
+    [, edition] = await Promise.all([loadAuthAvailability(config), currentEdition(client)]);
     await load();
     client.auth.onAuthStateChange(() => setTimeout(() => load().catch((error) => notice(error.message, true)), 0));
   } catch (error) {
