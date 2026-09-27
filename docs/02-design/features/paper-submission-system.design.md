@@ -34,3 +34,7 @@
 
 ## 확인
 SQL 마이그레이션 구문 검사, 정적 JS 문법 검사, 390px·데스크톱 렌더 확인, 미로그인/역할별 접근과 파일 다운로드 확인. 실제 OAuth 통합은 제공자 자격증명 등록 후 검증한다.
+
+## 역할별 통합 검증에서 확인한 RLS 순환 수정
+
+위원장의 `reviews` INSERT 정책은 대상 `papers`를 조회한다. 기존 `papers_read` 정책이 다시 `reviews`를 직접 조회해 PostgreSQL의 RLS 순환 오류(42P17)가 발생한다. `papers_read`의 배정 심사위원 확인만 `app_private.has_active_review(paper_id)`로 옮긴다. 이 함수는 현재 인증 사용자에게 해당 원고의 거절되지 않은 배정이 있는지만 반환하고, `app_private` 스키마에서 `SECURITY DEFINER`와 고정 `search_path`를 사용한다. 함수 실행 권한은 `authenticated`에만 부여한다. 저자·위원장 조회 조건과 배정·거절 규칙은 그대로 유지한다.
