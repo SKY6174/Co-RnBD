@@ -27,6 +27,43 @@ function notice(text, error = false) {
   $('#registration-message').classList.toggle('error', error);
 }
 
+async function loadAuthAvailability() {
+  let config;
+  let settings = {};
+  try {
+    const configResponse = await fetch('/api/config');
+    if (!configResponse.ok) throw new Error('사이트 인증 설정을 확인할 수 없습니다.');
+    config = await configResponse.json();
+    const settingsResponse = await fetch(`${config.url}/auth/v1/settings`, {
+      headers: { apikey: config.publishableKey }, cache: 'no-store',
+    });
+    if (settingsResponse.ok) settings = await settingsResponse.json();
+  } catch { /* 제공자 설정을 읽지 못해도 이메일 로그인 링크는 이용할 수 있습니다. */ }
+  const googleReady = settings.external?.google === true;
+  const naverReady = config?.naverEnabled === true;
+  $('[data-registration-login="google"]').disabled = !googleReady;
+  $('[data-registration-login="custom:naver"]').disabled = !naverReady;
+  $('#registration-auth-availability').textContent = googleReady || naverReady
+    ? '이메일 로그인과 연결된 소셜 계정을 이용할 수 있습니다.'
+    : '간편로그인은 연동 준비 중입니다. 이메일로 가입하거나 로그인할 수 있습니다.';
+}
+
+$('#registration-login').addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-registration-login]');
+  if (!button || button.disabled) return;
+  button.disabled = true;
+  try {
+    const { error } = await client.auth.signInWithOAuth({
+      provider: button.dataset.registrationLogin,
+      options: { redirectTo: `${location.origin}/registration.html` },
+    });
+    if (error) throw error;
+  } catch (error) {
+    notice(`로그인 설정을 확인해 주세요: ${error.message}`, true);
+    button.disabled = false;
+  }
+});
+
 async function load() {
   const settings = requireData(await client.from('conference_settings')
     .select('registration_open,registration_deadline').eq('edition_year', edition.year).single());
@@ -110,6 +147,7 @@ $('#registration-form').addEventListener('submit', async (event) => {
 async function start() {
   try {
     client = await conferenceClient();
+    await loadAuthAvailability();
     edition = await currentEdition(client);
     await load();
     client.auth.onAuthStateChange(() => setTimeout(() => load().catch((error) => notice(error.message, true)), 0));

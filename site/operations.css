@@ -21,6 +21,9 @@
 .operations-button { display: inline-flex; align-items: center; justify-content: center; min-height: 43px; padding: 9px 17px; border: 1px solid var(--deep); border-radius: 3px; background: var(--deep); color: #fff; font: inherit; font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer; }
 .operations-button.secondary { background: #fff; color: var(--deep); }
 .operations-button:disabled { opacity: .5; cursor: not-allowed; }
+.registration-social-actions { display: grid; gap: 10px; max-width: 360px; margin-top: 18px; }
+.registration-auth-help { color: var(--muted); font-size: 12px; }
+.registration-email-link { margin-top: 20px; font-size: 13px; }
 .operations-note { padding: 13px 16px; border-left: 3px solid var(--lime-dark); background: #eff4e7; color: #3d5749; line-height: 1.65; }
 .operations-note.error { border-color: #c9664e; background: #fff0ec; color: #8e3423; }
 .operations-list { display: grid; gap: 12px; }
@@ -54,6 +57,7 @@
   .operations-grid, .operations-form-grid { grid-template-columns: 1fr; }
   .operations-form-grid .wide { grid-column: auto; }
   .operations-card { padding: 20px; }
+  .registration-social-actions { max-width: none; }
   .operations-header-nav { gap: 9px; }
   .operations-header-nav a { font-size: 11px; }
   .operations-session { grid-template-columns: 1fr; gap: 4px; }
