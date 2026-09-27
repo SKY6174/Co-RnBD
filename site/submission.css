@@ -145,6 +145,8 @@
   .workflow-guide .section-head { align-items: start; }
 }
 @media (max-width: 440px) {
+  .portal-header .header-inner { flex-wrap: wrap; gap: 4px; padding-block: 8px; }
+  .portal-header .portal-nav { width: 100%; justify-content: space-between; }
   .portal-nav a:first-child { display: none; }
   .portal-nav { gap: 10px; }
   .portal-nav a { white-space: nowrap; }

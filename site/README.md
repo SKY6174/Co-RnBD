@@ -1,6 +1,6 @@
 # Co-R&BD Conference 2026 사이트 시안
 
-행사 안내와 논문 투고·심사 사이트입니다. 첫 화면은 `index.html`, 모집공고 전문은 `cfp.html`, 역할별 투고 화면은 `submission.html`입니다. 모집공고 원문 초안은 [CFP 문서](../outputs/co-rbd-2026-cfp-draft.md)에서 확인할 수 있습니다.
+행사 안내와 논문 투고·심사 사이트입니다. 첫 화면은 `index.html`, 모집공고 전문은 `cfp.html`, 역할별 투고 화면은 `submission.html`입니다. 일반 참가 신청은 `registration.html`, 공개 세션·연사는 `program.html`, 위원장 운영 화면은 `operations.html`입니다. 모집공고 원문 초안은 [CFP 문서](../outputs/co-rbd-2026-cfp-draft.md)에서 확인할 수 있습니다.
 
 ## 로컬 보기
 
@@ -16,12 +16,13 @@ python3 -m http.server 8765 --directory site
 - 국·영문 CFP 전문과 확정/가안 일정의 구분
 - 모바일 메뉴와 날짜별 프로그램 탭
 - 확정 개최일·동부캠퍼스·일반 참가신청 마감과 미확정 투고 일정·접수처 구분 표시
+- Supabase 기반 일반 참가 신청(계정당 1건), 위원장 확인·체크인, 초안/공개 연사·세션 관리. 접수는 기본적으로 닫혀 있으며 등록비·결제 기능은 없습니다.
 
 ## 공개 전 연결할 항목
 
 1. 동부캠퍼스 건물·호실, 공동주최·주관·로고, 연사, 등록비 승인
 2. 기관 발급 행사 URL과 공식 사무국 이메일
-3. 승인된 원고 투고·심사 도구와 참가등록 도구의 실제 링크
+3. 운영 승인 후 참가 신청 단계 열기와 발표자 별도 등록 절차 확정
 4. 개인정보 안내, 환불 기준, 숙박·셔틀·자료집 공개 범위
 5. 실제 원고 제출·등록·체크인 흐름의 권한별 검수
 
@@ -46,5 +47,11 @@ on conflict (user_id) do update set role = excluded.role;
 
 6. 개인정보 보존기간·공고 일정·기관 승인 후 위원장 작업 공간의 **단계 운영**에서 원고 접수를 엽니다. 마감 시각은 한국시간으로 입력하며, 비워 두면 시간 제한이 없습니다. 심사위원은 먼저 로그인한 계정 이메일로 배정하고 원고당 2명을 권장합니다. 배정 전 저자·소속·과제 이해관계를 확인한 뒤 심사 입력 단계를 엽니다.
 7. 판정은 저장 즉시 저자의 작업 공간에 표시되며 자동 이메일은 발송하지 않습니다. 채택 후 최종본 제출 단계를 열면 저자가 같은 원고에서 최종 PDF를 올릴 수 있습니다. 최종본은 저자와 위원장만 열람합니다. 자료집·웹 공개는 별도 승인 후 진행합니다.
+
+## 참가·프로그램 운영
+
+`supabase/migrations/20260927010351_conference_operations.sql`을 적용한 뒤 위원장은 `operations.html`에서 일반 참가 신청을 열고, 신청을 확인·확정하고, 현장 체크인을 기록합니다. 회원은 `registration.html`에서 기존 계정으로 로그인하고 참가 날짜를 선택합니다. 이름과 소속은 기존 `profiles` 정보를 사용합니다. 취소 후 접수 기간 안에는 다시 신청할 수 있습니다. 발표자 등록은 아직 별도 안내 대상이며 이 일반 참가 양식에 포함되지 않습니다.
+
+연사와 세션은 기본적으로 비공개입니다. 위원장이 사용 동의와 일정·장소를 확인하고 각각 공개로 바꾸면 `program.html`에 표시됩니다. 홈페이지의 1박 2일 시간표는 계속 운영 가안으로 표시됩니다. 결제, 자동 확인 메일, 출석증명서 발급은 확정된 운영 정책이 없으므로 구현하지 않았습니다.
 
 관련 설계: [`docs/02-design/features/paper-submission-system.design.md`](../docs/02-design/features/paper-submission-system.design.md). [Google OAuth](https://supabase.com/docs/guides/auth/social-login/auth-google), [사용자 지정 OAuth](https://supabase.com/docs/guides/auth/custom-oauth-providers), [Naver API](https://developers.naver.com/docs/login/api/api.md).

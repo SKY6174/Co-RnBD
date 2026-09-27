@@ -110,6 +110,7 @@ h1, h2, h3, p { margin-top: 0; }
 .card-tag { margin-top: auto; color: #729954; font-size: 9px; font-weight: 800; letter-spacing: .18em; }.featured .card-tag { color: var(--lime); }
 
 .program-section { background: var(--paper); }
+.program-more { margin: 20px 0 0; }
 .program-panel { border: 1px solid var(--line); background: #fff; }
 .program-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
 .day-tabs { display: flex; }
