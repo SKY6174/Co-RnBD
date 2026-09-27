@@ -8,6 +8,7 @@ let user;
 let registration;
 let open = false;
 let edition;
+let authGeneration = 0;
 
 function attendanceDays() {
   if (!edition.start_date || !edition.end_date) return [];
@@ -25,6 +26,17 @@ function attendanceDays() {
 function notice(text, error = false) {
   $('#registration-message').textContent = text;
   $('#registration-message').classList.toggle('error', error);
+}
+
+function showSignedOut() {
+  registration = null;
+  $('#registration-account').textContent = '참가 신청에는 계정 로그인이 필요합니다.';
+  $('#registration-sign-out-actions').hidden = true;
+  $('#registration-current').replaceChildren();
+  $('#registration-current').hidden = true;
+  $('#registration-form').reset();
+  $('#registration-form').hidden = true;
+  $('#registration-login').hidden = false;
 }
 
 async function loadAuthAvailability(config) {
@@ -61,8 +73,11 @@ $('#registration-login').addEventListener('click', async (event) => {
 });
 
 async function load() {
-  const settings = requireData(await client.from('conference_settings')
-    .select('registration_open,registration_deadline').eq('edition_year', edition.year).single());
+  const generation = authGeneration;
+  const settingsResult = await client.from('conference_settings')
+    .select('registration_open,registration_deadline').eq('edition_year', edition.year).single();
+  if (generation !== authGeneration) return;
+  const settings = requireData(settingsResult);
   open = Boolean(edition.start_date && settings.registration_open
     && Date.now() <= new Date(settings.registration_deadline).getTime());
   const days = attendanceDays();
@@ -80,23 +95,30 @@ async function load() {
   ].map((line) => escapeHtml(line)).join('<br />');
   document.title = `참가 신청 | ${edition.title}`;
   const auth = await client.auth.getUser();
+  if (generation !== authGeneration) return;
   if (auth.error && !/Auth session missing/i.test(auth.error.message)) throw auth.error;
   user = auth.data?.user;
   $('#registration-login').hidden = Boolean(user);
+  $('#registration-sign-out-actions').hidden = !user;
   if (!user) {
-    $('#registration-account').textContent = '참가 신청에는 계정 로그인이 필요합니다.';
+    showSignedOut();
     notice(open ? '신청을 받는 중입니다. 로그인 후 참가 날짜를 선택해 주세요.' : '참가 신청은 현재 열려 있지 않습니다.');
     return;
   }
-  const profile = requireData(await client.from('profiles')
-    .select('full_name,affiliation,email').eq('user_id', user.id).single());
+  const currentUser = user;
+  const profileResult = await client.from('profiles')
+    .select('full_name,affiliation,email').eq('user_id', currentUser.id).single();
+  if (generation !== authGeneration || user?.id !== currentUser.id) return;
+  const profile = requireData(profileResult);
   const complete = Boolean(profile.full_name?.trim() && profile.affiliation?.trim());
   $('#registration-account').innerHTML = complete
-    ? `<strong>${escapeHtml(profile.full_name)}</strong> · ${escapeHtml(profile.affiliation)}<br><small>${escapeHtml(profile.email || user.email)}</small>`
+    ? `<strong>${escapeHtml(profile.full_name)}</strong> · ${escapeHtml(profile.affiliation)}<br><small>${escapeHtml(profile.email || currentUser.email)}</small>`
     : '이름과 소속기관을 입력해야 참가 신청을 할 수 있습니다. <a href="./submission.html">내 정보 입력하기 →</a>';
-  registration = requireData(await client.from('attendee_registrations')
+  const registrationResult = await client.from('attendee_registrations')
     .select('id,category,attendance_days,status,checked_in_at,created_at')
-    .eq('edition_year', edition.year).eq('user_id', user.id).maybeSingle());
+    .eq('edition_year', edition.year).eq('user_id', currentUser.id).maybeSingle();
+  if (generation !== authGeneration || user?.id !== currentUser.id) return;
+  registration = requireData(registrationResult);
   const current = $('#registration-current');
   current.hidden = !registration;
   if (registration) {
@@ -127,6 +149,23 @@ async function cancelRegistration() {
   } catch (error) { notice(error.message, true); }
 }
 
+$('#registration-sign-out').addEventListener('click', async () => {
+  const button = $('#registration-sign-out');
+  button.disabled = true;
+  try {
+    const { error } = await client.auth.signOut();
+    if (error) throw error;
+    authGeneration++;
+    user = null;
+    showSignedOut();
+    notice('로그아웃했습니다.');
+  } catch (error) {
+    notice(`로그아웃하지 못했습니다: ${error.message}`, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
 $('#registration-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   const days = [...document.querySelectorAll('[name="attendance-day"]:checked')].map((input) => input.value);
@@ -151,7 +190,10 @@ async function start() {
     client = await conferenceClient(config);
     [, edition] = await Promise.all([loadAuthAvailability(config), currentEdition(client)]);
     await load();
-    client.auth.onAuthStateChange(() => setTimeout(() => load().catch((error) => notice(error.message, true)), 0));
+    client.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') authGeneration++;
+      setTimeout(() => load().catch((error) => notice(error.message, true)), 0);
+    });
   } catch (error) {
     const preparing = ['PGRST204', 'PGRST205', '42703'].includes(error.code)
       || /could not find (the table|the .*column)/i.test(error.message);
