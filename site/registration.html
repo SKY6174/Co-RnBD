@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#08201e" />
-  <meta name="description" content="Co-R&BD Conference 2026 일반 참가 신청" />
+  <meta name="description" content="Co-R&BD Conference 일반 참가 신청" />
   <title>참가 신청 | Co-R&amp;BD 2026</title>
   <link rel="icon" type="image/png" href="./favicon.png" />
   <link rel="stylesheet" href="./styles.css" />
@@ -14,11 +14,11 @@
 <body>
   <a class="skip-link" href="#main">본문으로 바로가기</a>
   <header class="site-header operations-header"><div class="shell header-inner">
-    <a class="brand" href="./index.html" aria-label="Co-R&BD 홈"><span class="brand-logo"><img src="./assets/co-rbd-conference-logo.png" alt="Co-R&BD Conference 2026" width="3070" height="706" /></span></a>
+    <a class="brand" href="./index.html" aria-label="Co-R&BD 홈"><span class="brand-logo"><img src="./assets/co-rnbd.png" alt="Co-R&BD" width="1920" height="340" /></span></a>
     <nav class="operations-header-nav" aria-label="주 메뉴"><a href="./index.html">행사 안내</a><a href="./program.html">프로그램</a><a href="./registration.html" aria-current="page">참가 신청</a><a href="./submission.html">논문 투고</a></nav>
   </div></header>
   <main id="main" class="operations-main"><div class="shell">
-    <div class="operations-intro"><p class="section-index">CO-R&amp;BD 2026 / ATTENDANCE</p><h1>일반 참가 신청</h1><p>논문 투고와 별도로 신청합니다. 신청 마감은 2026년 10월 30일 18:00 KST입니다. 신청 후 위원장의 확인을 받아야 참가가 확정됩니다.</p></div>
+    <div class="operations-intro"><p id="registration-edition-label" class="section-index">CO-R&amp;BD / ATTENDANCE</p><h1>일반 참가 신청</h1><p id="registration-intro">학회 신청 정보를 불러오는 중입니다.</p></div>
     <div id="registration-message" class="operations-note" role="status" aria-live="polite">신청 상태를 확인하는 중입니다.</div>
     <div class="operations-grid">
       <section class="operations-card" aria-labelledby="registration-title">
@@ -28,7 +28,7 @@
         <div id="registration-login" hidden><p>이메일·구글·네이버 계정으로 로그인한 뒤 이 페이지로 돌아와 주세요.</p><a class="operations-button" href="./submission.html">로그인·회원가입</a></div>
         <form id="registration-form" hidden>
           <label>참가 구분 <select id="registration-category" required><option value="">선택하세요</option><option value="student">학생·졸업생</option><option value="faculty">교원·연구자</option><option value="industry">기업·기관</option><option value="other">기타</option></select></label>
-          <fieldset><legend>참가 날짜</legend><label class="inline-check"><input type="checkbox" name="attendance-day" value="2026-12-17" /> 12월 17일 (목)</label><label class="inline-check"><input type="checkbox" name="attendance-day" value="2026-12-18" /> 12월 18일 (금)</label></fieldset>
+          <fieldset><legend>참가 날짜</legend><div id="attendance-days"></div></fieldset>
           <p>등록비와 결제는 아직 확정되지 않았습니다. 현재 단계에서는 결제하지 않습니다.</p>
           <button type="submit" class="operations-button">참가 신청 제출</button>
         </form>

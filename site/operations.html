@@ -14,19 +14,26 @@
 <body>
   <a class="skip-link" href="#main">본문으로 바로가기</a>
   <header class="site-header operations-header"><div class="shell header-inner">
-    <a class="brand" href="./index.html" aria-label="Co-R&BD 홈"><span class="brand-logo"><img src="./assets/co-rbd-conference-logo.png" alt="Co-R&BD Conference 2026" width="3070" height="706" /></span></a>
+    <a class="brand" href="./index.html" aria-label="Co-R&BD 홈"><span class="brand-logo"><img src="./assets/co-rnbd.png" alt="Co-R&BD" width="1920" height="340" /></span></a>
     <nav class="operations-header-nav" aria-label="주 메뉴"><a href="./index.html">행사 안내</a><a href="./program.html">공개 프로그램</a><a href="./registration.html">참가 신청</a><a href="./submission.html">투고·심사 관리</a></nav>
   </div></header>
   <main id="main" class="operations-main"><div class="shell">
-    <div class="operations-intro"><p class="section-index">CO-R&amp;BD 2026 / CHAIR DESK</p><h1>참가·프로그램 관리</h1><p>위원장 전용 화면입니다. 참가 신청 확인, 현장 체크인, 연사와 세션 공개를 관리합니다.</p></div>
+    <div class="operations-intro"><p id="operations-edition-label" class="section-index">CO-R&amp;BD / CHAIR DESK</p><h1>참가·프로그램 관리</h1><p id="operations-intro">위원장 전용 화면입니다. 학회 정보를 불러오는 중입니다.</p></div>
     <div id="operations-message" class="operations-note" role="status" aria-live="polite">권한을 확인하는 중입니다.</div>
     <div id="operations-workspace" hidden>
       <div class="operations-grid">
+        <section class="operations-card full" aria-labelledby="edition-management-title">
+          <h2 id="edition-management-title">연도별 학회와 아카이브</h2>
+          <p>다음 연도는 초안으로 준비합니다. 현재 학회가 종료되고 다음 회차의 날짜가 확정되면 전환할 수 있습니다. 지난 학회는 공개 범위를 검토한 뒤 별도로 공개하세요.</p>
+          <form id="create-edition-form" class="operations-actions"><label>새 학회 연도 <input id="new-edition-year" type="number" min="2027" max="2100" required placeholder="예: 2027" /></label><button type="submit" class="operations-button">연도 추가</button></form>
+          <div id="edition-list" class="operations-list" aria-live="polite"></div>
+        </section>
         <section class="operations-card full" aria-labelledby="registration-management-title">
           <h2 id="registration-management-title">참가 신청</h2>
           <form id="registration-settings-form" class="operations-form-grid">
             <label class="inline-check"><input id="registration-open" type="checkbox" /> 일반 참가 신청 열기</label>
-            <p>마감: 2026년 10월 30일 18:00 KST. 신청을 열기 전 운영 일정과 개인정보 안내를 확인하세요.</p>
+            <p id="registration-deadline-note">신청 마감 정보를 불러오는 중입니다.</p>
+            <label>신청 마감 (KST) <input id="registration-deadline" type="datetime-local" /></label>
             <div class="operations-actions wide"><button type="submit" class="operations-button">접수 설정 저장</button></div>
           </form>
           <div id="registration-list" class="operations-list" aria-live="polite"></div>
@@ -53,8 +60,8 @@
             <div class="operations-form-grid">
               <label>형태 <select id="session-type" required><option value="keynote">기조강연</option><option value="oral">구두발표</option><option value="poster">포스터</option><option value="panel">토론</option><option value="workshop">워크숍</option><option value="ceremony">공식행사</option><option value="networking">교류</option><option value="break">휴식</option><option value="other">기타</option></select></label>
               <label>장소 <input id="session-room" maxlength="120" placeholder="건물·호실" /></label>
-              <label>시작 (KST) <input id="session-start" type="datetime-local" min="2026-12-17T00:00" max="2026-12-18T23:59" /></label>
-              <label>종료 (KST) <input id="session-end" type="datetime-local" min="2026-12-17T00:00" max="2026-12-18T23:59" /></label>
+              <label>시작 (KST) <input id="session-start" type="datetime-local" /></label>
+              <label>종료 (KST) <input id="session-end" type="datetime-local" /></label>
             </div>
             <label>좌장 (선택) <input id="session-moderator" maxlength="120" /></label>
             <label>설명 (선택) <textarea id="session-description" maxlength="1500"></textarea></label>

@@ -3,6 +3,7 @@
 .operations-intro h1 { font-size: clamp(36px, 5vw, 64px); letter-spacing: -.06em; line-height: 1.13; }
 .operations-intro p { color: var(--muted); line-height: 1.75; }
 .operations-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.archive-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 20px; margin-top: 22px; }
 .operations-card { padding: 28px; border: 1px solid var(--line); background: #fff; min-width: 0; }
 .operations-card.full { grid-column: 1 / -1; }
 .operations-card h2 { margin-bottom: 14px; font-size: 25px; letter-spacing: -.04em; }
@@ -14,6 +15,9 @@
 .operations-card input[type=checkbox] { width: 18px; height: 18px; }
 .operations-card .inline-check { display: flex; align-items: center; gap: 9px; }
 .operations-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 20px; }
+#create-edition-form { align-items: end; }
+#create-edition-form label { flex: 1 1 160px; min-width: 0; margin: 0; }
+#create-edition-form button { flex: 0 0 auto; }
 .operations-button { display: inline-flex; align-items: center; justify-content: center; min-height: 43px; padding: 9px 17px; border: 1px solid var(--deep); border-radius: 3px; background: var(--deep); color: #fff; font: inherit; font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer; }
 .operations-button.secondary { background: #fff; color: var(--deep); }
 .operations-button:disabled { opacity: .5; cursor: not-allowed; }

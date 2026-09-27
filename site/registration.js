@@ -1,13 +1,26 @@
-import { conferenceClient, escapeHtml, requireData } from './conference-client.js';
+import { conferenceClient, currentEdition, editionDateRange, escapeHtml, requireData } from './conference-client.js';
 
 const $ = (selector) => document.querySelector(selector);
-const DAYS = { '2026-12-17': '12월 17일', '2026-12-18': '12월 18일' };
 const STATES = { applied: '확인 대기', confirmed: '참가 확정', cancelled: '취소됨' };
 const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타' };
 let client;
 let user;
 let registration;
 let open = false;
+let edition;
+
+function attendanceDays() {
+  if (!edition.start_date || !edition.end_date) return [];
+  const days = [];
+  for (let day = new Date(`${edition.start_date}T00:00:00Z`);
+    day <= new Date(`${edition.end_date}T00:00:00Z`) && days.length < 7;
+    day.setUTCDate(day.getUTCDate() + 1)) {
+    const value = day.toISOString().slice(0, 10);
+    const label = new Intl.DateTimeFormat('ko-KR', { timeZone: 'UTC', month: 'long', day: 'numeric', weekday: 'short' }).format(day);
+    days.push({ value, label });
+  }
+  return days;
+}
 
 function notice(text, error = false) {
   $('#registration-message').textContent = text;
@@ -16,8 +29,18 @@ function notice(text, error = false) {
 
 async function load() {
   const settings = requireData(await client.from('conference_settings')
-    .select('registration_open,registration_deadline').single());
-  open = settings.registration_open && Date.now() <= new Date(settings.registration_deadline).getTime();
+    .select('registration_open,registration_deadline').eq('edition_year', edition.year).single());
+  open = Boolean(edition.start_date && settings.registration_open
+    && Date.now() <= new Date(settings.registration_deadline).getTime());
+  const days = attendanceDays();
+  $('#attendance-days').innerHTML = days.map(({ value, label }) =>
+    `<label class="inline-check"><input type="checkbox" name="attendance-day" value="${value}" /> ${escapeHtml(label)}</label>`).join('');
+  $('#registration-edition-label').textContent = `CO-R&BD ${edition.year} / ATTENDANCE`;
+  const deadlineText = settings.registration_deadline
+    ? `${new Intl.DateTimeFormat('ko-KR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(settings.registration_deadline))} KST`
+    : '확정 전';
+  $('#registration-intro').textContent = `논문 투고와 별도로 신청합니다. 행사: ${editionDateRange(edition)}. 신청 마감: ${deadlineText}. 위원장 확인 후 참가가 확정됩니다.`;
+  document.title = `참가 신청 | ${edition.title}`;
   const auth = await client.auth.getUser();
   if (auth.error && !/Auth session missing/i.test(auth.error.message)) throw auth.error;
   user = auth.data?.user;
@@ -34,12 +57,13 @@ async function load() {
     ? `<strong>${escapeHtml(profile.full_name)}</strong> · ${escapeHtml(profile.affiliation)}<br><small>${escapeHtml(profile.email || user.email)}</small>`
     : '이름과 소속기관을 입력해야 참가 신청을 할 수 있습니다. <a href="./submission.html">내 정보 입력하기 →</a>';
   registration = requireData(await client.from('attendee_registrations')
-    .select('id,category,attendance_days,status,checked_in_at,created_at').eq('user_id', user.id).maybeSingle());
+    .select('id,category,attendance_days,status,checked_in_at,created_at')
+    .eq('edition_year', edition.year).eq('user_id', user.id).maybeSingle());
   const current = $('#registration-current');
   current.hidden = !registration;
   if (registration) {
-    const days = registration.attendance_days.map((day) => DAYS[day] || day).join(' · ');
-    current.innerHTML = `<div class="operations-note"><strong>${escapeHtml(STATES[registration.status])}</strong><br>${escapeHtml(days)} · ${escapeHtml(CATEGORIES[registration.category])}</div>`
+    const selectedDays = registration.attendance_days.map((day) => days.find((entry) => entry.value === day)?.label || day).join(' · ');
+    current.innerHTML = `<div class="operations-note"><strong>${escapeHtml(STATES[registration.status])}</strong><br>${escapeHtml(selectedDays)} · ${escapeHtml(CATEGORIES[registration.category])}</div>`
       + (registration.status !== 'cancelled' && !registration.checked_in_at
         ? '<div class="operations-actions"><button id="cancel-registration" type="button" class="operations-button secondary">신청 취소</button></div>' : '');
     $('#cancel-registration')?.addEventListener('click', cancelRegistration);
@@ -76,7 +100,7 @@ $('#registration-form').addEventListener('submit', async (event) => {
     if (registration) {
       requireData(await client.from('attendee_registrations').update(values).eq('id', registration.id));
     } else {
-      requireData(await client.from('attendee_registrations').insert({ ...values, user_id: user.id }));
+      requireData(await client.from('attendee_registrations').insert({ ...values, user_id: user.id, edition_year: edition.year }));
     }
     await load();
   } catch (error) { notice(error.message, true); }
@@ -86,6 +110,7 @@ $('#registration-form').addEventListener('submit', async (event) => {
 async function start() {
   try {
     client = await conferenceClient();
+    edition = await currentEdition(client);
     await load();
     client.auth.onAuthStateChange(() => setTimeout(() => load().catch((error) => notice(error.message, true)), 0));
   } catch (error) {
