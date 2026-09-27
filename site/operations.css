@@ -50,6 +50,19 @@
 .operations-checkbox-list label { display: flex; align-items: center; gap: 9px; margin: 4px 0; }
 .operations-header-nav { display: flex; flex-wrap: wrap; gap: 16px; }
 .operations-header-nav a { font-size: 13px; font-weight: 700; text-decoration: none; }
+.monitor-toolbar { justify-content: space-between; align-items: center; margin: 0 0 18px; }
+.monitor-toolbar .operations-meta { margin-left: auto; }
+#monitor-workspace { display: grid; gap: 20px; }
+#monitor-workspace[hidden] { display: none; }
+.monitor-section-head { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
+.monitor-section-head p { margin-top: 0; }
+.monitor-section-head .operations-button { flex: 0 0 auto; }
+.monitor-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 22px 0; }
+.monitor-stat { padding: 15px; border: 1px solid var(--line); background: #f7f8f2; }
+.monitor-stat strong { display: block; color: var(--deep); font-size: 27px; }
+.monitor-stat span { color: var(--muted); font-size: 12px; font-weight: 700; }
+.monitor-filters { display: grid; grid-template-columns: minmax(0, 2fr) minmax(150px, 1fr); gap: 16px; }
+.monitor-filters label { margin: 0 0 12px; }
 @media (max-width: 760px) {
   .operations-header .header-inner { flex-wrap: wrap; gap: 6px; padding-block: 10px; }
   .operations-header-nav { width: 100%; flex-wrap: nowrap; gap: 18px; overflow-x: auto; white-space: nowrap; padding: 5px 0 3px; }
@@ -61,4 +74,6 @@
   .operations-header-nav { gap: 9px; }
   .operations-header-nav a { font-size: 11px; }
   .operations-session { grid-template-columns: 1fr; gap: 4px; }
+  .monitor-section-head { flex-direction: column; }
+  .monitor-filters { grid-template-columns: 1fr; gap: 0; }
 }

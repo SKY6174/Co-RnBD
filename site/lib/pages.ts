@@ -11,6 +11,7 @@ export const PAGE_IDS = [
   "submission",
   "registration",
   "operations",
+  "monitor",
   "privacy",
   "terms",
   "cmt-reference",
@@ -25,6 +26,7 @@ const PAGE_SCRIPTS: Partial<Record<PageId, string>> = {
   submission: "submission.js",
   registration: "registration.js",
   operations: "operations.js",
+  monitor: "monitor.js",
 };
 
 const PAGE_METADATA: Record<PageId, Metadata> = {
@@ -58,6 +60,10 @@ const PAGE_METADATA: Record<PageId, Metadata> = {
   },
   operations: {
     title: "참가·프로그램 관리 | Co-R&BD Conference",
+    robots: { index: false, follow: false },
+  },
+  monitor: {
+    title: "참가·투고 현황 | Co-R&BD Conference",
     robots: { index: false, follow: false },
   },
   privacy: {

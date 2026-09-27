@@ -1,0 +1,24 @@
+<a class="skip-link" href="#main">본문으로 바로가기</a>
+<header class="site-header operations-header"><div class="shell header-inner">
+  <a class="brand" href="./index.html" aria-label="Co-R&BD 홈"><span class="brand-logo"><img src="./assets/co-rbd-conference-logo.png" alt="Co-R&BD" width="3070" height="706" /></span></a>
+  <nav class="operations-header-nav" aria-label="주 메뉴"><a href="./index.html">행사 안내</a><a href="./operations.html">참가·프로그램 관리</a><a href="./submission.html">투고·심사 관리</a><a href="./monitor.html" aria-current="page">현황 모니터링</a></nav>
+</div></header>
+<main id="main" class="operations-main"><div class="shell">
+  <div class="operations-intro"><p id="monitor-edition-label" class="section-index">CO-R&amp;BD / SUPER ADMIN</p><h1>참가·투고 현황</h1><p id="monitor-intro">현재 학회의 신청과 논문 접수를 확인합니다.</p></div>
+  <div id="monitor-message" class="operations-note" role="status" aria-live="polite">권한을 확인하는 중입니다.</div>
+  <div id="monitor-workspace" hidden>
+    <div class="operations-actions monitor-toolbar"><button id="monitor-refresh" type="button" class="operations-button secondary">새로고침</button><span id="monitor-updated" class="operations-meta"></span></div>
+    <section class="operations-card full" aria-labelledby="monitor-registration-title">
+      <div class="monitor-section-head"><div><h2 id="monitor-registration-title">일반 참가신청</h2><p>취소된 신청은 참가 예정 인원에 포함되지 않습니다. 발표자 등록은 별도 절차입니다.</p></div><a class="operations-button secondary" href="./operations.html">신청 관리</a></div>
+      <div id="monitor-registration-stats" class="monitor-stats" aria-label="참가신청 현황"></div>
+      <div class="monitor-filters"><label>신청 검색 <input id="monitor-registration-search" type="search" placeholder="이름, 소속, 이메일" /></label><label>상태 <select id="monitor-registration-status"><option value="all">전체</option><option value="applied">확인 대기</option><option value="confirmed">참가 확정</option><option value="cancelled">취소됨</option></select></label><label>참가 구분 <select id="monitor-registration-category"><option value="all">전체</option><option value="student">학생·졸업생</option><option value="faculty">교원·연구자</option><option value="industry">기업·기관</option><option value="other">기타</option></select></label><label>참가일 <select id="monitor-registration-day"><option value="all">전체</option></select></label></div>
+      <p id="monitor-registration-count" class="operations-meta" aria-live="polite"></p><div id="monitor-registration-list" class="operations-list"></div>
+    </section>
+    <section class="operations-card full" aria-labelledby="monitor-paper-title">
+      <div class="monitor-section-head"><div><h2 id="monitor-paper-title">논문·현장사례 투고</h2><p>초안은 제출 건수에 포함되지 않습니다. 판정과 심사위원 배정은 투고·심사 관리에서 진행합니다.</p></div><a class="operations-button secondary" href="./submission.html">투고·심사 관리</a></div>
+      <div id="monitor-paper-stats" class="monitor-stats" aria-label="투고 현황"></div>
+      <div class="monitor-filters"><label>논문 검색 <input id="monitor-paper-search" type="search" placeholder="제목, 연락 담당자, 이메일" /></label><label>상태 <select id="monitor-paper-status"><option value="all">전체</option><option value="draft">초안</option><option value="submitted">접수</option><option value="under_review">심사 중</option><option value="revision">수정 요청</option><option value="accepted">채택</option><option value="rejected">반려</option></select></label><label>모집 분야 <select id="monitor-paper-track"><option value="all">전체</option><option value="applied">전문기술석사 응용연구</option><option value="industry">산학공동기술개발 성과</option><option value="convergence">산업융합기술</option><option value="education">전문기술석사 교육·운영</option></select></label></div>
+      <p id="monitor-paper-count" class="operations-meta" aria-live="polite"></p><div id="monitor-paper-list" class="operations-list"></div>
+    </section>
+  </div>
+</div></main>

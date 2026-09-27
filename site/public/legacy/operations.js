@@ -306,8 +306,9 @@ async function start() {
     if (auth.error && !/Auth session missing/i.test(auth.error.message)) throw auth.error;
     const user = auth.data?.user;
     if (!user) throw new Error('위원장 계정으로 로그인해 주세요. 상단의 투고·심사 관리에서 로그인할 수 있습니다.');
-    const role = requireData(await client.from('staff_roles').select('role').eq('user_id', user.id).maybeSingle());
+    const role = requireData(await client.from('staff_roles').select('role,is_super_admin').eq('user_id', user.id).maybeSingle());
     if (role?.role !== 'chair') throw new Error('위원장 계정만 이 화면을 이용할 수 있습니다.');
+    $('#operations-monitor-link').hidden = !role.is_super_admin;
     edition = await currentEdition(client);
     $('#operations-edition-label').textContent = `CO-R&BD ${edition.year} / CHAIR DESK`;
     $('#operations-intro').textContent = `${edition.title} 운영 화면입니다. 참가 신청, 프로그램 공개와 연도별 학회 기록을 관리합니다.`;
