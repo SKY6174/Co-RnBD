@@ -640,9 +640,11 @@ async function start() {
         setTimeout(() => loadWorkspace().catch((error) => message(error.message, true)), 0);
       }
     });
-    await loadAuthAvailability(config);
-    edition = check(await client.from('conference_editions')
-      .select('year,title,status').eq('status', 'current').single());
+    const [, editionResult] = await Promise.all([
+      loadAuthAvailability(config),
+      client.from('conference_editions').select('year,title,status').eq('status', 'current').single(),
+    ]);
+    edition = check(editionResult);
     document.title = `논문 투고·심사 | ${edition.title}`;
     $('#submission-edition-label').textContent = `CO-R&BD ${edition.year} / PAPER PORTAL`;
     $('#submission-intro').textContent = `${edition.title}의 원고 제출, 심사와 결과 확인을 이 화면에서 진행합니다.`;
