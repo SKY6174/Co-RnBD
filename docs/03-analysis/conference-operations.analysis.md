@@ -15,6 +15,6 @@
 - HTML local references and duplicate IDs checked. `git diff --cached --check` passed.
 - Desktop and 390px mobile pages inspected in a browser; no horizontal overflow on the inspected pages.
 
-## Rollout boundary
+## Production database verification
 
-The connected production Supabase project has the existing `conference_settings`, `profiles`, and `staff_roles` columns expected by the migration, but it does not yet have the new operations tables. No production migration or real participant write was performed. Full account-to-database browser verification requires applying the migration and deploying the feature branch.
+On 2026-09-27, the additive migration was applied to the connected Supabase project under remote version `20260927010351`. All four new tables have RLS enabled, 15 operations policies are present, registration remains closed, and attendee and session counts are both zero. The Vercel Preview now reads an empty public program and the closed registration state without a schema error. No real participant write was performed. Full account-to-database verification awaits site deployment and an appropriate test account.
