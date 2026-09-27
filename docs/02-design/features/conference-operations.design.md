@@ -14,7 +14,7 @@ Authenticated members apply or cancel their own registrations. A trigger validat
 
 `program.html` renders only published sessions and their published speaker details. Chair uses `operations.html` to create/edit speakers and sessions, set speaker links, and publish once confirmed. Drafts are never visible to anonymous visitors. The chair can see drafts. The program starts empty rather than inventing names, rooms, or talk times.
 
-`registration.html` uses the existing Supabase session. Unauthenticated visitors can start Google or Naver OAuth directly on the registration page and return there after authentication; the existing submission portal remains the email login and signup entry point. Provider availability follows the submission portal's Google Auth settings and Naver site configuration. The registration form reuses profile name, affiliation, and email and requires completeness. Application success means pending review; the chair explicitly confirms. Registration has no fee field until fees are approved.
+`registration.html` uses the existing Supabase session. Unauthenticated visitors can start Google or Naver OAuth directly on the registration page and return there after authentication; the existing submission portal remains the email login and signup entry point. Provider availability follows the submission portal's Google Auth settings and Naver site configuration. Logged-in visitors can sign out here, immediately clearing their registration details and form from the page. The registration form reuses profile name, affiliation, and email and requires completeness. Application success means pending review; the chair explicitly confirms. Registration has no fee field until fees are approved.
 
 ## Verification
 
