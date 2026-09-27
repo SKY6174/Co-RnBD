@@ -151,7 +151,11 @@ async function start() {
     client = await conferenceClient(config);
     [, edition] = await Promise.all([loadAuthAvailability(config), currentEdition(client)]);
     await load();
-    client.auth.onAuthStateChange(() => setTimeout(() => load().catch((error) => notice(error.message, true)), 0));
+    client.auth.onAuthStateChange((event) => {
+      if (event !== 'INITIAL_SESSION') {
+        setTimeout(() => load().catch((error) => notice(error.message, true)), 0);
+      }
+    });
   } catch (error) {
     const preparing = ['PGRST204', 'PGRST205', '42703'].includes(error.code)
       || /could not find (the table|the .*column)/i.test(error.message);
