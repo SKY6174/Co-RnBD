@@ -76,7 +76,12 @@ async function load() {
   const deadlineText = settings.registration_deadline
     ? `${new Intl.DateTimeFormat('ko-KR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(settings.registration_deadline))} KST`
     : '확정 전';
-  $('#registration-intro').textContent = `논문 투고와 별도로 신청합니다. 행사: ${editionDateRange(edition)}. 신청 마감: ${deadlineText}. 위원장 확인 후 참가가 확정됩니다.`;
+  $('#registration-intro').innerHTML = [
+    '논문 투고와 별도로 신청합니다.',
+    `행사: ${editionDateRange(edition)}.`,
+    `신청 마감: ${deadlineText}.`,
+    '위원장 확인 후 참가가 확정됩니다.',
+  ].map((line) => escapeHtml(line)).join('<br />');
   document.title = `참가 신청 | ${edition.title}`;
   const auth = await client.auth.getUser();
   if (auth.error && !/Auth session missing/i.test(auth.error.message)) throw auth.error;
