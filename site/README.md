@@ -1,16 +1,18 @@
 # Co-R&BD Conference 2026 사이트 시안
 
-행사 안내와 논문 투고·심사 사이트입니다. 첫 화면은 `index.html`, 모집공고 전문은 `cfp.html`, 역할별 투고 화면은 `submission.html`입니다. 일반 참가 신청은 `registration.html`, 공개 세션·연사는 `program.html`, 위원장 운영 화면은 `operations.html`입니다. 모집공고 원문 초안은 [CFP 문서](../outputs/co-rbd-2026-cfp-draft.md)에서 확인할 수 있습니다.
+행사 안내와 논문 투고·심사 사이트입니다. Next.js App Router가 첫 화면과 `cfp.html`, `submission.html` 등 기존 공개 URL을 제공합니다. 일반 참가 신청은 `registration.html`, 공개 세션·연사는 `program.html`, 위원장 운영 화면은 `operations.html`입니다. 모집공고 원문 초안은 [CFP 문서](../outputs/co-rbd-2026-cfp-draft.md)에서 확인할 수 있습니다.
 
 `archive.html`은 위원장이 공개한 지난 학회를 연도별로 보여 줍니다. `edition.html`은 연도별 행사 정보와 공개 프로그램으로 연결합니다. 2026의 상세 소개와 CFP는 기존 페이지에 남기고, 다음 회차가 활성화되면 첫 화면은 새 회차 안내로 이동합니다. 위원장은 운영 화면에서 미래 회차 초안을 만들고, 기존 회차가 종료된 뒤 현재 회차를 전환합니다. 아카이브에는 공개 승인된 행사 정보와 프로그램만 포함됩니다.
 
-## 로컬 보기
+## 구조와 로컬 보기
 
 ```sh
-python3 -m http.server 8765 --directory site
+cd site
+npm ci
+npm run dev
 ```
 
-브라우저에서 `http://127.0.0.1:8765/`를 엽니다. 행사 안내와 CFP는 정적으로 볼 수 있지만, 투고 화면의 실제 데이터 흐름은 Vercel `/api/config`와 연결된 Supabase 환경에서 확인해야 합니다.
+브라우저에서 `http://localhost:3000/`를 엽니다. `app/`은 TypeScript 라우트와 API, `content/`는 현재 승인된 페이지 본문, `public/legacy/`는 기존 DOM 기반 투고·운영 클라이언트의 호환 계층입니다. `public/assets/`에 이미지가 있습니다. 기존 `*.html` 주소는 Next rewrite로 유지됩니다. `npm run typecheck`와 `npm run build`로 빌드를 확인합니다. 로컬 연결 설정은 `site/.env.local`에 `SUPABASE_URL`과 `SUPABASE_PUBLISHABLE_KEY`를 입력합니다. 서비스 역할 키는 넣지 않습니다.
 
 ## 현재 범위
 
@@ -34,10 +36,10 @@ python3 -m http.server 8765 --directory site
 
 Google OAuth 앱에 입력할 공개 문서: [개인정보처리방침](https://co-rnbd.org/privacy.html), [서비스 이용약관](https://co-rnbd.org/terms.html). 홈페이지와 투고 화면의 푸터에서도 연결됩니다. 개인정보처리자·문의처·보유기간은 운영자가 확인한 값으로 기재했습니다. 계정·투고·심사 자료는 학회 종료일인 2026년 12월 18일까지 보유하므로, 종료 후 Supabase Auth·데이터베이스·Storage 및 백업의 파기 절차를 실제 운영 계획에 반영해야 합니다.
 
-1. Vercel 프로젝트 루트가 `site/`인지 확인하고 `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`를 설정합니다. 이 두 값만 `/api/config`에서 공개합니다. 서비스 역할 키는 웹·Vercel 공개 환경변수에 넣지 않습니다.
+1. Vercel 프로젝트의 Root Directory를 `site/`, Framework Preset을 `Next.js`로 설정하고 `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`를 설정합니다. 이 두 값만 `/api/config`에서 공개합니다. 서비스 역할 키는 웹·Vercel 공개 환경변수에 넣지 않습니다.
 2. Supabase Auth의 Site URL을 `https://co-rnbd.org`로, 허용 Redirect URL에 `https://co-rnbd.org/submission.html`을 등록합니다. 이메일 제공자와 이메일 확인을 활성화하고, 본운영 전 전용 SMTP를 연결합니다. 이메일·비밀번호 가입, 로그인, 비밀번호 재설정 메일이 이 설정을 사용합니다. 기본 Supabase 발송 서비스는 테스트 용량이 제한됩니다.
 3. Google Cloud OAuth 웹 앱을 만들고 Google 제공자 화면에 표시된 Supabase callback URL을 Google의 승인된 리다이렉트 URI에 등록합니다. Client ID/Secret은 Supabase Auth Providers의 Google 설정에만 입력합니다.
-4. Naver 개발자 앱에 Supabase 사용자 지정 provider의 callback URL을 등록합니다. Supabase Auth의 Custom OAuth Provider를 `custom:naver`로 만들고 Authorization URL `https://nid.naver.com/oauth2.0/authorize`, Token URL `https://nid.naver.com/oauth2.0/token`, UserInfo URL `https://co-rnbd.org/api/naver-userinfo`를 사용합니다. Naver 프로필의 중첩된 `response` 객체를 Vercel 함수가 표준 `sub`/`email`/`name`으로 변환합니다. Naver의 PKCE 지원 여부 및 토큰 교환 방식은 실제 앱 자격증명으로 확인해야 합니다. 제공자 설정이 지원하지 않으면 Naver 버튼은 열지 말고 별도 인증 어댑터를 검토합니다.
+4. Naver 개발자 앱에 Supabase 사용자 지정 provider의 callback URL을 등록합니다. Supabase Auth의 Custom OAuth Provider를 `custom:naver`로 만들고 Authorization URL `https://nid.naver.com/oauth2.0/authorize`, Token URL `https://nid.naver.com/oauth2.0/token`, UserInfo URL `https://co-rnbd.org/api/naver-userinfo`를 사용합니다. Naver 프로필의 중첩된 `response` 객체를 Next.js Route Handler가 표준 `sub`/`email`/`name`으로 변환합니다. Naver의 PKCE 지원 여부 및 토큰 교환 방식은 실제 앱 자격증명으로 확인해야 합니다. 제공자 설정이 지원하지 않으면 Naver 버튼은 열지 말고 별도 인증 어댑터를 검토합니다.
    로그인 검증이 끝나면 Vercel 환경변수 `NAVER_OAUTH_ENABLED=true`를 설정하고 다시 배포합니다. 그전에는 Naver 버튼이 비활성화됩니다. Google 버튼은 Supabase의 제공자 활성화 상태를 자동으로 따릅니다.
 5. 위원장으로 사용할 계정이 한 번 로그인한 후 Supabase SQL Editor에서 해당 이메일을 확인하고 아래처럼 최초 역할을 부여합니다. 이 역할은 웹에서 셀프 부여할 수 없습니다.
 
