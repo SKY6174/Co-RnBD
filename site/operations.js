@@ -223,9 +223,10 @@ $('#session-list').addEventListener('click', async (event) => {
 async function start() {
   try {
     client = await conferenceClient();
-    const auth = requireData(await client.auth.getUser());
-    const user = auth?.user;
-    if (!user) throw new Error('로그인 후 투고·심사 화면에서 위원장 계정으로 접속해 주세요.');
+    const auth = await client.auth.getUser();
+    if (auth.error && !/Auth session missing/i.test(auth.error.message)) throw auth.error;
+    const user = auth.data?.user;
+    if (!user) throw new Error('위원장 계정으로 로그인해 주세요. 상단의 투고·심사 관리에서 로그인할 수 있습니다.');
     const role = requireData(await client.from('staff_roles').select('role').eq('user_id', user.id).maybeSingle());
     if (role?.role !== 'chair') throw new Error('위원장 계정만 이 화면을 이용할 수 있습니다.');
     await Promise.all([loadRegistrations(), loadProgram()]);
