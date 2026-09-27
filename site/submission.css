@@ -20,7 +20,7 @@
 .auth-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 38px; align-items: start; }
 .auth-card h2, .workspace-top h2, .section-head h2 { margin: 7px 0 10px; font-size: clamp(26px, 3vw, 37px); letter-spacing: -.035em; }
 .auth-card p, .workspace-top p { margin: 0; color: #60736a; font-size: 14px; line-height: 1.7; }
-.portal-kicker { color: #6d8b48; font-size: 11px; font-weight: 900; letter-spacing: .16em; }
+.portal-kicker { color: #6d8b48; font-size: 11px; font-weight: 900; letter-spacing: .08em; }
 .auth-actions { display: grid; gap: 10px; width: min(100%, 340px); min-width: 300px; }
 .auth-actions .field-help { margin: 1px 0 0; }
 .email-auth-form { display: grid; gap: 11px; }

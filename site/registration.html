@@ -25,7 +25,19 @@
         <h2 id="registration-title">내 신청</h2>
         <p id="registration-account">로그인 상태를 확인하는 중입니다.</p>
         <div id="registration-current" hidden></div>
-        <div id="registration-login" hidden><p>이메일·구글·네이버 계정으로 로그인한 뒤 이 페이지로 돌아와 주세요.</p><a class="operations-button" href="./submission.html">로그인·회원가입</a></div>
+        <div id="registration-login" hidden>
+          <p>구글 또는 네이버 계정으로 로그인하면 이 페이지에서 참가 신청을 계속할 수 있습니다.</p>
+          <div class="registration-social-actions">
+            <button type="button" class="registration-social-button naver" data-registration-login="custom:naver" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M4 3h5.2l5.6 8.1V3H20v18h-5.2L9.2 12.9V21H4V3z" /></svg><span>네이버 로그인</span>
+            </button>
+            <button type="button" class="registration-social-button google" data-registration-login="google" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="#4285F4" d="M21.35 11.1H12v3.8h5.35c-.23 1.24-.94 2.29-2 3v2.49h3.24c1.9-1.75 3-4.33 3-7.39 0-.64-.06-1.26-.17-1.9z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.61-2.43l-3.24-2.49c-.9.6-2.05.96-3.37.96-2.6 0-4.81-1.76-5.6-4.12H3.07v2.58C4.7 19.74 8.07 22 12 22z"/><path fill="#FBBC05" d="M6.4 13.92c-.2-.6-.31-1.24-.31-1.92s.11-1.32.31-1.92V7.5H3.07C2.39 8.86 2 10.38 2 12s.39 3.14 1.07 4.5l3.33-2.58z"/><path fill="#EA4335" d="M12 5.96c1.43 0 2.71.49 3.72 1.46l2.79-2.79C16.96 3.17 14.7 2 12 2 8.07 2 4.7 4.26 3.07 7.5l3.33 2.58C7.19 7.72 9.4 5.96 12 5.96z"/></svg><span>구글 로그인</span>
+            </button>
+          </div>
+          <p id="registration-auth-availability" class="registration-auth-help" role="status">간편로그인 연결을 확인 중입니다.</p>
+          <p class="registration-email-link">이메일 계정을 이용하시나요? <a href="./submission.html">이메일 로그인·회원가입 →</a></p>
+        </div>
         <form id="registration-form" hidden>
           <label>참가 구분 <select id="registration-category" required><option value="">선택하세요</option><option value="student">학생·졸업생</option><option value="faculty">교원·연구자</option><option value="industry">기업·기관</option><option value="other">기타</option></select></label>
           <fieldset><legend>참가 날짜</legend><div id="attendance-days"></div></fieldset>
