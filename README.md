@@ -8,7 +8,7 @@
 
 공개가 승인된 종료 회차만 [지난 학회](site/archive.html)에 표시됩니다. 이 화면은 공개 행사 정보와 확정 프로그램만 보여 줍니다. 원고 PDF, 심사 내용, 참가자 목록은 아카이브에서 공개하지 않습니다. 새 연도를 실제로 열기 전에는 그해의 모집공고, 개인정보 안내, 운영 일정과 자료집 공개 범위를 별도로 확정해야 합니다.
 
-마이그레이션: `supabase/migrations/20260927011114_annual_conferences.sql`. 2026 운영 데이터는 이 마이그레이션에서 2026 회차로 자동 연결됩니다. 프로덕션에는 승인 후 적용해야 합니다.
+마이그레이션: `supabase/migrations/20260927014640_annual_conferences.sql`. 2026 운영 데이터는 이 마이그레이션에서 2026 회차로 자동 연결되며, 운영 Supabase DB에 적용했습니다.
 
 - 공개 사이트: [`site/`](site/README.md)
 - 국·영문 CFP 원문: [`outputs/co-rbd-2026-cfp-draft.md`](outputs/co-rbd-2026-cfp-draft.md)
