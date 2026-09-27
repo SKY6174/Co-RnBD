@@ -10,7 +10,7 @@ export function requireData(result) {
 }
 
 export async function conferenceClient() {
-  const response = await fetch('/api/config', { cache: 'no-store' });
+  const response = await fetch('/api/config');
   if (!response.ok) throw new Error('사이트 데이터 연결을 확인할 수 없습니다.');
   const { url, publishableKey } = await response.json();
   if (!url || !publishableKey) throw new Error('사이트 데이터 설정이 완료되지 않았습니다.');

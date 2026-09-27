@@ -4,7 +4,7 @@ const dayTabs = Array.from(document.querySelectorAll(".day-tab"));
 
 // The editorial 2026 home remains a record of the inaugural edition.
 // Later current editions use the database-driven landing page.
-fetch('/api/config', { cache: 'no-store' }).then((response) => response.ok ? response.json() : null)
+fetch('/api/config').then((response) => response.ok ? response.json() : null)
   .then(async (config) => {
     if (!config?.url || !config?.publishableKey) return;
     const response = await fetch(`${config.url}/rest/v1/conference_editions?status=eq.current&select=year`, {

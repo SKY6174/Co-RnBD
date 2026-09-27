@@ -626,7 +626,7 @@ $('#chair-form').addEventListener('submit', async (event) => {
 
 async function start() {
   try {
-    const response = await fetch('/api/config', { cache: 'no-store' });
+    const response = await fetch('/api/config');
     if (!response.ok) throw new Error('Supabase 공개 설정이 연결되지 않았습니다. Vercel 환경변수를 확인해 주세요.');
     const config = await response.json();
     client = createClient(config.url, config.publishableKey);
