@@ -1,18 +1,20 @@
-# Co-R&BD Conference 2026: agent guide
+# Co-R&BD Conference: agent guide
 
 ## Current project
 
-- This repository serves one conference, Co-R&BD Conference 2026. Do not add a conference
-  directory, site-request flow, or multi-conference model without a specific requirement.
+- This repository serves one recurring Co-R&BD conference, starting with the 2026 edition.
+  Annual editions share one site and account system. Do not add an unrelated conference directory
+  or site-request flow.
 - The current site is plain HTML, CSS, and browser JavaScript in `site/`. `site/api/` contains
   Vercel Functions. Supabase provides Auth, Postgres, and private Storage. Vercel deploys `site/`
   to `https://co-rnbd.org` from GitHub `main`.
 - There is currently no Next.js application, TypeScript setup, `package.json`, or package manager.
   Inspect the repository before introducing any of them. Do not use Next.js, React, or npm
   commands as default instructions.
-- Public pages are `site/index.html` and `site/cfp.html`; `site/submission.html` is the
-  single-conference author, reviewer, and chair portal. General attendee registration is separate
-  and has not been implemented in this repository.
+- `site/index.html` and `site/cfp.html` preserve the detailed 2026 content. `site/edition.html`
+  presents later active years and published archive records; `site/archive.html` lists past years.
+  `site/submission.html` is the author, reviewer, and chair portal. General attendee registration
+  is separate in `site/registration.html`.
 - The conference dates and venue are confirmed in the project content; paper submission dates,
   organizer details, and some program information remain provisional. Preserve the
   confirmed/proposed distinction. Never invent speakers, organizers, deadlines, contact details,
@@ -68,8 +70,9 @@ full new plan for an obvious text correction.
 
 ## Conference content and UX
 
-- Keep this a single-conference site. Link users directly to the Co-R&BD 2026 CFP and submission
-  portal.
+- Keep one recurring-conference site with the current edition one click away. The 2026 editorial
+  CFP is specific to 2026; later years require newly approved call text before linking to a CFP.
+  Never silently reuse an old year's dates or submission terms.
 - Preserve the existing visual style and Korean-first presentation. Check mobile and desktop
   layouts, keyboard access, form labels, focus, heading order, alt text, loading, empty, success,
   and error states when relevant.
@@ -82,9 +85,11 @@ full new plan for an obvious text correction.
 
 ## Submission and review model
 
-- `conference_settings` is a single conference-wide settings row. It controls submission, review,
-  and final-upload stages, optional deadlines, and the public submission notice. Do not infer that
-  a new `conferences` table is needed.
+- `conference_editions` identifies each year and its draft/current/archived state.
+  `conference_settings` has one row per edition and controls submission, review, final-upload,
+  and registration stages. Annual records carry `edition_year`; authors, files, and reviews inherit
+  their year from `papers`. Keep archived private data private and frozen. Publish archive metadata
+  only after the chair reviews it.
 - `profiles` holds member details; `papers` holds manuscripts; `paper_authors` holds author rows;
   `paper_files` holds submission/final PDF versions; `reviews` holds assignments and
   recommendations; `staff_roles` grants chair authority. Read the latest migrations and live
@@ -95,9 +100,8 @@ full new plan for an obvious text correction.
   conference; do not copy all CMT roles or features.
 - Email/password login is provided. Google and Naver login depend on provider configuration; check
   actual availability before claiming either works. Kakao login is outside the requested scope.
-- General attendee registration is not the paper-submission workflow. Design any future
-  registration feature separately, with minimum necessary personal data, duplicate handling,
-  explicit confirmation behavior, and access controls.
+- General attendee registration is separate from paper submission. Preserve the minimum-personal-data
+  approach, per-year duplicate handling, explicit confirmation, and access controls.
 
 ## Supabase, privacy, and security
 

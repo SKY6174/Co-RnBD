@@ -1,4 +1,4 @@
-import { conferenceClient, escapeHtml, kstTime, requireData } from './conference-client.js';
+import { conferenceClient, currentEdition, editionDateRange, escapeHtml, kstTime, requireData } from './conference-client.js';
 
 const $ = (selector) => document.querySelector(selector);
 const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타' };
@@ -7,6 +7,7 @@ let client;
 let speakers = [];
 let sessions = [];
 let links = [];
+let edition;
 
 function notice(text, error = false) {
   $('#operations-message').textContent = text;
@@ -29,11 +30,15 @@ function toUtc(value) {
 
 async function loadRegistrations() {
   const settings = requireData(await client.from('conference_settings')
-    .select('registration_open,registration_deadline').single());
+    .select('registration_open,registration_deadline').eq('edition_year', edition.year).single());
   $('#registration-open').checked = settings.registration_open;
+  $('#registration-deadline').value = toInput(settings.registration_deadline);
+  $('#registration-deadline-note').textContent = settings.registration_deadline
+    ? `현재 마감: ${new Intl.DateTimeFormat('ko-KR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(settings.registration_deadline))} KST.`
+    : '신청을 열기 전에 마감 시각을 입력해 주세요.';
   const rows = requireData(await client.from('attendee_registrations')
     .select('id,user_id,category,attendance_days,status,checked_in_at,created_at')
-    .order('created_at', { ascending: false }));
+    .eq('edition_year', edition.year).order('created_at', { ascending: false }));
   const users = rows.map((row) => row.user_id);
   const profiles = users.length
     ? requireData(await client.from('profiles').select('user_id,full_name,affiliation,email').in('user_id', users))
@@ -58,10 +63,11 @@ async function loadRegistrations() {
 
 async function loadProgram() {
   speakers = requireData(await client.from('program_speakers')
-    .select('id,full_name,affiliation,bio,is_published').order('full_name'));
+    .select('id,full_name,affiliation,bio,is_published')
+    .eq('edition_year', edition.year).order('full_name'));
   sessions = requireData(await client.from('program_sessions')
     .select('id,title,session_type,starts_at,ends_at,room,description,moderator,is_published')
-    .order('starts_at', { nullsFirst: false }));
+    .eq('edition_year', edition.year).order('starts_at', { nullsFirst: false }));
   links = sessions.length
     ? requireData(await client.from('program_session_speakers')
       .select('session_id,speaker_id,sort_order').in('session_id', sessions.map((row) => row.id)))
@@ -84,6 +90,30 @@ async function loadProgram() {
     : '<p class="operations-empty">등록된 세션이 없습니다.</p>';
 }
 
+async function loadEditions() {
+  const rows = requireData(await client.from('conference_editions')
+    .select('year,title,start_date,end_date,venue,summary,proceedings_url,status,archive_published')
+    .order('year', { ascending: false }));
+  $('#edition-list').innerHTML = rows.map((row) => `<article class="operations-item">
+    <h3>${escapeHtml(row.title)} <span class="operations-meta">${row.status === 'current' ? '현재' : row.status === 'archived' ? '지난 학회' : '준비 중'}</span></h3>
+    <p>${escapeHtml(editionDateRange(row))} · ${escapeHtml(row.venue || '장소 미정')}</p>
+    <form class="edition-form" data-edition="${row.year}">
+      <label>학회명 <input name="title" required maxlength="160" value="${escapeHtml(row.title)}" ${row.status === 'archived' ? 'disabled' : ''} /></label>
+      <div class="operations-form-grid">
+        <label>시작일 <input name="start_date" type="date" value="${row.start_date || ''}" ${row.status === 'archived' ? 'disabled' : ''} /></label>
+        <label>종료일 <input name="end_date" type="date" value="${row.end_date || ''}" ${row.status === 'archived' ? 'disabled' : ''} /></label>
+      </div>
+      <label>장소 <input name="venue" maxlength="240" value="${escapeHtml(row.venue)}" ${row.status === 'archived' ? 'disabled' : ''} /></label>
+      <label>공개 소개 <textarea name="summary" maxlength="2000">${escapeHtml(row.summary)}</textarea></label>
+      <label>승인된 자료집 URL (선택) <input name="proceedings_url" type="url" pattern="https://.*" maxlength="500" value="${escapeHtml(row.proceedings_url || '')}" /></label>
+      ${row.status === 'archived' ? `<label class="inline-check"><input name="archive_published" type="checkbox" ${row.archive_published ? 'checked' : ''} /> 아카이브 공개</label>` : ''}
+      <div class="operations-actions"><button type="submit" class="operations-button secondary">정보 저장</button>
+      ${row.status === 'draft' ? `<button type="button" class="operations-button" data-activate="${row.year}">현재 학회로 전환</button>` : ''}
+      ${row.status === 'archived' && row.archive_published ? `<a class="operations-button secondary" href="./edition.html?year=${row.year}">공개 화면</a>` : ''}
+      </div>
+    </form></article>`).join('');
+}
+
 function clearSpeaker() {
   $('#speaker-form').reset();
   $('#speaker-id').value = '';
@@ -97,8 +127,12 @@ function clearSession() {
 $('#registration-settings-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   try {
+    const deadline = toUtc($('#registration-deadline').value);
+    if ($('#registration-open').checked && !deadline) throw new Error('참가 신청 마감 시각을 입력해 주세요.');
     requireData(await client.from('conference_settings')
-      .update({ registration_open: $('#registration-open').checked }).eq('id', true));
+      .update({ registration_open: $('#registration-open').checked, registration_deadline: deadline })
+      .eq('edition_year', edition.year));
+    await loadRegistrations();
     notice($('#registration-open').checked ? '일반 참가 신청을 열었습니다.' : '일반 참가 신청을 닫았습니다.');
   } catch (error) { notice(error.message, true); }
 });
@@ -129,7 +163,7 @@ $('#speaker-form').addEventListener('submit', async (event) => {
     };
     const id = $('#speaker-id').value;
     if (id) requireData(await client.from('program_speakers').update(values).eq('id', id));
-    else requireData(await client.from('program_speakers').insert(values));
+    else requireData(await client.from('program_speakers').insert({ ...values, edition_year: edition.year }));
     clearSpeaker();
     await loadProgram();
     notice('연사 정보를 저장했습니다.');
@@ -159,7 +193,7 @@ $('#session-form').addEventListener('submit', async (event) => {
     const existingId = $('#session-id').value;
     const saved = existingId
       ? requireData(await client.from('program_sessions').update(values).eq('id', existingId).select('id').single())
-      : requireData(await client.from('program_sessions').insert(values).select('id').single());
+      : requireData(await client.from('program_sessions').insert({ ...values, edition_year: edition.year }).select('id').single());
     requireData(await client.from('program_session_speakers').delete().eq('session_id', saved.id));
     if (selected.length) requireData(await client.from('program_session_speakers').insert(
       selected.map((speakerId, index) => ({ session_id: saved.id, speaker_id: speakerId, sort_order: index + 1 }))
@@ -173,6 +207,51 @@ $('#session-form').addEventListener('submit', async (event) => {
 
 $('#speaker-clear').addEventListener('click', clearSpeaker);
 $('#session-clear').addEventListener('click', clearSession);
+
+$('#create-edition-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const year = Number($('#new-edition-year').value);
+  try {
+    requireData(await client.rpc('create_conference_edition', { p_year: year }));
+    $('#new-edition-year').value = '';
+    await loadEditions();
+    notice(`${year}년 학회 초안을 만들었습니다. 날짜와 장소가 확정되면 입력해 주세요.`);
+  } catch (error) { notice(error.message, true); }
+});
+
+$('#edition-list').addEventListener('submit', async (event) => {
+  const form = event.target.closest('.edition-form');
+  if (!form) return;
+  event.preventDefault();
+  const values = {
+    summary: form.elements.summary.value.trim(),
+    proceedings_url: form.elements.proceedings_url.value.trim() || null,
+  };
+  if (!form.elements.title.disabled) values.title = form.elements.title.value.trim();
+  if (!form.elements.start_date.disabled) {
+    values.start_date = form.elements.start_date.value || null;
+    values.end_date = form.elements.end_date.value || null;
+    values.venue = form.elements.venue.value.trim();
+  }
+  if (form.elements.archive_published) values.archive_published = form.elements.archive_published.checked;
+  try {
+    requireData(await client.from('conference_editions').update(values).eq('year', Number(form.dataset.edition)));
+    await loadEditions();
+    notice('학회 정보를 저장했습니다.');
+  } catch (error) { notice(error.message, true); }
+});
+
+$('#edition-list').addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-activate]');
+  if (!button) return;
+  const year = Number(button.dataset.activate);
+  if (!window.confirm(`${year}년 학회를 현재 회차로 전환할까요? 기존 회차의 투고·심사·참가 신청은 닫히고 지난 학회로 이동합니다.`)) return;
+  button.disabled = true;
+  try {
+    requireData(await client.rpc('activate_conference_edition', { p_year: year }));
+    location.reload();
+  } catch (error) { notice(error.message, true); button.disabled = false; }
+});
 
 $('#speaker-list').addEventListener('click', async (event) => {
   const edit = event.target.closest('[data-edit-speaker]');
@@ -229,7 +308,17 @@ async function start() {
     if (!user) throw new Error('위원장 계정으로 로그인해 주세요. 상단의 투고·심사 관리에서 로그인할 수 있습니다.');
     const role = requireData(await client.from('staff_roles').select('role').eq('user_id', user.id).maybeSingle());
     if (role?.role !== 'chair') throw new Error('위원장 계정만 이 화면을 이용할 수 있습니다.');
-    await Promise.all([loadRegistrations(), loadProgram()]);
+    edition = await currentEdition(client);
+    $('#operations-edition-label').textContent = `CO-R&BD ${edition.year} / CHAIR DESK`;
+    $('#operations-intro').textContent = `${edition.title} 운영 화면입니다. 참가 신청, 프로그램 공개와 연도별 학회 기록을 관리합니다.`;
+    document.title = `참가·프로그램 관리 | ${edition.title}`;
+    if (edition.start_date && edition.end_date) {
+      $('#session-start').min = `${edition.start_date}T00:00`;
+      $('#session-start').max = `${edition.end_date}T23:59`;
+      $('#session-end').min = `${edition.start_date}T00:00`;
+      $('#session-end').max = `${edition.end_date}T23:59`;
+    }
+    await Promise.all([loadRegistrations(), loadProgram(), loadEditions()]);
     $('#operations-workspace').hidden = false;
     notice('운영 데이터를 불러왔습니다. 공개 설정을 변경하면 사이트에 바로 반영됩니다.');
   } catch (error) { notice(error.message, true); }

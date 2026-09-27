@@ -20,6 +20,7 @@ let submissionsOpen = false;
 let reviewsOpen = false;
 let finalUploadsOpen = false;
 let settings;
+let edition;
 let myPapers = [];
 let reviewRows = [];
 let chairPapers = [];
@@ -109,7 +110,9 @@ function phaseCard(title, configured, deadline) {
 }
 
 async function loadSettings() {
-  settings = check(await client.from('conference_settings').select('submissions_open,submission_deadline,reviews_open,review_deadline,final_uploads_open,final_deadline,notice').single());
+  settings = check(await client.from('conference_settings')
+    .select('submissions_open,submission_deadline,reviews_open,review_deadline,final_uploads_open,final_deadline,notice')
+    .eq('edition_year', edition.year).single());
   submissionsOpen = settings.submissions_open && beforeDeadline(settings.submission_deadline);
   reviewsOpen = settings.reviews_open && beforeDeadline(settings.review_deadline);
   finalUploadsOpen = settings.final_uploads_open && beforeDeadline(settings.final_deadline);
@@ -196,12 +199,14 @@ function paperCard(paper, action, label) {
 }
 
 async function loadMyPapers() {
-  myPapers = check(await client.from('papers').select('*').eq('owner_id', user.id).order('created_at', { ascending: false }));
+  myPapers = check(await client.from('papers').select('*')
+    .eq('edition_year', edition.year).eq('owner_id', user.id).order('created_at', { ascending: false }));
   $('#my-papers').innerHTML = myPapers.length ? myPapers.map((paper) => paperCard(paper, 'author', paper.status === 'draft' || paper.status === 'revision' ? '수정·제출' : '원고 보기')).join('') : '<p class="empty-state">아직 작성한 원고가 없습니다. 접수가 시작되면 새 원고를 작성할 수 있습니다.</p>';
 }
 
 async function loadReviews() {
-  reviewRows = check(await client.from('reviews').select('id,paper_id,review_state,recommendation,comments,conflict_confirmed,submitted_at,decline_reason,papers(id,title,abstract,track,status,owner_id,submitted_at)').eq('reviewer_id', user.id).order('assigned_at', { ascending: false }));
+  reviewRows = check(await client.from('reviews').select('id,paper_id,review_state,recommendation,comments,conflict_confirmed,submitted_at,decline_reason,papers(id,title,abstract,track,status,owner_id,submitted_at,edition_year)').eq('reviewer_id', user.id).order('assigned_at', { ascending: false }))
+    .filter((review) => review.papers?.edition_year === edition.year);
   $('[data-tab="reviewer"]').hidden = reviewRows.length === 0;
   $('#review-list').innerHTML = reviewRows.length ? reviewRows.map((review) => {
     const paper = review.papers || { id: review.paper_id, title: '배정 거절 내역', status: 'declined' };
@@ -211,7 +216,8 @@ async function loadReviews() {
 }
 
 async function loadChairPapers() {
-  chairPapers = check(await client.from('papers').select('*').neq('status', 'draft').order('created_at', { ascending: false }));
+  chairPapers = check(await client.from('papers').select('*').eq('edition_year', edition.year)
+    .neq('status', 'draft').order('created_at', { ascending: false }));
   const count = (statuses) => chairPapers.filter((paper) => statuses.includes(paper.status)).length;
   $('#chair-summary').innerHTML = `<span>전체 ${chairPapers.length}</span><span>심사 대기·진행 ${count(['submitted', 'under_review'])}</span><span>수정 요청 ${count(['revision'])}</span><span>채택 ${count(['accepted'])}</span><span>반려 ${count(['rejected'])}</span>`;
   $('#chair-list').innerHTML = chairPapers.length ? chairPapers.map((paper) => paperCard(paper, 'chair', '배정·판정')).join('') : '<p class="empty-state">접수된 원고가 없습니다.</p>';
@@ -324,7 +330,7 @@ async function savePaper(event) {
       check(await client.from('papers').update(input).eq('id', id));
       check(await client.from('paper_authors').delete().eq('paper_id', id));
     } else {
-      id = check(await client.from('papers').insert({ ...input, owner_id: user.id }).select('id').single()).id;
+      id = check(await client.from('papers').insert({ ...input, owner_id: user.id, edition_year: edition.year }).select('id').single()).id;
     }
     check(await client.from('paper_authors').insert(authors.map((author) => ({ ...author, paper_id: id }))));
     await uploadFile(id, $('#paper-file').files[0]);
@@ -453,7 +459,7 @@ $('#phase-form').addEventListener('submit', async (event) => {
       final_uploads_open: $('#phase-final').checked,
       final_deadline: deadlineValue('#phase-final-deadline'),
       notice,
-    }).eq('id', true).select('id').single());
+    }).eq('edition_year', edition.year).select('edition_year').single());
     await loadSettings();
     message('접수·심사·최종본 운영 설정과 공개 안내문을 저장했습니다.');
   } catch (error) { message(error.message, true); }
@@ -635,6 +641,14 @@ async function start() {
       }
     });
     await loadAuthAvailability(config);
+    edition = check(await client.from('conference_editions')
+      .select('year,title,status').eq('status', 'current').single());
+    document.title = `논문 투고·심사 | ${edition.title}`;
+    $('#submission-edition-label').textContent = `CO-R&BD ${edition.year} / PAPER PORTAL`;
+    $('#submission-intro').textContent = `${edition.title}의 원고 제출, 심사와 결과 확인을 이 화면에서 진행합니다.`;
+    $('#submission-footer-edition').textContent = edition.title;
+    $('#submission-cfp-link').href = edition.year === 2026 ? './cfp.html' : './edition.html';
+    $('#submission-cfp-link').textContent = edition.year === 2026 ? '모집공고 보기' : '학회 안내 보기';
     await loadSettings();
     let emailLinkMessage;
     let emailLinkError = false;

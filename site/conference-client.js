@@ -17,6 +17,21 @@ export async function conferenceClient() {
   return createClient(url, publishableKey);
 }
 
+export async function currentEdition(client) {
+  return requireData(await client.from('conference_editions')
+    .select('year,title,start_date,end_date,venue,summary,status')
+    .eq('status', 'current').single());
+}
+
+export function editionDateRange(edition) {
+  if (!edition.start_date || !edition.end_date) return '일정 확정 전';
+  const date = (value) => new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
+  }).format(new Date(`${value}T00:00:00Z`));
+  return edition.start_date === edition.end_date
+    ? date(edition.start_date) : `${date(edition.start_date)}–${date(edition.end_date)}`;
+}
+
 export function kstDate(value) {
   return new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'short' }).format(new Date(value));
 }

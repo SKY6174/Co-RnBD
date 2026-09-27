@@ -1,4 +1,4 @@
-import { conferenceClient, escapeHtml, kstDate, kstTime, requireData } from './conference-client.js';
+import { conferenceClient, currentEdition, editionDateRange, escapeHtml, kstDate, kstTime, requireData } from './conference-client.js';
 
 const status = document.querySelector('#program-message');
 const list = document.querySelector('#program-list');
@@ -10,11 +10,28 @@ const KINDS = {
 async function start() {
   try {
     const client = await conferenceClient();
+    const yearParam = new URLSearchParams(location.search).get('year');
+    if (yearParam && !/^20\d{2}$/.test(yearParam)) throw new Error('Invalid conference year');
+    const edition = yearParam
+      ? requireData(await client.from('conference_editions')
+        .select('year,title,start_date,end_date,venue,status,archive_published').eq('year', Number(yearParam)).single())
+      : await currentEdition(client);
+    if (edition.status === 'draft' || (edition.status === 'archived' && !edition.archive_published)) {
+      throw new Error('Conference program is not public');
+    }
+    document.title = `프로그램·연사 | ${edition.title}`;
+    document.querySelector('#program-edition-label').textContent = `CO-R&BD ${edition.year} / PROGRAM`;
+    document.querySelector('#program-intro').textContent = `${editionDateRange(edition)}, ${edition.venue || '장소 확정 전'}. 공개가 승인된 세션과 연사를 안내합니다.`;
+    document.querySelector('#program-current-actions').hidden = edition.status !== 'current';
+    document.querySelector('#program-archive-link').hidden = edition.status !== 'archived';
+    document.querySelector('#program-cfp-link').hidden = edition.year !== 2026 || edition.status !== 'current';
+    document.querySelector('#program-registration-link').hidden = edition.status !== 'current';
+    document.querySelector('#program-submission-link').hidden = edition.status !== 'current';
     const sessions = requireData(await client.from('program_sessions')
       .select('id,title,session_type,starts_at,ends_at,room,description,moderator')
-      .eq('is_published', true).order('starts_at'));
+      .eq('edition_year', edition.year).eq('is_published', true).order('starts_at'));
     if (!sessions.length) {
-      status.textContent = '확정된 세부 프로그램과 연사를 준비 중입니다. 홈페이지의 1박 2일 일정은 운영 가안입니다.';
+      status.textContent = '공개된 세부 프로그램이 아직 없습니다.';
       list.innerHTML = '<div class="operations-empty">공개된 세션이 없습니다. 확정 후 날짜·시간·장소별로 안내합니다.</div>';
       return;
     }

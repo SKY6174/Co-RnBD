@@ -2,6 +2,20 @@ const menuToggle = document.querySelector(".menu-toggle");
 const primaryNav = document.querySelector(".primary-nav");
 const dayTabs = Array.from(document.querySelectorAll(".day-tab"));
 
+// The editorial 2026 home remains a record of the inaugural edition.
+// Later current editions use the database-driven landing page.
+fetch('/api/config', { cache: 'no-store' }).then((response) => response.ok ? response.json() : null)
+  .then(async (config) => {
+    if (!config?.url || !config?.publishableKey) return;
+    const response = await fetch(`${config.url}/rest/v1/conference_editions?status=eq.current&select=year`, {
+      headers: { apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}` },
+      cache: 'no-store',
+    });
+    if (!response.ok) return;
+    const editions = await response.json();
+    if (editions[0]?.year > 2026) location.replace('./edition.html');
+  }).catch(() => { /* Static 2026 information remains available during outages. */ });
+
 function setMenuOpen(isOpen) {
   menuToggle.setAttribute("aria-expanded", String(isOpen));
   menuToggle.setAttribute("aria-label", isOpen ? "메뉴 닫기" : "메뉴 열기");
