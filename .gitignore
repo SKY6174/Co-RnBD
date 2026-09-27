@@ -5,4 +5,6 @@
 .vercel/
 supabase/.temp/
 node_modules/
+.next/
+*.tsbuildinfo
 docs/.pdca-status.json

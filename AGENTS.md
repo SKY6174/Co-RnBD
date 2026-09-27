@@ -5,16 +5,16 @@
 - This repository serves one recurring Co-R&BD conference, starting with the 2026 edition.
   Annual editions share one site and account system. Do not add an unrelated conference directory
   or site-request flow.
-- The current site is plain HTML, CSS, and browser JavaScript in `site/`. `site/api/` contains
-  Vercel Functions. Supabase provides Auth, Postgres, and private Storage. Vercel deploys `site/`
-  to `https://co-rnbd.org` from GitHub `main`.
-- There is currently no Next.js application, TypeScript setup, `package.json`, or package manager.
-  Inspect the repository before introducing any of them. Do not use Next.js, React, or npm
-  commands as default instructions.
-- `site/index.html` and `site/cfp.html` preserve the detailed 2026 content. `site/edition.html`
-  presents later active years and published archive records; `site/archive.html` lists past years.
-  `site/submission.html` is the author, reviewer, and chair portal. General attendee registration
-  is separate in `site/registration.html`.
+- The site is a Next.js App Router and TypeScript project rooted at `site/`. Repository-controlled
+  page bodies are in `site/content/` and existing DOM clients are in `site/public/legacy/` during
+  the migration. TypeScript Route Handlers are in `site/app/api/`. Supabase provides Auth, Postgres,
+  and private Storage. Vercel deploys `site/` to `https://co-rnbd.org` from GitHub `main`.
+- Use `npm ci`, `npm run typecheck`, and `npm run build` in `site/` for dependency, type, and
+  production build checks. Keep the lockfile pinned and avoid adding packages without need.
+- `site/content/index.html` and `site/content/cfp.html` preserve the detailed 2026 content.
+  `/edition.html` presents later active years and published archive records; `/archive.html` lists
+  past years. `/submission.html` is the author, reviewer, and chair portal. General attendee
+  registration is separate at `/registration.html`. Preserve these URLs and their DOM IDs.
 - The conference dates and venue are confirmed in the project content; paper submission dates,
   organizer details, and some program information remain provisional. Preserve the
   confirmed/proposed distinction. Never invent speakers, organizers, deadlines, contact details,
@@ -111,7 +111,7 @@ full new plan for an obvious text correction.
 - Enforce ownership and role permissions in Postgres RLS and/or an authorized server boundary.
   Hidden UI controls are never the only authorization check. Validate inputs at the database or
   server boundary as well as in the browser when appropriate.
-- `site/api/config.js` sends only client-safe settings to the browser: the Supabase URL,
+- `site/app/api/config/route.ts` sends only client-safe settings to the browser: the Supabase URL,
   publishable key, and Naver availability flag. Never expose service-role or secret keys,
   database passwords, OAuth secrets, or signing keys in public code, responses, logs, or commits.
 - Private PDFs and personal profiles must remain limited to their permitted authors, assigned
@@ -127,18 +127,17 @@ full new plan for an obvious text correction.
 
 ## Verification that fits this repository
 
-- JavaScript syntax: run `node --check` on changed `.js` files. Check HTML structure, links, and
-  IDs when changing markup. Run `git diff --check` on every change.
-- Static preview: `python3 -m http.server 8765 --directory site` can verify layout and navigation.
-  It does **not** provide Vercel `/api/config`; it cannot prove login, submission, or database
-  flows.
+- Run `npm run typecheck` and `npm run build` in `site/`. Run `node --check` on changed legacy
+  `.js` files. Check HTML structure, links, and IDs when changing content. Run `git diff --check`.
+- Local preview: `npm run dev` in `site/` serves the Next.js pages and API routes. Without local
+  Supabase environment settings it cannot prove login, submission, or database flows.
 - For UI changes, inspect relevant desktop and narrow mobile widths (around 390px), including
   overflow and interactive states. For auth, role, Storage, or API changes, verify the actual
   request → authorization → data → response path in a suitable environment.
 - For Supabase changes, query the resulting schema/policies and test allow/deny behavior without
   leaving production test records. Check migrations and deployed state separately.
-- Run only checks that exist and address a concrete risk. There is no default npm lint, typecheck,
-  test, or build script in the current repository.
+- Run checks that address a concrete risk. The project has typecheck and build scripts; there is
+  no general test or lint script.
 - If a check fails, identify whether the change caused it, fix relevant failures, and report
   unrelated failures accurately. Never claim an unrun check passed.
 
