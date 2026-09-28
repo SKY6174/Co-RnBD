@@ -27,6 +27,7 @@
 .operations-note { padding: 13px 16px; border-left: 3px solid var(--lime-dark); background: #eff4e7; color: #3d5749; line-height: 1.65; }
 .operations-note.error { border-color: #c9664e; background: #fff0ec; color: #8e3423; }
 .operations-list { display: grid; gap: 12px; }
+.operations-list[hidden] { display: none; }
 .operations-item { padding: 17px 19px; border: 1px solid var(--line); background: #fff; }
 .operations-item h3 { margin: 0 0 7px; }
 .operations-item p { margin: 5px 0; color: var(--muted); }
