@@ -7,6 +7,8 @@ let client;
 let speakers = [];
 let sessions = [];
 let links = [];
+let sessionChairs = [];
+let sessionPresentations = [];
 let edition;
 
 function notice(text, error = false) {
@@ -88,6 +90,63 @@ async function loadProgram() {
     <div class="operations-actions"><button type="button" class="operations-button secondary" data-edit-session="${row.id}">수정</button>
     <button type="button" class="operations-button secondary" data-delete-session="${row.id}">삭제</button></div></article>`).join('')
     : '<p class="operations-empty">등록된 세션이 없습니다.</p>';
+}
+
+async function loadSessionChairs() {
+  const eligible = sessions.filter((row) => ['oral', 'poster'].includes(row.session_type));
+  if (!eligible.length) {
+    $('#session-chair-list').innerHTML = '<p class="operations-empty">구두·포스터 세션을 먼저 만드세요.</p>';
+    return;
+  }
+  const ids = eligible.map((row) => row.id);
+  sessionChairs = requireData(await client.from('session_chairs')
+    .select('session_id,user_id,report_note,report_submitted_at').in('session_id', ids));
+  sessionPresentations = requireData(await client.from('session_presentations')
+    .select('id,session_id,paper_id,paper_title,presenter_name,attendance,award_recommended,chair_note')
+    .in('session_id', ids).order('created_at'));
+  const accepted = requireData(await client.from('papers')
+    .select('id,title,final_presentation').eq('edition_year', edition.year).eq('status', 'accepted').order('title'));
+  const userIds = [...new Set(sessionChairs.map((row) => row.user_id))];
+  const profiles = userIds.length ? requireData(await client.from('profiles')
+    .select('user_id,full_name,email').in('user_id', userIds)) : [];
+  const people = new Map(profiles.map((row) => [row.user_id, row]));
+  const scheduled = new Set(sessionPresentations.map((row) => row.paper_id));
+  $('#session-chair-list').innerHTML = eligible.map((session) => {
+    const assignment = sessionChairs.find((row) => row.session_id === session.id);
+    const person = assignment && people.get(assignment.user_id);
+    const items = sessionPresentations.filter((row) => row.session_id === session.id);
+    const available = accepted.filter((paper) => paper.final_presentation === session.session_type && !scheduled.has(paper.id));
+    return `<article class="operations-item"><h3>${escapeHtml(session.title)}</h3>
+      <p>${escapeHtml(session.session_type === 'oral' ? '구두발표' : '포스터')} · ${escapeHtml(session.room || '장소 미정')}</p>
+      <p>좌장 계정: ${escapeHtml(person ? `${person.full_name || '이름 미입력'} (${person.email})` : '미배정')}
+      ${assignment?.report_submitted_at ? ' · 보고서 제출 완료' : assignment ? ' · 보고 대기' : ''}</p>
+      <form class="session-chair-assign" data-session="${session.id}"><label>좌장 계정 이메일
+        <input type="email" name="email" required value="${escapeHtml(person?.email || '')}" placeholder="가입된 계정 이메일" /></label>
+        <div class="operations-actions"><button class="operations-button" type="submit" ${assignment?.report_submitted_at ? 'disabled' : ''}>좌장 배정·교체</button>
+        ${assignment ? `<button class="operations-button secondary" type="button" data-remove-chair="${session.id}" ${assignment.report_submitted_at ? 'disabled' : ''}>배정 해제</button>` : ''}
+        ${assignment?.report_submitted_at ? `<button class="operations-button secondary" type="button" data-reopen-report="${session.id}">보고서 재개</button>` : ''}</div></form>
+      <p class="operations-meta">발표 ${items.length}편${assignment?.report_submitted_at ? ` · 좌장 메모: ${escapeHtml(assignment.report_note || '없음')}` : ''}</p>
+      <div class="operations-list">${items.map((row) => `<div class="operations-item"><strong>${escapeHtml(row.paper_title)}</strong>
+        <p>발표자 ${escapeHtml(row.presenter_name)} · ${escapeHtml({ pending: '확인 전', presented: '발표', absent: '불참' }[row.attendance])}${row.award_recommended ? ' · 우수발표 후보 추천' : ''}</p>
+        ${row.chair_note ? `<p>좌장 메모: ${escapeHtml(row.chair_note)}</p>` : ''}
+        <button type="button" class="operations-button secondary" data-remove-presentation="${row.id}" ${assignment?.report_submitted_at ? 'disabled' : ''}>발표 배정 해제</button></div>`).join('') || '<p class="operations-empty">배정된 발표가 없습니다.</p>'}</div>
+      <form class="session-presentation-add" data-session="${session.id}"><div class="operations-form-grid">
+        <label>채택 원고 <select name="paper_id" required><option value="">선택하세요</option>${available.map((paper) =>
+          `<option value="${paper.id}">${escapeHtml(paper.title)}</option>`).join('')}</select></label>
+        <label>실제 발표자 이름 <input name="presenter_name" maxlength="120" required /></label></div>
+        <button class="operations-button secondary" type="submit" ${available.length && !assignment?.report_submitted_at ? '' : 'disabled'}>발표 배정</button></form>
+    </article>`;
+  }).join('');
+}
+
+async function refreshSessionChairs() {
+  try {
+    await loadSessionChairs();
+  } catch (error) {
+    if (error.code !== 'PGRST205' && error.code !== '42P01'
+      && !/could not find the table|relation .* does not exist/i.test(error.message)) throw error;
+    $('#session-chair-list').innerHTML = '<p class="operations-empty">좌장 운영 DB 변경이 아직 적용되지 않았습니다. 기존 참가·프로그램 관리는 계속 이용할 수 있습니다.</p>';
+  }
 }
 
 async function loadEditions() {
@@ -200,6 +259,7 @@ $('#session-form').addEventListener('submit', async (event) => {
     ));
     clearSession();
     await loadProgram();
+    await refreshSessionChairs();
     notice('세션을 저장했습니다. 공개 설정은 프로그램 페이지에 바로 반영됩니다.');
   } catch (error) { notice(error.message, true); }
   finally { button.disabled = false; }
@@ -294,9 +354,61 @@ $('#session-list').addEventListener('click', async (event) => {
   if (remove && window.confirm('세션을 삭제할까요? 공개 프로그램에서도 사라집니다.')) {
     try {
       requireData(await client.from('program_sessions').delete().eq('id', remove.dataset.deleteSession));
-      await loadProgram(); notice('세션을 삭제했습니다.');
+      await loadProgram(); await refreshSessionChairs(); notice('세션을 삭제했습니다.');
     } catch (error) { notice(error.message, true); }
   }
+});
+
+$('#session-chair-list').addEventListener('submit', async (event) => {
+  const assign = event.target.closest('.session-chair-assign');
+  const add = event.target.closest('.session-presentation-add');
+  if (!assign && !add) return;
+  event.preventDefault();
+  const form = assign || add;
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    if (assign) {
+      const email = assign.elements.email.value.trim();
+      const profile = requireData(await client.from('profiles').select('user_id').eq('email', email).maybeSingle());
+      if (!profile) throw new Error('가입된 계정을 찾을 수 없습니다. 좌장이 먼저 로그인했는지 확인해 주세요.');
+      const existing = sessionChairs.find((row) => row.session_id === assign.dataset.session);
+      if (existing) requireData(await client.from('session_chairs').update({ user_id: profile.user_id })
+        .eq('session_id', assign.dataset.session).select('session_id').single());
+      else requireData(await client.from('session_chairs').insert({
+        session_id: assign.dataset.session, user_id: profile.user_id,
+      }).select('session_id').single());
+      notice('좌장 계정을 배정했습니다. 공개용 좌장 표기는 세션 편집에서 별도로 확인해 주세요.');
+    } else {
+      requireData(await client.from('session_presentations').insert({
+        session_id: add.dataset.session,
+        paper_id: add.elements.paper_id.value,
+        presenter_name: add.elements.presenter_name.value.trim(),
+      }).select('id').single());
+      notice('발표를 세션에 배정했습니다.');
+    }
+    await refreshSessionChairs();
+  } catch (error) { notice(error.message, true); button.disabled = false; }
+});
+
+$('#session-chair-list').addEventListener('click', async (event) => {
+  const removeChair = event.target.closest('[data-remove-chair]');
+  const removePresentation = event.target.closest('[data-remove-presentation]');
+  const reopen = event.target.closest('[data-reopen-report]');
+  const button = removeChair || removePresentation || reopen;
+  if (!button) return;
+  if ((removeChair || removePresentation) && !window.confirm('이 배정을 해제할까요? 기존 좌장 기록도 함께 삭제됩니다.')) return;
+  button.disabled = true;
+  try {
+    if (removeChair) requireData(await client.from('session_chairs').delete()
+      .eq('session_id', removeChair.dataset.removeChair));
+    else if (removePresentation) requireData(await client.from('session_presentations').delete()
+      .eq('id', removePresentation.dataset.removePresentation));
+    else requireData(await client.from('session_chairs').update({ report_submitted_at: null })
+      .eq('session_id', reopen.dataset.reopenReport).select('session_id').single());
+    await refreshSessionChairs();
+    notice(reopen ? '좌장 보고서를 다시 열었습니다.' : '배정을 해제했습니다.');
+  } catch (error) { notice(error.message, true); button.disabled = false; }
 });
 
 async function start() {
@@ -320,6 +432,7 @@ async function start() {
       $('#session-end').max = `${edition.end_date}T23:59`;
     }
     await Promise.all([loadRegistrations(), loadProgram(), loadEditions()]);
+    await refreshSessionChairs();
     $('#operations-workspace').hidden = false;
     notice('운영 데이터를 불러왔습니다. 공개 설정을 변경하면 사이트에 바로 반영됩니다.');
   } catch (error) { notice(error.message, true); }

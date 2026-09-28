@@ -8,6 +8,7 @@ const LEGACY_SLUGS = [
   "submission",
   "registration",
   "operations",
+  "session-chair",
   "monitor",
   "privacy",
   "terms",
