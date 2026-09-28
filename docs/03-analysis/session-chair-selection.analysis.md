@@ -23,11 +23,11 @@ The implementation covers the application, selection, assignment and withdrawal 
 13. Chair page with list, private note, decision and approved-account suggestions.
 14. No automatic mail or public candidate list.
 15. Privacy-policy scope, processing items, access and retention updated.
-16. Local database checks for closed-window rejection, self/other/chair RLS, private notes, unapproved assignment rejection, approved assignment and withdrawal paths; syntax, typecheck, build, route and HTML checks passed.
+16. Local database checks for closed-window rejection, self/other/chair RLS, private notes, unapproved assignment rejection, approved assignment and withdrawal paths; authenticated browser checks for closed/open application, submission, chair note, selection, assignment, applicant status, withdrawal request and assigned-chair access. Syntax, typecheck, build, route and HTML checks passed.
 
 ## Remaining verification
 
-- Authenticated browser flows and responsive 390px layout have not been exercised with a local test account. The local page route renders, but its client reports missing data configuration without a Supabase URL and publishable key.
+- The local browser checks used disposable Supabase Auth accounts and a local server pointed at the disposable database. The chair page required `staff_roles.is_super_admin`, so the local database received that column manually because its production-specific super-admin migration is intentionally excluded from the disposable migration set. The 571px in-app browser view has no visible overflow; an exact 390px viewport is still unverified.
 - Vercel Preview must not write to production Supabase. The migration has only been applied to a disposable local database.
 
 ## Operational decisions before opening recruitment

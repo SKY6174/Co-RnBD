@@ -1,7 +1,7 @@
 import { conferenceClient, currentEdition, escapeHtml, requireData } from './conference-client.js';
 
 const $ = (selector) => document.querySelector(selector);
-const STATES = { submitted: '접수 완료 · 선정 검토 전', approved: '선정 완료 · 세션 배정 대기', declined: '이번 회차 미선정', withdrawn: '지원 철회' };
+const STATES = { submitted: '접수 완료 · 선정 검토 전', approved: '선정 완료', declined: '이번 회차 미선정', withdrawn: '지원 철회' };
 let client;
 let edition;
 let user;
@@ -43,8 +43,10 @@ async function loadApplication() {
   const days = conferenceDays(edition.start_date, edition.end_date);
   $('#application-profile').textContent = `계정 정보: ${profile.full_name || '이름 미입력'} · ${profile.affiliation || '소속 미입력'} · 전문 분야 ${profile.expertise_tracks?.length || 0}개`;
   $('#application-notice').textContent = open ? settings.chair_application_notice : '좌장 모집은 아직 열리지 않았거나 마감됐습니다. 확정된 모집 안내가 게시되면 지원할 수 있습니다.';
+  const assignmentStatus = application?.status === 'approved'
+    ? (assigned ? ' · 세션 배정 완료' : application.withdrawal_requested_at ? '' : ' · 세션 배정 대기') : '';
   $('#application-status').textContent = application
-    ? `${STATES[application.status] || application.status}${assigned ? ' · 세션 배정 완료' : ''}${application.withdrawal_requested_at ? ' · 배정 해제 요청 접수' : ''}`
+    ? `${STATES[application.status] || application.status}${assignmentStatus}${application.withdrawal_requested_at ? ' · 배정 해제 요청 접수' : ''}`
     : '이번 회차 지원 내역이 없습니다.';
   $('#application-days').innerHTML = days.map((day) => `<label class="inline-check"><input type="checkbox" name="available_day" value="${day}" ${application?.available_days.includes(day) ? 'checked' : ''} /> ${escapeHtml(day)}</label>`).join('');
   for (const field of $('#application-form').querySelectorAll('[name="presentation_type"]')) {

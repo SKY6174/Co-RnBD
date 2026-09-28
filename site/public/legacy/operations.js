@@ -3,6 +3,7 @@ import { conferenceClient, currentEdition, editionDateRange, escapeHtml, kstTime
 const $ = (selector) => document.querySelector(selector);
 const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타' };
 const STATES = { applied: '확인 대기', confirmed: '참가 확정', cancelled: '취소됨' };
+const TRACKS = { applied: '전문기술석사 응용연구', industry: '산학공동기술개발 성과', convergence: '산업융합기술', education: '전문기술석사 교육·운영' };
 let client;
 let speakers = [];
 let sessions = [];
@@ -187,7 +188,7 @@ async function loadChairApplications() {
       ? '<button class="operations-button secondary" type="button" data-chair-decision="withdrawn">해제 요청 처리·철회</button>' : '';
     return `<article class="operations-item" data-application="${row.id}"><h3>${escapeHtml(person.full_name || '이름 미입력')}</h3>
       <p>${escapeHtml(person.affiliation || '소속 미입력')} · ${escapeHtml(person.email || '')}</p>
-      <p>전문 분야: ${escapeHtml((person.expertise_tracks || []).join(', '))} · 희망: ${escapeHtml(row.preferred_types.map((type) => types[type] || type).join(', '))}</p>
+      <p>전문 분야: ${escapeHtml((person.expertise_tracks || []).map((track) => TRACKS[track] || track).join(', '))} · 희망: ${escapeHtml(row.preferred_types.map((type) => types[type] || type).join(', '))}</p>
       <p>참여 가능: ${escapeHtml(row.available_days.join(', '))}</p>
       <p class="operations-meta">${escapeHtml(labels[row.status] || row.status)}${assigned ? ' · 세션 배정됨' : ''}${row.withdrawal_requested_at ? ' · 배정 해제 요청' : ''}</p>
       <form class="chair-application-review"><label>내부 검토 메모 (지원자에게 비공개)
