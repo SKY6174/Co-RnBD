@@ -1,4 +1,4 @@
-# Co-R&BD Conference 2026 사이트 시안
+# T-VET Co-R&BD Conference 2026 사이트 시안
 
 행사 안내와 논문 투고·심사 사이트입니다. Next.js App Router가 첫 화면과 `cfp.html`, `submission.html` 등 기존 공개 URL을 제공합니다. 일반 참가 신청은 `registration.html`, 공개 세션·연사는 `program.html`, 위원장 운영 화면은 `operations.html`입니다. 모집공고 원문 초안은 [CFP 문서](../outputs/co-rbd-2026-cfp-draft.md)에서 확인할 수 있습니다.
 

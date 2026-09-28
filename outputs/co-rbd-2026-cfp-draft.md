@@ -1,4 +1,4 @@
-# Co-R&BD Conference 2026 — 논문·현장사례 모집공고 초안
+# T-VET Co-R&BD Conference 2026 — 논문·현장사례 모집공고 초안
 
 > **내부 검토용** · 행사일·캠퍼스·일반 참가신청 마감은 확정. 주최·주관, 등록비, 논문 일정, 투고·등록 URL, 문의처와 세부 행사장은 게시 전 확정한다.
 
@@ -6,7 +6,7 @@
 
 ### 제1회 전문대학 산학공동 R&BD 컨퍼런스
 
-**Co-R&BD Conference 2026**<br>
+**T-VET Co-R&BD Conference 2026**<br>
 *College–Industry Cooperation for Research and Business Development*<br>
 **전문기술석사 연구와 산학공동기술개발과제의 만남**
 
@@ -53,8 +53,8 @@
 
 ### Call for Papers & Practice Cases
 
-**Co-R&BD Conference 2026**<br>
-*The Inaugural Co-R&BD Conference*<br>
+**T-VET Co-R&BD Conference 2026**<br>
+*The Inaugural T-VET Co-R&BD Conference*<br>
 *College–Industry Cooperation for Research and Business Development*
 
 The conference invites applied research and practice cases from professional technical master's programs and industry–college collaborative R&D projects. We welcome students and graduates, college faculty and researchers, and industry collaborators.

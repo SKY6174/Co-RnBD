@@ -6,7 +6,7 @@ import "../operations.css";
 import "../legal.css";
 
 export const metadata: Metadata = {
-  title: "Co-R&BD Conference",
+  title: "T-VET Co-R&BD Conference",
   icons: { icon: "/favicon.png" },
 };
 
