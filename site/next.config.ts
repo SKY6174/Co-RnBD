@@ -9,6 +9,7 @@ const LEGACY_SLUGS = [
   "registration",
   "operations",
   "session-chair",
+  "chair-application",
   "monitor",
   "privacy",
   "terms",
