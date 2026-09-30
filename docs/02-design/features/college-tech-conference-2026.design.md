@@ -1,4 +1,4 @@
-# Co-R&BD Conference 2026 — 상세설계(Design)
+# T-VET Co-R&BD Conference 2026 — 상세설계(Design)
 
 > 작성일: 2026-09-26 · 상태: 상세설계 진행(개최일·캠퍼스·일반 참가신청 마감 반영) · [기획 문서](../../01-plan/features/college-tech-conference-2026.plan.md)를 기준으로 작성
 
@@ -8,7 +8,7 @@
 
 | 항목 | 현재 기준 | 공고 전 결정권자/확인 |
 |---|---|---|
-| 행사명 | 제1회 전문대학 산학공동 R&BD 컨퍼런스 / Co-R&BD Conference 2026 | 조직위원회 표기 승인 |
+| 행사명 | 제1회 전문대학 산학공동 R&BD 컨퍼런스 / T-VET Co-R&BD Conference 2026 | 사용자 지정 명칭 |
 | 개최 | 2026-12-17(목)~18(금), 울산과학대학교 동부캠퍼스 확정 | 개최교 교무·대관, 세부 건물·호실 조율 |
 | 일반 참가신청 | 2026-10-30(금) 18:00 KST 마감 | 발표자는 채택 후 별도 등록 |
 | 주최·주관 | 개최교·협의회·참여대학 후보 | 각 기관 명칭·로고 사용 승인 |
@@ -19,7 +19,7 @@
 
 ### 1.1 공식 표기 규칙
 
-포스터·홈페이지 첫 화면에서 `Co-R&BD Conference 2026`을 대표 제목으로, `제1회 전문대학 산학공동 R&BD 컨퍼런스`를 국문 정식명으로 쓴다. `The Inaugural Co-R&BD Conference`는 첫 개최를 설명하는 보조 문구로 사용한다. 영문 설명은 `College–Industry Cooperation for Research and Business Development`로 통일한다. 국문 부제는 `전문기술석사 연구와 산학공동기술개발과제의 만남`이다. 2026년 CFP와 세션명에는 `산학공동기술개발과제 성과발표`를 쓴다.
+포스터·홈페이지 첫 화면에서 `T-VET Co-R&BD Conference 2026`을 대표 제목으로, `제1회 전문대학 산학공동 R&BD 컨퍼런스`를 국문 정식명으로 쓴다. `The Inaugural T-VET Co-R&BD Conference`는 첫 개최를 설명하는 보조 문구로 사용한다. 영문 설명은 `College–Industry Cooperation for Research and Business Development`로 통일한다. 국문 부제는 `전문기술석사 연구와 산학공동기술개발과제의 만남`이다. 2026년 CFP와 세션명에는 `산학공동기술개발과제 성과발표`를 쓴다.
 
 구형 후보명 `PTM–CoR&D`, `Meister Co-R&D`, `K-TECH Connect`는 새 공고·화면·자료집에 사용하지 않는다. 브랜드 약어의 상표·도메인 사용 가능 여부는 별도 확인한다.
 
