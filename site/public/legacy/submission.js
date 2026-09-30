@@ -173,8 +173,12 @@ async function loadWorkspace() {
   $('#auth-panel').hidden = Boolean(user) || isRecovery;
   $('#workspace').hidden = !user || isRecovery;
   if (!user || isRecovery) return;
-  profile = check(await client.from('profiles').select('*').eq('user_id', user.id).single());
-  const role = check(await client.from('staff_roles').select('role,is_super_admin').eq('user_id', user.id).maybeSingle());
+  const [profileResult, roleResult] = await Promise.all([
+    client.from('profiles').select('*').eq('user_id', user.id).single(),
+    client.from('staff_roles').select('role,is_super_admin').eq('user_id', user.id).maybeSingle(),
+  ]);
+  profile = check(profileResult);
+  const role = check(roleResult);
   isChair = role?.role === 'chair';
   $('#submission-monitor-link').hidden = !role?.is_super_admin;
   $('#welcome').textContent = `${profile.full_name || '회원'}님의 작업 공간`;
@@ -268,9 +272,13 @@ async function openAuthor(paperId = '') {
     $('#paper-keywords').value = (paper.keywords || []).join(', ');
     $('#paper-contact-name').value = paper.contact_name || '';
     $('#paper-contact-email').value = paper.contact_email || '';
-    const authors = check(await client.from('paper_authors').select('*').eq('paper_id', paperId).order('sort_order'));
+    const [authorsResult, filesResult] = await Promise.all([
+      client.from('paper_authors').select('*').eq('paper_id', paperId).order('sort_order'),
+      client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }),
+    ]);
+    const authors = check(authorsResult);
     $('#paper-authors').value = authors.map((author) => [author.full_name, author.affiliation, author.email].filter(Boolean).join(' | ')).join('\n');
-    const files = check(await client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }));
+    const files = check(filesResult);
     showFiles(files, $('#paper-form'), 'paper-file-links');
     if (paper.submitted_at) {
       const submitted = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(paper.submitted_at));
@@ -368,10 +376,14 @@ async function openReview(paperId) {
     $('#review-authors').hidden = true;
     document.getElementById('review-file-links')?.remove();
   } else {
-    const authors = check(await client.from('paper_authors').select('full_name,affiliation').eq('paper_id', paperId).order('sort_order'));
+    const [authorsResult, filesResult] = await Promise.all([
+      client.from('paper_authors').select('full_name,affiliation').eq('paper_id', paperId).order('sort_order'),
+      client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }),
+    ]);
+    const authors = check(authorsResult);
     $('#review-authors').textContent = `저자·소속 확인: ${authors.map((author) => `${author.full_name} (${author.affiliation})`).join(', ') || '저자 정보 없음'}`;
     $('#review-authors').hidden = false;
-    const files = check(await client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }));
+    const files = check(filesResult);
     showFiles(files, $('#review-form'), 'review-file-links');
   }
   $('#review-form').hidden = false;
@@ -382,18 +394,23 @@ async function openChair(paperId) {
   const paper = chairPapers.find((row) => row.id === paperId);
   $('#chair-paper-id').value = paperId;
   $('#chair-title').textContent = paper.title;
-  const authors = check(await client.from('paper_authors').select('full_name,affiliation,email').eq('paper_id', paperId).order('sort_order'));
+  const [authorsResult, reviewsResult, filesResult] = await Promise.all([
+    client.from('paper_authors').select('full_name,affiliation,email').eq('paper_id', paperId).order('sort_order'),
+    client.from('reviews').select('id,reviewer_id,review_state,recommendation,comments,decline_reason,submitted_at,profiles(full_name,email,expertise_tracks)').eq('paper_id', paperId),
+    client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }),
+  ]);
+  const authors = check(authorsResult);
   $('#chair-paper-summary').innerHTML = `<p>${esc(paper.abstract)}</p><p class="field-help">저자: ${esc(authors.map((author) => `${author.full_name} (${author.affiliation})`).join(', ') || '미입력')}<br>키워드: ${esc((paper.keywords || []).join(', ') || '미입력')}<br>연락 담당자: ${esc(paper.contact_name || '미입력')} · ${esc(paper.contact_email || '미입력')}<br>접수번호 ${esc(paperId.slice(0, 8).toUpperCase())}</p>`;
   $('#chair-status').value = paper.status;
   $('#chair-presentation').value = paper.final_presentation || '';
   $('#chair-note').value = paper.decision_note || '';
-  selectedChairReviews = check(await client.from('reviews').select('id,reviewer_id,review_state,recommendation,comments,decline_reason,submitted_at,profiles(full_name,email,expertise_tracks)').eq('paper_id', paperId));
+  selectedChairReviews = check(reviewsResult);
   $('#assigned-reviewers').innerHTML = selectedChairReviews.length ? selectedChairReviews.map((review) => {
     const detail = review.review_state === 'declined' ? review.decline_reason : review.review_state === 'submitted' ? review.comments : '';
     const expertise = (review.profiles?.expertise_tracks || []).map((track) => TRACKS[track] || track).join(', ');
     return `<p>${esc(review.profiles?.full_name || review.profiles?.email || '심사위원')} · ${esc(REVIEW_STATES[review.review_state] || '심사 대기')}${review.review_state === 'submitted' ? ` · ${esc(RECOMMENDATIONS[review.recommendation])}` : ''}<br><small>전문 분야: ${esc(expertise || '미입력')}</small>${detail ? `<br><small>${esc(detail)}</small>` : ''}</p>`;
   }).join('') : '<p>아직 배정된 심사위원이 없습니다. 2명 배정을 권장합니다.</p>';
-  const files = check(await client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }));
+  const files = check(filesResult);
   showFiles(files, $('#chair-form'), 'chair-file-links');
   $('#chair-form').hidden = false;
   $('#chair-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -632,12 +649,13 @@ async function start() {
     const config = await response.json();
     client = createClient(config.url, config.publishableKey);
     client.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') return;
       if (event === 'PASSWORD_RECOVERY') {
         isRecovery = true;
         $('#recovery-panel').hidden = false;
         $('#auth-panel').hidden = true;
         $('#workspace').hidden = true;
-      } else if (!isRecovery && session?.user?.id !== user?.id) {
+      } else if (!isRecovery && edition && session?.user?.id !== user?.id) {
         setTimeout(() => loadWorkspace().catch((error) => message(error.message, true)), 0);
       }
     });
