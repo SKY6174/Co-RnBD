@@ -39,7 +39,7 @@
 | 원고 마감 | 2026년 11월 6일 18:00 KST | 가안 |
 | 채택·수정 요청 통보 | 2026년 11월 20일 | 가안 |
 | 최종본·발표자 별도 등록 마감 | 2026년 11월 27일 18:00 KST | 가안 |
-| **행사** | **2026년 12월 17일(목)–18일(금), 울산과학대학교 동부캠퍼스** | **일자·캠퍼스 확정** |
+| **행사** | **2027년 1월 14일(목)–15일(금), 울산과학대학교 동부캠퍼스** | **일자·캠퍼스 확정** |
 
 일반 참가자는 10월 30일까지 신청하며, 발표자는 채택 통보 후 별도 절차로 등록합니다. 채택된 원고는 구두 또는 포스터로 발표하며, 발표자 1명 이상이 등록하고 현장에서 발표해야 합니다. 공개 동의를 받은 최종본은 행사 발표자료집에 수록할 예정입니다. 자료집 수록이 학술지 게재 또는 학위요건 인정을 뜻하지는 않습니다.
 
@@ -70,7 +70,7 @@ The conference invites applied research and practice cases from professional tec
 
 Submit only information approved for review and presentation. Do not include confidential company information. Release in the proceedings or on the website requires separate approval of the relevant disclosure scope.
 
-**Confirmed conference dates and campus:** December 17–18, 2026, Eastern Campus, Ulsan College, Ulsan, Republic of Korea. **General attendee application deadline:** October 30, 2026, 18:00 KST. Presenters register separately after acceptance. Proposed paper dates: submissions open October 12; deadline November 6, 18:00 KST; notification November 20; final submission and presenter registration November 27, 18:00 KST. Paper dates, room details, organizers, and URLs require confirmation before publication.
+**Confirmed conference dates and campus:** January 14–15, 2027, Eastern Campus, Ulsan College, Ulsan, Republic of Korea. **General attendee application deadline:** October 30, 2026, 18:00 KST. Presenters register separately after acceptance. Proposed paper dates: submissions open October 12; deadline November 6, 18:00 KST; notification November 20; final submission and presenter registration November 27, 18:00 KST. Paper dates, room details, organizers, and URLs require confirmation before publication.
 
 At least one author of each accepted contribution must register and present onsite. Final contributions approved for release may be included in the conference proceedings.
 
