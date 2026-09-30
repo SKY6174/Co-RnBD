@@ -40,3 +40,10 @@ begin
   end if;
 end;
 $$;
+
+-- Preserve a chair-edited deadline; only shift the previous confirmed value.
+-- Paper-stage deadlines remain null until the proposed schedule is approved.
+update public.conference_settings
+set registration_deadline = '2026-11-27 18:00:00+09'
+where edition_year = 2026
+  and registration_deadline = '2026-10-30 18:00:00+09';
