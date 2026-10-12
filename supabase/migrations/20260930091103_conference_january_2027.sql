@@ -15,15 +15,15 @@ begin
   if exists (
     select 1 from public.attendee_registrations
     where edition_year = 2026
-      and not (attendance_days <@ array['2027-01-14'::date, '2027-01-15'::date])
+      and not (attendance_days <@ array['2027-01-21'::date, '2027-01-22'::date])
   ) then
     raise exception 'Review 2026 attendee registration days before changing conference dates';
   end if;
   if exists (
     select 1 from public.program_sessions
     where edition_year = 2026 and starts_at is not null
-      and ((starts_at at time zone 'Asia/Seoul')::date < '2027-01-14'::date
-        or (ends_at at time zone 'Asia/Seoul')::date > '2027-01-15'::date)
+      and ((starts_at at time zone 'Asia/Seoul')::date < '2027-01-21'::date
+        or (ends_at at time zone 'Asia/Seoul')::date > '2027-01-22'::date)
   ) then
     raise exception 'Review 2026 program session times before changing conference dates';
   end if;
@@ -33,7 +33,7 @@ $$;
 do $$
 begin
   update public.conference_editions
-  set start_date = '2027-01-14', end_date = '2027-01-15'
+  set start_date = '2027-01-21', end_date = '2027-01-22'
   where year = 2026 and status = 'current';
   if not found then
     raise exception 'Current 2026 conference edition was not found';
@@ -44,6 +44,6 @@ $$;
 -- Preserve a chair-edited deadline; only shift the previous confirmed value.
 -- Paper-stage deadlines remain null until the proposed schedule is approved.
 update public.conference_settings
-set registration_deadline = '2026-11-27 18:00:00+09'
+set registration_deadline = '2026-12-04 18:00:00+09'
 where edition_year = 2026
   and registration_deadline = '2026-10-30 18:00:00+09';
