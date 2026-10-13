@@ -195,18 +195,20 @@ def buildPdf(output, fontDir, background):
     for label, width in zip(("주최", "주관", "후원"), widths):
         text(label, x, footerTop - 19, size=8, font="Bold", color=MUTED)
         x += width
-    # Match Korean name ink heights (~10.5pt), preserving each logo's aspect ratio.
-    # nameCenter is the Korean wordmark's vertical center in the original pixels.
-    for filename, x, width, nameCenter in [
-        ("ulsan-college.png", MARGIN, 107, 65.5),
-        ("digitech.png", MARGIN + 121.5, 159, 596),
-        ("ministry-of-education.png", MARGIN + 295, 118, 48),
-        ("national-research-foundation.png", MARGIN + 427.5, 107, 220),
+    # Center the visible artwork, excluding transparent padding in the PNGs.
+    # DigiTech scales to 80% inside its existing slot; other sizes stay the same.
+    for filename, slotX, slotWidth, sizeFactor, visibleCenter in [
+        ("ulsan-college.png", MARGIN, 107, 1, 75.5),
+        ("digitech.png", MARGIN + 121.5, 159, .8, 445.5),
+        ("ministry-of-education.png", MARGIN + 295, 118, 1, 47),
+        ("national-research-foundation.png", MARGIN + 427.5, 107, 1, 216),
     ]:
         logo = ImageReader(str(ASSETS / "organizers" / filename))
         iw, ih = logo.getSize()
+        width = slotWidth * sizeFactor
         scale = width / iw
-        c.drawImage(logo, x, 60 - (ih - nameCenter) * scale,
+        x = slotX + (slotWidth - width) / 2
+        c.drawImage(logo, x, 60 - (ih - visibleCenter) * scale,
                     width=width, height=ih * scale, mask="auto")
     text("공고 전 검토본 · 논문 투고 일정 가안", MARGIN, 22, size=7.5, color=MUTED)
     text("T-VET Co-R&BD Conference 2026", W - MARGIN - 151, 22, size=7.5, color=MUTED)
