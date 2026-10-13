@@ -185,9 +185,9 @@ h1, h2, h3, p { margin-top: 0; }
 .cfp-submission-list p { margin: 0; font-size: 14px; }
 .cfp-submission-list strong { font-weight: 600; }
 .cfp-footer { padding-bottom: 0; }
-.cfp-partners { --logo-row-center: 40px; display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 36px; margin-top: 40px; padding: 32px; background: white; }
+.cfp-partners { --logo-row-center: calc(40px - 10pt); display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 36px; margin-top: 40px; padding: 32px; background: white; }
 .cfp-partner { display: flex; flex-direction: column; gap: 20px; }
-.cfp-partner > span { font-size: 12px; font-weight: 700; color: #627668; }
+.cfp-partner > span { position: relative; top: 3pt; font-size: 12px; font-weight: 700; color: #627668; }
 .cfp-partner img { max-width: 100%; height: auto; flex-shrink: 0; object-fit: contain; }
 .cfp-host img { width: 152px; margin-top: calc(var(--logo-row-center) - 152px * 75.5 / 646); }
 .cfp-organizer img { width: 180px; margin-top: calc(var(--logo-row-center) - 180px * 445.5 / 3000); margin-left: 22.5px; }
