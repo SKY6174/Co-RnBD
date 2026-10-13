@@ -4,7 +4,7 @@ const $ = (selector) => document.querySelector(selector);
 const REGISTRATION_STATES = { applied: '확인 대기', confirmed: '참가 확정', cancelled: '취소됨' };
 const PAPER_STATES = { draft: '초안', submitted: '접수', under_review: '심사 중', revision: '수정 요청', accepted: '채택', rejected: '반려' };
 const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타' };
-const TRACKS = { applied: '전문기술석사 응용연구', industry: '산학공동기술개발 성과', convergence: '산업융합기술', education: '전문기술석사 교육·운영' };
+const TRACKS = { applied: '전문기술석사 응용연구', industry: '산학공동기술개발과제 성과발표', convergence: '산업융합기술', education: 'T-VET 정책·교육연구' };
 const PAGE_SIZE = 500;
 let client;
 let edition;

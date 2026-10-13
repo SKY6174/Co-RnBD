@@ -129,15 +129,15 @@ def buildPdf(output, fontDir, background):
 
     y = heading("메인 트랙", "MAIN TRACKS", left, y - 20)
     tracks = [
-        ("전문기술석사 응용연구", "학위 프로젝트, 현장 문제 해결, 실험·검증"),
-        ("산학공동기술개발과제 성과발표", "기업 애로기술, 공동개발·실증, 성과·사업화"),
-        ("산업융합기술", "AI·AX·ICT, 자동화, 모빌리티, 조선, 에너지·환경·보건 등"),
-        ("T-VET 정책연구", "전문기술석사·고등직업교육 정책, 제도·성과평가, 교육·운영 사례(재직자 교육, 공동지도 등)"),
+        ("전문기술석사 응용연구", "학위 프로젝트와 현장 문제 해결 연구·실험·검증·적용 성과"),
+        ("산학공동기술개발과제 성과발표", "기업 애로기술 공동개발, 현장 실증 결과와 후속 사업화 사례"),
+        ("산업융합기술", "AI·자동화·모빌리티·조선·에너지·환경·보건 융합기술과 현장 적용사례"),
+        ("T-VET 정책·교육연구", "전문기술석사·고등직업교육 정책·제도, 교육과정 운영, 성과평가·산학협력 사례"),
     ]
     for index, (title, detail) in enumerate(tracks, 1):
         text(f"{index:02}", left, y - 10, size=9.5, font="Bold", color=BLUE)
         y = paragraph(f"<b>{title}</b><br/>{detail}", left + 24, y,
-                      width=COL - 24, size=9.2, leading=13.5) - 11
+                      width=COL - 24, size=9.2, leading=13) - 9
 
     y = heading("제출 유형", "SUBMISSION TYPES", left, y - 9)
     types = [

@@ -2,7 +2,7 @@
 
 ## Data model
 
-- `conference_settings`: add `registration_open` (false by default) and `registration_deadline` (initially 2026-10-30 18:00 KST; revised to 2027-01-05 18:00 KST by the October 13, 2026 CFP schedule update).
+- `conference_settings`: add `registration_open` (false by default) and `registration_deadline` (initially 2026-10-30 18:00 KST; revised to 2027-01-05 18:00 KST with registration opened by the October 13, 2026 user instruction).
 - `attendee_registrations`: one row per Auth user; category (`student`, `faculty`, `industry`, `other`), requested days as a constrained date array, status (`applied`, `confirmed`, `cancelled`), and optional chair check-in timestamp. Names and emails remain in `profiles`.
 - `program_speakers`: name, affiliation, short bio, publication flag. Chair writes, public reads only published records.
 - `program_sessions`: title, type, start/end, room, summary, publication flag. A published session must have required schedule details.
