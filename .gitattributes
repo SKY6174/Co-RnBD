@@ -1,0 +1,2 @@
+# PDFs contain binary streams and must not receive text whitespace conversions.
+*.pdf binary
