@@ -163,10 +163,10 @@ def buildPdf(output, fontDir, background):
 
     y = heading("주요 일정", "IMPORTANT DATES", right, y - 20)
     dates = [
-        ("일반 참가신청 마감", "2026. 12. 14.(월) 18:00", True),
+        ("일반 참가신청 마감", "2027. 01. 05.(화) 18:00", True),
         ("원고 접수 마감", "2026. 12. 21.(월) 18:00", False),
         ("채택·수정 요청 통보", "2027. 01. 04.(월)", False),
-        ("최종본·발표자 등록", "2027. 01. 11.(월) 18:00", False),
+        ("최종본·발표자 등록", "2027. 01. 12.(화) 18:00", False),
     ]
     for label, value, confirmed in dates:
         text(label, right, y - 9, size=8.8, font="Bold")
