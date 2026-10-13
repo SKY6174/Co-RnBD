@@ -94,27 +94,29 @@
       <section id="program" class="section program-section" aria-labelledby="program-title">
         <div class="shell">
           <div class="section-topline">
-            <div><p class="section-index">03 / PROGRAM</p><h2 id="program-title">1박 2일 프로그램</h2></div>
+            <div><p class="section-index">03 / PROGRAM</p><h2 id="program-title">프로그램 구성</h2></div>
             <p>아래 시간표는 운영 가안입니다.<br />발표·연사·동부캠퍼스 세부 공간은 추후 확정됩니다.</p>
           </div>
           <div class="program-panel">
             <div class="program-head">
               <div class="day-tabs" role="tablist" aria-label="프로그램 날짜">
-                <button id="day-one-tab" class="day-tab active" type="button" role="tab" aria-selected="true" aria-controls="day-one-panel" tabindex="0">DAY 01 <span>01.21 목요일</span></button>
-                <button id="day-two-tab" class="day-tab" type="button" role="tab" aria-selected="false" aria-controls="day-two-panel" tabindex="-1">DAY 02 <span>01.22 금요일</span></button>
+                <button id="day-one-tab" class="day-tab active" type="button" role="tab" aria-selected="true" aria-controls="day-one-panel" tabindex="0"><span class="day-tab-index">DAY 01 <span aria-hidden="true">↗</span></span><strong>01.21 목요일</strong><small>개회 · 병렬 발표 · 교류</small></button>
+                <button id="day-two-tab" class="day-tab" type="button" role="tab" aria-selected="false" aria-controls="day-two-panel" tabindex="-1"><span class="day-tab-index">DAY 02 <span aria-hidden="true">↗</span></span><strong>01.22 금요일</strong><small>기술수요 · 매칭 · 폐회</small></button>
               </div>
-              <span class="provisional">SCHEDULE · PROPOSED</span>
+              <span class="provisional">운영 가안 <span aria-hidden="true">✳</span></span>
             </div>
-            <div id="day-one-panel" class="day-panel" role="tabpanel" aria-labelledby="day-one-tab">
+            <div id="day-one-panel" class="day-panel day-one" role="tabpanel" aria-labelledby="day-one-tab" tabindex="0">
+              <div class="day-intro"><div><span class="day-intro-label">THURSDAY · 21 JANUARY</span><h3>성과를 공유하고<br />현장에서 연결하다.</h3></div><p>오전 등록 후 키노트로 시작해, 오후에는 두 발표실에서 세션을 병렬로 운영하는 가안입니다.</p><span class="day-intro-number" aria-hidden="true">01</span></div>
               <div class="session"><time>11:30</time><div><h3>등록 · 점심</h3><p>참가자 등록과 현장 교류의 시작</p></div><span>WELCOME</span></div>
               <div class="session"><time>13:00</time><div><h3>개회 및 행사 목적 공유</h3><p>전문대학 산학공동 R&amp;BD의 방향</p></div><span>OPENING</span></div>
               <div class="session"><time>13:20</time><div><h3>산업 키노트</h3><p>기업이 전문대학의 응용연구에 기대하는 것</p></div><span>KEYNOTE</span></div>
               <div class="session"><time>14:00</time><div><h3>전문기술석사 교육·정책 키노트</h3><p>현장 문제 해결과 연구의 질</p></div><span>KEYNOTE</span></div>
-              <div class="session"><time>15:00</time><div><h3>병렬 발표 1 · 2</h3><p>2개실 운영 가안 · 16:00 휴식 후 16:10 재개</p></div><span class="session-location">발표 장소 추후 안내</span></div>
-              <div class="session"><time>17:10</time><div><h3>포스터 · 기술데모 집중 교류</h3><p>성과를 가까이에서 보고 질문하는 시간</p></div><span>EXHIBITION</span></div>
+              <div class="parallel-block"><div class="parallel-heading"><time>15:00 <span>→ 17:10</span></time><div><span class="parallel-eyebrow">TWO ROOMS · PARALLEL</span><h3>두 발표실, 나란히 진행되는 발표</h3><p>15:00 발표 블록 1 · 16:00 휴식 · 16:10 발표 블록 2</p></div></div><div class="parallel-rooms"><div class="parallel-room"><span>ROOM A <small>가안</small></span><strong>발표실 A</strong><p>주제와 발표자는 심사·편성 후 안내</p></div><div class="parallel-room"><span>ROOM B <small>가안</small></span><strong>발표실 B</strong><p>주제와 발표자는 심사·편성 후 안내</p></div></div><p class="parallel-footnote">2개실 운영 가안 · 실제 발표 장소는 추후 안내합니다.</p></div>
               <div class="session"><time>18:30</time><div><h3>대학·기업 네트워킹 만찬</h3><p>분야별 교류와 후속 협력 대화</p></div><span>NETWORKING</span></div>
+              <div class="poster-option"><span class="poster-mark" aria-hidden="true">✳</span><div><span class="poster-label">FUTURE OPTION · 편성 검토</span><h3>포스터 · 기술데모 세션</h3><p>접수·심사 결과에 따라 첫날 집중 교류 시간 편성을 검토합니다. 전시 여부와 제출·설치 방법은 확정 후 안내합니다.</p></div></div>
             </div>
-            <div id="day-two-panel" class="day-panel" role="tabpanel" aria-labelledby="day-two-tab" hidden>
+            <div id="day-two-panel" class="day-panel day-two" role="tabpanel" aria-labelledby="day-two-tab" tabindex="0" hidden>
+              <div class="day-intro"><div><span class="day-intro-label">FRIDAY · 22 JANUARY</span><h3>기술수요를 듣고<br />후속 과제를 설계하다.</h3></div><p>기업의 수요 발표에서 공동과제 매칭, 워크숍과 폐회로 이어지는 둘째 날 가안입니다.</p><span class="day-intro-number" aria-hidden="true">02</span></div>
               <div class="session"><time>09:00</time><div><h3>기업 기술수요 발표 · 토론</h3><p>현장의 기술문제와 공동연구 가능성</p></div><span>INDUSTRY</span></div>
               <div class="session"><time>09:40</time><div><h3>병렬 발표 3</h3><p>응용연구와 산학공동기술개발과제 성과</p></div><span class="session-location">발표 장소 추후 안내</span></div>
               <div class="session"><time>11:00</time><div><h3>과정 운영 클리닉 · 공동과제 매칭</h3><p>신규과정 상담과 기업·대학 1:1 협력 논의</p></div><span>MATCHING</span></div>
@@ -123,7 +125,7 @@
               <div class="session"><time>14:00</time><div><h3>시상 · 후속협력 계획 · 폐회</h3><p>다음 회의와 과제 개념서로 연결</p></div><span>CLOSING</span></div>
             </div>
           </div>
-          <p class="program-note">포스터 전시 여부와 사전 제출·설치 방법은 발표 형식이 확정된 후 안내합니다.</p>
+          <p class="program-note">위 시간표는 운영 가안입니다. 포스터·기술데모 편성과 세부 발표 장소는 확정 후 안내합니다.</p>
           <p class="program-more"><a class="text-link" href="./program.html">확정된 세션·연사 보기 <span aria-hidden="true">↗</span></a></p>
         </div>
       </section>
