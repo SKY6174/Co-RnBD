@@ -193,7 +193,7 @@ def buildPdf(output, fontDir, background):
     widths = (121.5, 173.5, W - 2 * MARGIN - 295)
     x = MARGIN
     for label, width in zip(("주최", "주관", "후원"), widths):
-        text(label, x, footerTop - 19, size=8, font="Bold", color=MUTED)
+        text(label, x, footerTop - 22, size=8, font="Bold", color=MUTED)
         x += width
     # Center the visible artwork, excluding transparent padding in the PNGs.
     # DigiTech scales to 80% inside its existing slot; other sizes stay the same.
@@ -208,7 +208,7 @@ def buildPdf(output, fontDir, background):
         width = slotWidth * sizeFactor
         scale = width / iw
         x = slotX + (slotWidth - width) / 2
-        c.drawImage(logo, x, 60 - (ih - visibleCenter) * scale,
+        c.drawImage(logo, x, 70 - (ih - visibleCenter) * scale,
                     width=width, height=ih * scale, mask="auto")
     text("공고 전 검토본 · 논문 투고 일정 가안", MARGIN, 22, size=7.5, color=MUTED)
     text("T-VET Co-R&BD Conference 2026", W - MARGIN - 151, 22, size=7.5, color=MUTED)
