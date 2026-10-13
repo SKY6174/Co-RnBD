@@ -149,6 +149,10 @@ h1, h2, h3, p { margin-top: 0; }
 .cfp-hero { background: var(--deep); color: white; }
 .cfp-hero-inner { padding-top: 100px; padding-bottom: 54px; }
 .cfp-hero .section-index { color: var(--lime); }
+.cfp-heading-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 30px; margin-bottom: 32px; }
+.cfp-hero-logo { width: 250px; height: auto; padding: 12px; background: white; }
+.cfp-download { display: inline-flex; align-items: center; gap: 30px; margin-top: 32px; padding: 15px 20px; border: 1px solid var(--lime); color: white; font-size: 14px; font-weight: 700; text-decoration: none; }
+.cfp-download:hover, .cfp-download:focus-visible { background: var(--lime); color: var(--deep); }
 .cfp-draft-badge { display: inline-block; margin: 18px 0; padding: 7px 11px; border: 1px solid rgba(214,242,109,.5); color: var(--lime); font-size: 11px; font-weight: 700; }
 .cfp-hero h1 { margin-bottom: 24px; font-size: clamp(52px, 7vw, 96px); line-height: 1.05; letter-spacing: -.08em; }
 .cfp-hero h1 span { color: var(--lime); }
@@ -166,12 +170,25 @@ h1, h2, h3, p { margin-top: 0; }
 .cfp-block { padding: 0 0 72px; scroll-margin-top: 110px; }
 .cfp-block + .cfp-block { padding-top: 72px; border-top: 1px solid var(--line); }
 .cfp-block h2 { margin-bottom: 24px; font-size: clamp(34px, 4vw, 55px); line-height: 1.2; letter-spacing: -.07em; }
-.cfp-block p { max-width: 790px; color: #55675c; font-size: 15px; line-height: 1.9; }
+.cfp-block p { max-width: 790px; margin-bottom: 24px; color: #55675c; font-size: 15px; line-height: 1.95; }
 .cfp-topic-list { margin: 0; padding: 0; list-style: none; }
 .cfp-topic-list li { display: flex; gap: 26px; padding: 23px 0; border-top: 1px solid var(--line); }
 .cfp-topic-list li > span { color: #88aa52; font-size: 13px; font-weight: 800; }
-.cfp-topic-list h3 { margin: 0 0 6px; font-size: 18px; letter-spacing: -.04em; }
+.cfp-topic-list h3 { margin: 0 0 12px; font-size: 18px; letter-spacing: -.04em; }
 .cfp-topic-list p { margin: 0; font-size: 13px; }
+.cfp-submission-list { display: grid; gap: 28px; margin: 32px 0 36px; padding-left: 24px; }
+.cfp-submission-list li { padding-left: 8px; }
+.cfp-submission-list li::marker { color: #70923e; }
+.cfp-submission-list h3 { margin: 0 0 10px; font-size: 18px; }
+.cfp-submission-list p { margin: 0; font-size: 14px; }
+.cfp-submission-list strong { font-weight: 600; }
+.cfp-footer { padding-bottom: 0; }
+.cfp-partners { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 36px; margin-top: 40px; padding: 32px; background: white; }
+.cfp-partner { display: flex; flex-direction: column; gap: 20px; }
+.cfp-partner > span { font-size: 12px; font-weight: 700; color: #627668; }
+.cfp-partner img { width: 100%; max-width: 190px; height: 48px; object-fit: contain; object-position: left center; }
+.cfp-supporters > div { display: flex; gap: 32px; }
+.cfp-supporters img { width: calc(50% - 16px); }
 .cfp-table-wrap { max-width: 100%; margin-bottom: 25px; overflow-x: auto; }
 .cfp-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
 .cfp-table th, .cfp-table td { padding: 17px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -190,6 +207,12 @@ h1, h2, h3, p { margin-top: 0; }
 
 @media (max-width: 760px) {
   .cfp-hero-inner { padding-top: 70px; }
+  .cfp-heading-row { gap: 12px; }
+  .cfp-heading-row .section-index { max-width: 145px; }
+  .cfp-hero-logo { width: 175px; padding: 8px; }
+  .cfp-partners { grid-template-columns: 1fr 1fr; gap: 28px; padding: 26px 20px; }
+  .cfp-supporters { grid-column: 1 / -1; }
+  .cfp-supporters > div { gap: 24px; }
   .cfp-hero-facts { grid-template-columns: 1fr; gap: 18px; margin-top: 44px; }
   .cfp-page-layout { display: block; padding-top: 60px; padding-bottom: 80px; }
   .cfp-aside { position: static; flex-direction: row; flex-wrap: wrap; gap: 10px 16px; margin-bottom: 58px; }
