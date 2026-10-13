@@ -163,10 +163,10 @@ def buildPdf(output, fontDir, background):
 
     y = heading("주요 일정", "IMPORTANT DATES", right, y - 20)
     dates = [
-        ("일반 참가신청 마감", "2026. 12. 04.(금) 18:00", True),
-        ("원고 접수 마감", "2026. 12. 11. 18:00", False),
-        ("채택·수정 요청 통보", "2026. 12. 25.", False),
-        ("최종본·발표자 등록", "2027. 01. 01. 18:00", False),
+        ("일반 참가신청 마감", "2026. 12. 14.(월) 18:00", True),
+        ("원고 접수 마감", "2026. 12. 21.(월) 18:00", False),
+        ("채택·수정 요청 통보", "2027. 01. 04.(월)", False),
+        ("최종본·발표자 등록", "2027. 01. 11.(월) 18:00", False),
     ]
     for label, value, confirmed in dates:
         text(label, right, y - 9, size=8.8, font="Bold")
@@ -187,18 +187,27 @@ def buildPdf(output, fontDir, background):
         raise ValueError(f"Right column overlaps footer: {y:.1f}")
 
     # Four institution logos, grouped clearly by the three requested roles.
-    footerTop = 109
+    footerTop = 121
     c.setStrokeColor(RULE)
     c.line(MARGIN, footerTop, W - MARGIN, footerTop)
-    widths = (130, 149, W - 2 * MARGIN - 279)
+    widths = (121.5, 173.5, W - 2 * MARGIN - 295)
     x = MARGIN
     for label, width in zip(("주최", "주관", "후원"), widths):
         text(label, x, footerTop - 19, size=8, font="Bold", color=MUTED)
         x += width
-    fitImage(ASSETS / "organizers/ulsan-college.png", MARGIN, 43, 113, 35)
-    fitImage(ASSETS / "organizers/digitech.png", MARGIN + 130, 40, 129, 40)
-    fitImage(ASSETS / "organizers/ministry-of-education.png", MARGIN + 279, 43, 85, 35)
-    fitImage(ASSETS / "organizers/national-research-foundation.png", MARGIN + 383, 43, 144, 35)
+    # Match Korean name ink heights (~10.5pt), preserving each logo's aspect ratio.
+    # nameCenter is the Korean wordmark's vertical center in the original pixels.
+    for filename, x, width, nameCenter in [
+        ("ulsan-college.png", MARGIN, 107, 65.5),
+        ("digitech.png", MARGIN + 121.5, 159, 596),
+        ("ministry-of-education.png", MARGIN + 295, 118, 48),
+        ("national-research-foundation.png", MARGIN + 427.5, 107, 220),
+    ]:
+        logo = ImageReader(str(ASSETS / "organizers" / filename))
+        iw, ih = logo.getSize()
+        scale = width / iw
+        c.drawImage(logo, x, 60 - (ih - nameCenter) * scale,
+                    width=width, height=ih * scale, mask="auto")
     text("공고 전 검토본 · 논문 투고 일정 가안", MARGIN, 22, size=7.5, color=MUTED)
     text("T-VET Co-R&BD Conference 2026", W - MARGIN - 151, 22, size=7.5, color=MUTED)
     c.showPage()

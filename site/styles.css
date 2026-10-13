@@ -186,9 +186,12 @@ h1, h2, h3, p { margin-top: 0; }
 .cfp-partners { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 36px; margin-top: 40px; padding: 32px; background: white; }
 .cfp-partner { display: flex; flex-direction: column; gap: 20px; }
 .cfp-partner > span { font-size: 12px; font-weight: 700; color: #627668; }
-.cfp-partner img { width: 100%; max-width: 190px; height: 48px; object-fit: contain; object-position: left center; }
-.cfp-supporters > div { display: flex; gap: 32px; }
-.cfp-supporters img { width: calc(50% - 16px); }
+.cfp-partner img { max-width: 100%; height: auto; object-fit: contain; }
+.cfp-host img { width: 152px; margin-top: 29px; }
+.cfp-organizer img { width: 225px; }
+.cfp-supporters > div { display: flex; align-items: flex-start; gap: 24px; }
+.cfp-logo-moe { width: 167px; margin-top: 24px; }
+.cfp-logo-nrf { width: 151px; margin-top: 17px; }
 .cfp-table-wrap { max-width: 100%; margin-bottom: 25px; overflow-x: auto; }
 .cfp-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
 .cfp-table th, .cfp-table td { padding: 17px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -210,9 +213,11 @@ h1, h2, h3, p { margin-top: 0; }
   .cfp-heading-row { gap: 12px; }
   .cfp-heading-row .section-index { max-width: 145px; }
   .cfp-hero-logo { width: 175px; padding: 8px; }
-  .cfp-partners { grid-template-columns: 1fr 1fr; gap: 28px; padding: 26px 20px; }
-  .cfp-supporters { grid-column: 1 / -1; }
-  .cfp-supporters > div { gap: 24px; }
+  .cfp-partners { grid-template-columns: 1fr; gap: 28px; padding: 26px 20px; }
+  .cfp-host img, .cfp-logo-moe, .cfp-logo-nrf { margin-top: 0; }
+  .cfp-supporters > div { flex-wrap: wrap; gap: 9px; }
+  .cfp-logo-moe { width: 160px; }
+  .cfp-logo-nrf { width: 145px; }
   .cfp-hero-facts { grid-template-columns: 1fr; gap: 18px; margin-top: 44px; }
   .cfp-page-layout { display: block; padding-top: 60px; padding-bottom: 80px; }
   .cfp-aside { position: static; flex-direction: row; flex-wrap: wrap; gap: 10px 16px; margin-bottom: 58px; }
