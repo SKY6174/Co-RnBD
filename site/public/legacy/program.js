@@ -32,7 +32,7 @@ async function start() {
       .eq('edition_year', edition.year).eq('is_published', true).order('starts_at'));
     if (!sessions.length) {
       status.textContent = '공개된 세부 프로그램이 아직 없습니다.';
-      list.innerHTML = '<div class="operations-empty">공개된 세션이 없습니다. 확정 후 날짜·시간·장소별로 안내합니다.</div>';
+      list.innerHTML = '<div class="operations-empty">공개된 세부 세션이 없습니다. 심사 완료 후 Oral Session 1~3(구두 3개 세션 · 최소 20편 이상) 및 Poster Session 1(포스터 1개 세션 · 최소 30편 이상)의 발표 시간·장소를 안내합니다.</div>';
       return;
     }
     const links = requireData(await client.from('program_session_speakers')
@@ -68,7 +68,7 @@ async function start() {
       ? '확정 프로그램을 준비 중입니다. 세션과 연사는 확정 후 이곳에 공개합니다.'
       : '프로그램을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
     if (preparing) {
-      list.innerHTML = '<div class="operations-empty">공개된 세션이 없습니다. 홈페이지의 1박 2일 일정은 운영 가안입니다.</div>';
+      list.innerHTML = '<div class="operations-empty">공개된 세션이 없습니다. 홈페이지의 1박 2일 일정(Oral Session 1~3 및 Poster Session 1)은 운영 가안입니다.</div>';
     } else {
       status.classList.add('error');
     }
