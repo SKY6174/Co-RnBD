@@ -170,8 +170,22 @@ async function loadAuthAvailability(config) {
     : '소셜 로그인은 연동 준비 중입니다. 이메일로 가입하거나 로그인할 수 있습니다.';
 }
 
-async function loadWorkspace() {
+let workspaceReady = false;
+let workspaceGeneration = 0;
+let workspaceLoad = null;
+function loadWorkspace() {
+  if (!workspaceLoad) {
+    const pending = refreshWorkspace(workspaceGeneration).finally(() => {
+      if (workspaceLoad === pending) workspaceLoad = null;
+    });
+    workspaceLoad = pending;
+  }
+  return workspaceLoad;
+}
+
+async function refreshWorkspace(generation) {
   const sessionResult = await client.auth.getSession();
+  if (generation !== workspaceGeneration) return;
   let session = sessionResult.data?.session;
   if (sessionResult.error) {
     if (!/Auth session missing/i.test(sessionResult.error.message)) throw sessionResult.error;
@@ -182,6 +196,7 @@ async function loadWorkspace() {
   let current = null;
   if (session) {
     const result = await client.auth.getUser();
+    if (generation !== workspaceGeneration) return;
     if (result.error) {
       if (!/Auth session missing/i.test(result.error.message)) throw result.error;
       await client.auth.signOut({ scope: 'local' });
@@ -201,6 +216,7 @@ async function loadWorkspace() {
     client.from('profiles').select('*').eq('user_id', user.id).single(),
     client.from('staff_roles').select('role,is_super_admin').eq('user_id', user.id).maybeSingle(),
   ]);
+  if (generation !== workspaceGeneration) return;
   profile = check(profileResult);
   const role = check(roleResult);
   isChair = role?.role === 'chair';
@@ -239,13 +255,19 @@ function paperCard(paper, action, label) {
 }
 
 async function loadMyPapers() {
-  myPapers = check(await client.from('papers').select('*')
-    .eq('edition_year', edition.year).eq('owner_id', user.id).order('created_at', { ascending: false }));
+  const generation = workspaceGeneration, userId = user.id;
+  const result = await client.from('papers').select('*')
+    .eq('edition_year', edition.year).eq('owner_id', userId).order('created_at', { ascending: false });
+  if (generation !== workspaceGeneration || user?.id !== userId) return;
+  myPapers = check(result);
   $('#my-papers').innerHTML = myPapers.length ? myPapers.map((paper) => paperCard(paper, 'author', paper.status === 'draft' || paper.status === 'revision' ? '수정·제출' : '원고 보기')).join('') : '<p class="empty-state">아직 작성한 원고가 없습니다. 접수가 시작되면 새 원고를 작성할 수 있습니다.</p>';
 }
 
 async function loadReviews() {
-  reviewRows = check(await client.from('reviews').select('id,paper_id,review_state,recommendation,comments,conflict_confirmed,submitted_at,decline_reason,manuscript_submitted_at,revoked_at,papers(id,title,abstract,track,status,owner_id,submitted_at,edition_year)').eq('reviewer_id', user.id).order('assigned_at', { ascending: false }))
+  const generation = workspaceGeneration, userId = user.id;
+  const result = await client.from('reviews').select('id,paper_id,review_state,recommendation,comments,conflict_confirmed,submitted_at,decline_reason,manuscript_submitted_at,revoked_at,papers(id,title,abstract,track,status,owner_id,submitted_at,edition_year)').eq('reviewer_id', userId).order('assigned_at', { ascending: false });
+  if (generation !== workspaceGeneration || user?.id !== userId) return;
+  reviewRows = check(result)
     .filter((review) => review.papers?.edition_year === edition.year && !review.revoked_at
       && new Date(review.manuscript_submitted_at).getTime() === new Date(review.papers.submitted_at).getTime());
   $('[data-tab="reviewer"]').hidden = reviewRows.length === 0;
@@ -654,12 +676,19 @@ async function start() {
     client = await conferenceClient(config);
     client.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
+        workspaceGeneration++;
+        workspaceLoad = null;
         isRecovery = true;
         $('#recovery-panel').hidden = false;
         $('#auth-panel').hidden = true;
         $('#workspace').hidden = true;
-      } else if (!isRecovery && session?.user?.id !== user?.id) {
-        setTimeout(() => loadWorkspace().catch((error) => message(error.message, true)), 0);
+      } else if (workspaceReady && !isRecovery && event !== 'INITIAL_SESSION'
+        && event !== 'TOKEN_REFRESHED' && session?.user?.id !== user?.id) {
+        workspaceGeneration++;
+        workspaceLoad = null;
+        setTimeout(() => {
+          if (session?.user?.id !== user?.id) loadWorkspace().catch((error) => message(error.message, true));
+        }, 0);
       }
     });
     const [, editionResult] = await Promise.all([
@@ -691,6 +720,7 @@ async function start() {
     }
     // 학회 운영 설정(loadSettings)과 사용자 워크스페이스(loadWorkspace)를 병렬(Promise.all)로 동시에 로드
     await Promise.all([loadSettings(), loadWorkspace()]);
+    workspaceReady = true;
     if (emailLink?.type === 'email' && !emailLinkError && !user) {
       showAuthMode('login');
       emailLinkMessage = '이메일 인증이 완료되어 회원가입이 완료되었습니다. 이메일과 비밀번호로 로그인해 주세요.';
