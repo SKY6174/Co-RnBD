@@ -4,10 +4,25 @@
     <nav class="operations-header-nav" aria-label="주 메뉴"><a href="./index.html">행사 안내</a><a href="./program.html">공개 프로그램</a><a href="./registration.html">참가 신청</a><a href="./submission.html">투고·심사 관리</a><a id="operations-monitor-link" href="./monitor.html" hidden>현황 모니터링</a></nav>
   </div></header>
   <main id="main" class="operations-main"><div class="shell">
-    <div class="operations-intro"><p id="operations-edition-label" class="section-index">T-VET CO-R&amp;BD / CHAIR DESK</p><h1>참가·프로그램 관리</h1><p id="operations-intro">위원장 전용 화면입니다. 학회 정보를 불러오는 중입니다.</p></div>
+    <div class="operations-intro"><p id="operations-edition-label" class="section-index">T-VET CO-R&amp;BD / CHAIR DESK</p><h1>학회 운영 관리</h1><p id="operations-intro">위원장 전용 화면입니다. 학회 정보를 불러오는 중입니다.</p></div>
     <div id="operations-message" class="operations-note" role="status" aria-live="polite">권한을 확인하는 중입니다.</div>
     <div id="operations-workspace" hidden>
       <div class="operations-grid">
+        <section id="paper-management" class="operations-card full" aria-labelledby="paper-management-title">
+          <h2 id="paper-management-title">논문투고·심사 관리</h2>
+          <p id="paper-management-status" role="status">투고 운영 상태를 불러오는 중입니다.</p>
+          <p>시범 운영 중에도 작성한 원고와 PDF는 운영 데이터베이스에 저장됩니다. 심사위원 배정과 판정은 별도 원고 관리 화면에서 진행합니다.</p>
+          <form id="paper-settings-form" class="operations-form-grid">
+            <label class="inline-check"><input id="paper-submissions-open" type="checkbox" /> 원고 접수 열기</label>
+            <label>원고 접수 마감 (선택·KST) <input id="paper-submission-deadline" type="datetime-local" /></label>
+            <label class="inline-check"><input id="paper-reviews-open" type="checkbox" /> 심사 입력 열기</label>
+            <label>심사 마감 (선택·KST) <input id="paper-review-deadline" type="datetime-local" /></label>
+            <label class="inline-check"><input id="paper-final-open" type="checkbox" /> 최종본 제출 열기</label>
+            <label>최종본 마감 (선택·KST) <input id="paper-final-deadline" type="datetime-local" /></label>
+            <label class="wide">공개 투고 안내문 <textarea id="paper-notice" rows="3" maxlength="500" required></textarea></label>
+            <div class="operations-actions wide"><button type="submit" class="operations-button">투고 운영 설정 저장</button><a class="operations-button secondary" href="./submission.html#chair">원고 배정·판정</a><a class="operations-button secondary" href="./submission.html">투고 화면 보기</a></div>
+          </form>
+        </section>
         <section class="operations-card full" aria-labelledby="edition-management-title">
           <span class="operations-kicker">EDITION &amp; ARCHIVE</span>
           <h2 id="edition-management-title">연도별 학회와 아카이브</h2>
@@ -15,7 +30,7 @@
           <form id="create-edition-form" class="operations-actions"><label>새 학회 연도 <input id="new-edition-year" type="number" min="2027" max="2100" required placeholder="예: 2027" /></label><button type="submit" class="operations-button">연도 추가</button></form>
           <div id="edition-list" class="operations-list" aria-live="polite"></div>
         </section>
-        <section class="operations-card full" aria-labelledby="registration-management-title">
+        <section id="registration-management" class="operations-card full" aria-labelledby="registration-management-title">
           <span class="operations-kicker">ATTENDANCE CONTROL</span>
           <h2 id="registration-management-title">참가 신청</h2>
           <form id="registration-settings-form" class="operations-form-grid">

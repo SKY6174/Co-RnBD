@@ -100,19 +100,7 @@
           <section id="tab-chair" class="tab-panel" role="tabpanel" aria-label="위원장 관리" hidden>
             <div class="section-head"><div><span class="portal-kicker">CHAIR DESK</span><h2>접수와 판정</h2></div><button id="refresh-chair" type="button" class="portal-button secondary">목록 새로고침</button></div>
             <div class="chair-quick-links"><a class="chair-quick-link" href="./operations.html"><span>OPERATIONS</span><strong>참가 신청·연사·세션 관리 →</strong></a><a id="submission-monitor-link" class="chair-quick-link" href="./monitor.html" hidden><span>SUPER ADMIN</span><strong>참가·투고 현황 모니터링 →</strong></a></div>
-            <form id="phase-form" class="portal-card portal-form phase-form">
-              <div class="phase-form-head">
-                <div><span class="portal-kicker">STAGE CONTROL</span><h3>단계 운영 설정</h3></div>
-                <span class="phase-hint-pill">KST 기준 · 수정요청 원고는 상시 재제출 가능</span>
-              </div>
-              <div class="phase-fields">
-                <div><label class="checkbox-row"><input id="phase-submissions" type="checkbox" /> 원고 접수 열기</label><label>접수 마감 (선택)<input id="phase-submission-deadline" type="datetime-local" /></label></div>
-                <div><label class="checkbox-row"><input id="phase-reviews" type="checkbox" /> 심사 입력 열기</label><label>심사 마감 (선택)<input id="phase-review-deadline" type="datetime-local" /></label></div>
-                <div><label class="checkbox-row"><input id="phase-final" type="checkbox" /> 최종본 제출 열기</label><label>최종본 마감 (선택)<input id="phase-final-deadline" type="datetime-local" /></label></div>
-              </div>
-              <label>공개 투고 안내문 <textarea id="phase-notice" rows="2" maxlength="500" required placeholder="투고자에게 보여줄 접수·일정 안내를 적어 주세요."></textarea></label>
-              <div class="form-actions"><button type="submit" class="portal-button">운영 설정 저장</button></div>
-            </form>
+            <section class="portal-card" aria-labelledby="stage-management-title"><span class="portal-kicker">STAGE CONTROL</span><h3 id="stage-management-title">접수·심사·최종본 단계 설정</h3><p>현재 단계는 이 페이지 하단에서 확인할 수 있습니다. 단계 개방, 마감 시각과 공개 안내문은 학회 운영 관리에서 변경해 주세요.</p><a class="portal-button secondary" href="./operations.html#paper-management">투고 운영 설정 열기 →</a></section>
             <div id="chair-summary" class="chair-summary" aria-live="polite"></div>
             <div id="chair-quota-board" class="quota-board" aria-label="세션 목표 및 분야별 모집 현황"></div>
             <div id="chair-list" class="paper-grid"></div>
