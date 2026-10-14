@@ -1,31 +1,23 @@
 <a class="skip-link" href="#main">본문으로 바로가기</a>
   <header class="site-header operations-header"><div class="shell header-inner">
     <a class="brand" href="./index.html" aria-label="T-VET Co-R&BD 홈"><span class="brand-logo"><img src="./assets/t-vet-co-rbd-conference-logo.png" alt="T-VET Co-R&BD" width="2920" height="706" /></span></a>
-    <nav class="operations-header-nav" aria-label="주 메뉴"><a href="./index.html">행사 안내</a><a href="#paper-management">논문투고 관리</a><a href="#registration-management">참가신청 관리</a><a href="./submission.html#chair">원고 배정·판정</a><a id="operations-monitor-link" href="./monitor.html" hidden>현황 모니터링</a></nav>
+    <nav class="operations-header-nav" aria-label="주 메뉴"><a href="./index.html">행사 안내</a><a href="./program.html">공개 프로그램</a><a href="./registration.html">참가 신청</a><a href="./submission.html">투고·심사 관리</a><a id="operations-monitor-link" href="./monitor.html" hidden>현황 모니터링</a></nav>
   </div></header>
   <main id="main" class="operations-main"><div class="shell">
-    <div class="operations-intro"><p id="operations-edition-label" class="section-index">T-VET CO-R&amp;BD / CHAIR DESK</p><h1>학회 운영 관리</h1><p id="operations-intro">위원장 전용 화면입니다. 학회 정보를 불러오는 중입니다.</p></div>
+    <div class="operations-intro"><p id="operations-edition-label" class="section-index">T-VET CO-R&amp;BD / CHAIR DESK</p><h1>참가·프로그램 관리</h1><p id="operations-intro">위원장 전용 화면입니다. 학회 정보를 불러오는 중입니다.</p></div>
     <div id="operations-message" class="operations-note" role="status" aria-live="polite">권한을 확인하는 중입니다.</div>
     <div id="operations-workspace" hidden>
       <div class="operations-grid">
-        <section id="paper-management" class="operations-card full" aria-labelledby="paper-management-title">
-          <h2 id="paper-management-title">논문투고·심사 관리</h2>
-          <p id="paper-management-status" role="status">투고 운영 상태를 불러오는 중입니다.</p>
-          <p>시범 운영 중에도 작성한 원고와 PDF는 운영 데이터베이스에 저장됩니다. 심사위원 배정과 판정은 별도 원고 관리 화면에서 진행합니다.</p>
-          <form id="paper-settings-form" class="operations-form-grid">
-            <label class="inline-check"><input id="paper-submissions-open" type="checkbox" /> 원고 접수 열기</label>
-            <label>원고 접수 마감 (선택·KST) <input id="paper-submission-deadline" type="datetime-local" /></label>
-            <label class="inline-check"><input id="paper-reviews-open" type="checkbox" /> 심사 입력 열기</label>
-            <label>심사 마감 (선택·KST) <input id="paper-review-deadline" type="datetime-local" /></label>
-            <label class="inline-check"><input id="paper-final-open" type="checkbox" /> 최종본 제출 열기</label>
-            <label>최종본 마감 (선택·KST) <input id="paper-final-deadline" type="datetime-local" /></label>
-            <label class="wide">공개 투고 안내문 <textarea id="paper-notice" rows="3" maxlength="500" required></textarea></label>
-            <div class="operations-actions wide"><button type="submit" class="operations-button">투고 운영 설정 저장</button><a class="operations-button secondary" href="./submission.html#chair">원고 배정·판정</a><a class="operations-button secondary" href="./submission.html">투고 화면 보기</a></div>
-          </form>
+        <section class="operations-card full" aria-labelledby="edition-management-title">
+          <span class="operations-kicker">EDITION &amp; ARCHIVE</span>
+          <h2 id="edition-management-title">연도별 학회와 아카이브</h2>
+          <div class="operations-hint-block"><span>GUIDE</span><strong>차기 연도 초안 준비 및 아카이브 공개</strong><p>현재 학회 종료 후 차기 회차로 전환할 수 있으며, 지난 학회는 공개 범위를 검토한 뒤 별도로 공개합니다.</p></div>
+          <form id="create-edition-form" class="operations-actions"><label>새 학회 연도 <input id="new-edition-year" type="number" min="2027" max="2100" required placeholder="예: 2027" /></label><button type="submit" class="operations-button">연도 추가</button></form>
+          <div id="edition-list" class="operations-list" aria-live="polite"></div>
         </section>
-        <section id="registration-management" class="operations-card full" aria-labelledby="registration-management-title">
+        <section class="operations-card full" aria-labelledby="registration-management-title">
+          <span class="operations-kicker">ATTENDANCE CONTROL</span>
           <h2 id="registration-management-title">참가 신청</h2>
-          <p>일반 참가신청은 논문투고와 별개로 접수합니다. 현재 접수 상태와 마감 시각을 확인하고 신청자를 확정할 수 있습니다.</p>
           <form id="registration-settings-form" class="operations-form-grid">
             <label class="inline-check"><input id="registration-open" type="checkbox" /> 일반 참가 신청 열기</label>
             <p id="registration-deadline-note">신청 마감 정보를 불러오는 중입니다.</p>
@@ -34,15 +26,10 @@
           </form>
           <div id="registration-list" class="operations-list" aria-live="polite"></div>
         </section>
-        <section class="operations-card full" aria-labelledby="edition-management-title">
-          <h2 id="edition-management-title">연도별 학회와 아카이브</h2>
-          <p>다음 연도는 초안으로 준비합니다. 현재 학회가 종료되고 다음 회차의 날짜가 확정되면 전환할 수 있습니다. 지난 학회는 공개 범위를 검토한 뒤 별도로 공개하세요.</p>
-          <form id="create-edition-form" class="operations-actions"><label>새 학회 연도 <input id="new-edition-year" type="number" min="2027" max="2100" required placeholder="예: 2027" /></label><button type="submit" class="operations-button">연도 추가</button></form>
-          <div id="edition-list" class="operations-list" aria-live="polite"></div>
-        </section>
         <section class="operations-card" aria-labelledby="speaker-management-title">
+          <span class="operations-kicker">SPEAKERS</span>
           <h2 id="speaker-management-title">연사</h2>
-          <p>확인된 연사만 공개하세요. 공개 전 이름과 소속·소개 문구의 사용 동의를 확인합니다.</p>
+          <div class="operations-hint-block"><span>CONSENT</span><strong>확인된 연사 정보만 공개</strong><p>공개 전 성명·소속·약력 문구의 사용 동의를 확인합니다.</p></div>
           <form id="speaker-form">
             <input id="speaker-id" type="hidden" />
             <label>이름 <input id="speaker-name" required maxlength="120" /></label>
@@ -54,8 +41,9 @@
           <div id="speaker-list" class="operations-list"></div>
         </section>
         <section class="operations-card" aria-labelledby="session-management-title">
+          <span class="operations-kicker">SESSIONS</span>
           <h2 id="session-management-title">세션</h2>
-          <p>시간·장소·연사가 확정되면 공개하세요. 공개 세션은 프로그램 페이지에 바로 표시됩니다.</p>
+          <div class="operations-hint-block"><span>PUBLISH</span><strong>확정 세션 즉시 반영</strong><p>시간·장소·연사가 확정되어 공개하면 프로그램 페이지에 바로 표시됩니다.</p></div>
           <form id="session-form">
             <input id="session-id" type="hidden" />
             <label>세션 제목 <input id="session-title" required minlength="2" maxlength="200" /></label>
@@ -74,9 +62,13 @@
           <div id="session-list" class="operations-list"></div>
         </section>
         <section class="operations-card full" aria-labelledby="session-chair-title">
+          <span class="operations-kicker">SESSION CHAIRS</span>
           <h2 id="session-chair-title">세션 좌장·발표 운영</h2>
-          <p>구두·포스터 세션에 로그인 계정을 좌장으로 배정합니다. 공개 프로그램에 표시할 좌장 이름은 위의 세션 편집에서 별도로 확인하세요. 좌장은 배정된 발표의 출석·우수발표 후보 추천만 기록하며 심사와 판정 권한은 받지 않습니다.</p>
-          <p>좌장에게 <a href="./session-chair.html">좌장 업무 화면</a>을 안내하세요. 발표자·논문 배정과 좌장 계정의 이해관계는 위원장이 확인합니다.</p>
+          <div class="operations-spec-grid">
+            <div class="operations-spec-item"><span>CHAIR ASSIGNMENT</span><strong>구두·포스터 세션별 좌장 계정 배정</strong></div>
+            <div class="operations-spec-item"><span>CHAIR SCOPE</span><strong>발표 출석 및 우수발표 후보 추천 기록 (심사·판정 제외)</strong></div>
+            <div class="operations-spec-item"><span>DESK LINK</span><strong><a href="./session-chair.html">좌장 업무 화면 바로가기 →</a></strong></div>
+          </div>
           <div id="session-chair-list" class="operations-list" aria-live="polite"></div>
         </section>
       </div>

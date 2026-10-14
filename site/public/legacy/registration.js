@@ -42,7 +42,6 @@ function notice(text, error = false) {
 
 function showSignedOut() {
   registration = null;
-  $('#registration-operations-link').hidden = true;
   $('#registration-account').textContent = '참가 신청에는 계정 로그인이 필요합니다.';
   $('#registration-sign-out-actions').hidden = true;
   $('#registration-current').replaceChildren();
@@ -101,16 +100,17 @@ async function load() {
   $('#attendance-days').innerHTML = days.map(({ value, label }) =>
     `<label class="inline-check"><input type="checkbox" name="attendance-day" value="${value}" /> ${escapeHtml(label)}</label>`).join('');
   $('#registration-edition-label').textContent = `CO-R&BD ${edition.year} / ATTENDANCE`;
-  $('#registration-pilot-note').hidden = edition.year !== 2026;
   const deadlineText = settings.registration_deadline
     ? `${kstLongDateTimeFormatter.format(new Date(settings.registration_deadline))} KST`
     : '확정 전';
-  $('#registration-intro').innerHTML = [
-    '논문 투고와 별도로 신청합니다.',
-    `행사: ${editionDateRange(edition)}.`,
-    `신청 마감: ${deadlineText}.`,
-    '위원장 확인 후 참가가 확정됩니다.',
-  ].map((line) => escapeHtml(line)).join('<br />');
+  // 안내 문구를 과한 줄글 대신 3칸 스마트 요약 블록으로 렌더링
+  $('#registration-intro').innerHTML = `
+    <div class="operations-spec-grid">
+      <div class="operations-spec-item"><span>EVENT DATE</span><strong>${escapeHtml(editionDateRange(edition))}</strong></div>
+      <div class="operations-spec-item"><span>DEADLINE</span><strong>${escapeHtml(deadlineText)}</strong></div>
+      <div class="operations-spec-item"><span>APPROVAL</span><strong>논문 투고와 별도 신청 · 위원장 확인 후 확정</strong></div>
+    </div>
+  `;
   document.title = `참가 신청 | ${edition.title}`;
   if (auth.error && !/Auth session missing/i.test(auth.error.message)) throw auth.error;
   user = auth.data?.user;
@@ -122,17 +122,15 @@ async function load() {
     return;
   }
   const currentUser = user;
-  // 회원 프로필, 신청 내역과 위원장 권한을 함께 조회합니다.
-  const [profileResult, registrationResult, roleResult] = await Promise.all([
+  // 회원 프로필과 기존 참가 신청 내역을 병렬(Promise.all)로 동시에 조회
+  const [profileResult, registrationResult] = await Promise.all([
     client.from('profiles')
       .select('full_name,affiliation,email').eq('user_id', currentUser.id).single(),
     client.from('attendee_registrations')
       .select('id,category,attendance_days,status,checked_in_at,created_at')
       .eq('edition_year', edition.year).eq('user_id', currentUser.id).maybeSingle(),
-    client.from('staff_roles').select('role').eq('user_id', currentUser.id).maybeSingle(),
   ]);
   if (generation !== authGeneration || user?.id !== currentUser.id) return;
-  $('#registration-operations-link').hidden = requireData(roleResult)?.role !== 'chair';
   const profile = requireData(profileResult);
   const complete = Boolean(profile.full_name?.trim() && profile.affiliation?.trim());
   $('#registration-account').innerHTML = complete
