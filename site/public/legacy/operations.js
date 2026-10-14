@@ -35,6 +35,21 @@ function toUtc(value) {
   return value ? new Date(`${value}:00+09:00`).toISOString() : null;
 }
 
+async function loadPaperSettings() {
+  const settings = requireData(await client.from('conference_settings')
+    .select('submissions_open,submission_deadline,reviews_open,review_deadline,final_uploads_open,final_deadline,notice')
+    .eq('edition_year', edition.year).single());
+  $('#paper-submissions-open').checked = settings.submissions_open;
+  $('#paper-submission-deadline').value = toInput(settings.submission_deadline);
+  $('#paper-reviews-open').checked = settings.reviews_open;
+  $('#paper-review-deadline').value = toInput(settings.review_deadline);
+  $('#paper-final-open').checked = settings.final_uploads_open;
+  $('#paper-final-deadline').value = toInput(settings.final_deadline);
+  $('#paper-notice').value = settings.notice || '';
+  const phase = (open, deadline) => open && (!deadline || Date.now() <= new Date(deadline).getTime()) ? '열림' : '닫힘';
+  $('#paper-management-status').textContent = `원고 접수 ${phase(settings.submissions_open, settings.submission_deadline)} · 심사 ${phase(settings.reviews_open, settings.review_deadline)} · 최종본 ${phase(settings.final_uploads_open, settings.final_deadline)}`;
+}
+
 async function loadRegistrations() {
   // 참가 설정과 참가 신청 목록을 병렬(Promise.all)로 동시에 조회
   const [settingsResult, rowsResult] = await Promise.all([
@@ -49,7 +64,7 @@ async function loadRegistrations() {
   $('#registration-open').checked = settings.registration_open;
   $('#registration-deadline').value = toInput(settings.registration_deadline);
   $('#registration-deadline-note').textContent = settings.registration_deadline
-    ? `현재 마감: ${kstLongDateTimeFormatter.format(new Date(settings.registration_deadline))} KST.`
+    ? `현재 ${settings.registration_open && Date.now() <= new Date(settings.registration_deadline).getTime() ? '접수 중' : '접수 종료'} · 마감: ${kstLongDateTimeFormatter.format(new Date(settings.registration_deadline))} KST.`
     : '신청을 열기 전에 마감 시각을 입력해 주세요.';
   const users = rows.map((row) => row.user_id);
   const profiles = users.length
@@ -203,6 +218,28 @@ function clearSession() {
   $('#session-form').reset();
   $('#session-id').value = '';
 }
+
+$('#paper-settings-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const button = $('#paper-settings-form button[type="submit"]');
+  button.disabled = true;
+  try {
+    const noticeText = $('#paper-notice').value.trim();
+    if (!noticeText || noticeText.length > 500) throw new Error('공개 투고 안내문을 1~500자로 입력해 주세요.');
+    requireData(await client.from('conference_settings').update({
+      submissions_open: $('#paper-submissions-open').checked,
+      submission_deadline: toUtc($('#paper-submission-deadline').value),
+      reviews_open: $('#paper-reviews-open').checked,
+      review_deadline: toUtc($('#paper-review-deadline').value),
+      final_uploads_open: $('#paper-final-open').checked,
+      final_deadline: toUtc($('#paper-final-deadline').value),
+      notice: noticeText,
+    }).eq('edition_year', edition.year).select('edition_year').single());
+    await loadPaperSettings();
+    notice('논문투고·심사 운영 설정을 저장했습니다. 공개 투고 화면에 바로 반영됩니다.');
+  } catch (error) { notice(error.message, true); }
+  finally { button.disabled = false; }
+});
 
 $('#registration-settings-form').addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -449,15 +486,15 @@ async function start() {
     $('#operations-monitor-link').hidden = !role.is_super_admin;
     edition = currentEditionData;
     $('#operations-edition-label').textContent = `CO-R&BD ${edition.year} / CHAIR DESK`;
-    $('#operations-intro').textContent = `${edition.title} 운영 화면입니다. 참가 신청, 프로그램 공개와 연도별 학회 기록을 관리합니다.`;
-    document.title = `참가·프로그램 관리 | ${edition.title}`;
+    $('#operations-intro').textContent = `${edition.title}의 논문투고·심사, 참가신청, 프로그램과 연도별 학회 기록을 관리합니다.`;
+    document.title = `학회 운영 관리 | ${edition.title}`;
     if (edition.start_date && edition.end_date) {
       $('#session-start').min = `${edition.start_date}T00:00`;
       $('#session-start').max = `${edition.end_date}T23:59`;
       $('#session-end').min = `${edition.start_date}T00:00`;
       $('#session-end').max = `${edition.end_date}T23:59`;
     }
-    await Promise.all([loadRegistrations(), loadProgram(), loadEditions()]);
+    await Promise.all([loadPaperSettings(), loadRegistrations(), loadProgram(), loadEditions()]);
     await refreshSessionChairs();
     $('#operations-workspace').hidden = false;
     notice('운영 데이터를 불러왔습니다. 공개 설정을 변경하면 사이트에 바로 반영됩니다.');

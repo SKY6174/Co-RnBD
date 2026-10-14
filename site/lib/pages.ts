@@ -61,7 +61,7 @@ const PAGE_METADATA: Record<PageId, Metadata> = {
     description: "T-VET Co-R&BD Conference 일반 참가 신청",
   },
   operations: {
-    title: "참가·프로그램 관리 | T-VET Co-R&BD Conference",
+    title: "학회 운영 관리 | T-VET Co-R&BD Conference",
     robots: { index: false, follow: false },
   },
   "session-chair": {
