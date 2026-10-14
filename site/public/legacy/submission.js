@@ -314,7 +314,7 @@ function renumberAuthorRows() {
 
 function addAuthorRow(author = {}) {
   const row = document.createElement('tr');
-  row.innerHTML = '<td data-label="이름"><input data-author="full_name" data-author-field-label="이름" maxlength="120" required placeholder="이름" /></td><td data-label="소속"><input data-author="affiliation" data-author-field-label="소속" maxlength="200" required placeholder="소속 기관" /></td><td data-label="이메일"><input data-author="email" data-author-field-label="이메일" type="email" maxlength="254" placeholder="선택" /></td><td data-label="비고"><input data-author="note" data-author-field-label="비고" maxlength="200" placeholder="선택" /></td><td data-label="관리"><button type="button" data-remove-author class="text-action">삭제</button></td>';
+  row.innerHTML = '<td data-label="이름"><input data-author="full_name" data-author-field-label="이름" maxlength="120" required placeholder="이름" /></td><td data-label="소속"><input data-author="affiliation" data-author-field-label="소속" maxlength="200" required placeholder="소속 기관" /></td><td data-label="이메일"><input data-author="email" data-author-field-label="이메일" type="email" maxlength="254" required placeholder="name@example.com" /></td><td data-label="비고"><input data-author="note" data-author-field-label="비고" maxlength="200" placeholder="선택" /></td><td data-label="관리"><button type="button" data-remove-author class="text-action">삭제</button></td>';
   row.querySelectorAll('[data-author]').forEach((input) => { input.value = author[input.dataset.author] || ''; });
   $('#paper-authors').append(row);
   renumberAuthorRows();
@@ -335,8 +335,8 @@ function readAuthors() {
     const affiliation = value('affiliation');
     const email = value('email');
     const note = value('note');
-    if (!full_name || !affiliation || (email && !EMAIL_RE.test(email))) throw new Error(`${index + 1}번째 저자 정보를 확인해 주세요.`);
-    return { sort_order: index + 1, full_name, affiliation, email: email || null, note: note || null };
+    if (!full_name || !affiliation || !EMAIL_RE.test(email)) throw new Error(`${index + 1}번째 저자의 이름·소속·이메일을 확인해 주세요.`);
+    return { sort_order: index + 1, full_name, affiliation, email, note: note || null };
   });
 }
 
@@ -806,7 +806,6 @@ async function start() {
     edition = check(editionResult);
     document.title = `논문 투고·심사 | ${edition.title}`;
     $('#submission-edition-label').textContent = `CO-R&BD ${edition.year} / PAPER PORTAL`;
-    $('#submission-intro').textContent = `${edition.title}의 원고 제출, 심사와 결과 확인을 이 화면에서 진행합니다.`;
     $('#submission-footer-edition').textContent = edition.title;
     $('#submission-cfp-link').href = edition.year === 2026 ? './cfp.html' : './edition.html';
     $('#submission-cfp-link').textContent = edition.year === 2026 ? '모집공고 보기' : '학회 안내 보기';
