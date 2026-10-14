@@ -299,14 +299,45 @@ async function loadChairPapers() {
   $('#chair-list').innerHTML = chairPapers.length ? chairPapers.map((paper) => paperCard(paper, 'chair', '배정·판정')).join('') : '<p class="empty-state">접수된 원고가 없습니다.</p>';
 }
 
-function parseAuthors(text) {
-  const authors = text.split('\n').map((line) => line.trim()).filter(Boolean).map((line, index) => {
-    const [full_name, affiliation, email = ''] = line.split('|').map((part) => part.trim());
-    if (!full_name || !affiliation || (email && !EMAIL_RE.test(email))) throw new Error(`${index + 1}번째 저자 정보를 확인해 주세요.`);
-    return { sort_order: index + 1, full_name, affiliation, email: email || null };
+function renumberAuthorRows() {
+  const rows = [...$('#paper-authors').querySelectorAll('tr')];
+  rows.forEach((row, index) => {
+    row.querySelectorAll('input').forEach((input) => {
+      input.setAttribute('aria-label', `${index + 1}번째 저자 ${input.dataset.authorFieldLabel}`);
+    });
+    const remove = row.querySelector('[data-remove-author]');
+    remove.setAttribute('aria-label', `${index + 1}번째 저자 삭제`);
+    remove.disabled = rows.length === 1 || row.querySelector('input').disabled;
   });
-  if (authors.length < 1 || authors.length > 30) throw new Error('저자는 1~30명 입력해 주세요.');
-  return authors;
+  $('#add-author').disabled = rows.length >= 30 || rows[0]?.querySelector('input').disabled;
+}
+
+function addAuthorRow(author = {}) {
+  const row = document.createElement('tr');
+  row.innerHTML = '<td data-label="이름"><input data-author="full_name" data-author-field-label="이름" maxlength="120" required placeholder="이름" /></td><td data-label="소속"><input data-author="affiliation" data-author-field-label="소속" maxlength="200" required placeholder="소속 기관" /></td><td data-label="이메일"><input data-author="email" data-author-field-label="이메일" type="email" maxlength="254" placeholder="선택" /></td><td data-label="비고"><input data-author="note" data-author-field-label="비고" maxlength="200" placeholder="선택" /></td><td data-label="관리"><button type="button" data-remove-author class="text-action">삭제</button></td>';
+  row.querySelectorAll('[data-author]').forEach((input) => { input.value = author[input.dataset.author] || ''; });
+  $('#paper-authors').append(row);
+  renumberAuthorRows();
+  return row;
+}
+
+function setAuthorRows(authors) {
+  $('#paper-authors').replaceChildren();
+  (authors.length ? authors : [{}]).forEach(addAuthorRow);
+}
+
+function readAuthors() {
+  const rows = [...$('#paper-authors').querySelectorAll('tr')];
+  if (rows.length < 1 || rows.length > 30) throw new Error('저자는 1~30명 입력해 주세요.');
+  return rows.map((row, index) => {
+    const value = (key) => row.querySelector(`[data-author="${key}"]`).value.trim();
+    const full_name = value('full_name');
+    const affiliation = value('affiliation');
+    const email = value('email');
+    const note = value('note');
+    if (!full_name || !affiliation || (email && !EMAIL_RE.test(email))) throw new Error(`${index + 1}번째 저자 정보를 확인해 주세요.`);
+    return { sort_order: index + 1, full_name, affiliation, email: email || null, note: note || null };
+  });
 }
 
 async function uploadFile(paperId, file, fileStage = 'submission') {
@@ -326,6 +357,7 @@ async function uploadFile(paperId, file, fileStage = 'submission') {
 
 async function openAuthor(paperId = '') {
   $('#paper-form').reset();
+  setAuthorRows([]);
   $('#final-form').reset();
   $('#final-form').hidden = true;
   $('#paper-id').value = paperId;
@@ -350,7 +382,7 @@ async function openAuthor(paperId = '') {
     ]);
     const authors = check(authorsResult);
     const files = check(filesResult);
-    $('#paper-authors').value = authors.map((author) => [author.full_name, author.affiliation, author.email].filter(Boolean).join(' | ')).join('\n');
+    setAuthorRows(authors);
     showFiles(files, $('#paper-form'), 'paper-file-links');
     if (paper.submitted_at) {
       const submitted = kstMediumDateTimeFormatter.format(new Date(paper.submitted_at));
@@ -376,7 +408,8 @@ async function openAuthor(paperId = '') {
     $('#paper-contact-email').value = profile.email || user.email || '';
     document.getElementById('paper-file-links')?.remove();
   }
-  $('#paper-form').querySelectorAll('input:not([type="hidden"]),select,textarea,button[type="submit"]').forEach((field) => { field.disabled = !editable; });
+  $('#paper-form').querySelectorAll('input:not([type="hidden"]),select,textarea,button[type="submit"],[data-remove-author],#add-author').forEach((field) => { field.disabled = !editable; });
+  renumberAuthorRows();
   if (editable && !submissionsOpen && myPapers.find((paper) => paper.id === paperId)?.status !== 'revision') {
     $('#paper-form').querySelector('[data-save="submitted"]').disabled = true;
   }
@@ -398,7 +431,7 @@ async function savePaper(event) {
   const submit = event.submitter?.dataset.save === 'submitted';
   const paperId = $('#paper-id').value;
   try {
-    const authors = parseAuthors($('#paper-authors').value);
+    const authors = readAuthors();
     const keywords = parseKeywords($('#paper-keywords').value, submit);
     const input = {
       title: $('#paper-title').value.trim(), abstract: $('#paper-abstract').value.trim(),
@@ -532,6 +565,16 @@ document.addEventListener('click', async (event) => {
 });
 
 $('#new-paper').addEventListener('click', () => openAuthor());
+$('#add-author').addEventListener('click', () => {
+  if ($('#paper-authors').rows.length >= 30) return;
+  addAuthorRow().querySelector('[data-author="full_name"]').focus();
+});
+$('#paper-authors').addEventListener('click', (event) => {
+  const remove = event.target.closest('[data-remove-author]');
+  if (!remove || $('#paper-authors').rows.length === 1) return;
+  remove.closest('tr').remove();
+  renumberAuthorRows();
+});
 $('#cancel-paper').addEventListener('click', () => { $('#paper-form').hidden = true; $('#final-form').hidden = true; });
 $('#paper-form').addEventListener('submit', savePaper);
 $('#final-form').addEventListener('submit', async (event) => {

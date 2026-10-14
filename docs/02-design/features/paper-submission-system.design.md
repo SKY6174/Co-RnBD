@@ -6,6 +6,8 @@
 ## 데이터 관계
 `auth.users` 1:1 `profiles`; `profiles` 1:N `papers`(교신저자); `papers` 1:N `paper_authors`, `paper_files`, `reviews`. `staff_roles`는 위원장 권한만 저장한다. `reviews` 한 행은 배정과 평가를 겸하고 `(paper_id, reviewer_id)` 유일하다. 파일은 private `paper-pdfs` 버킷의 `{user_id}/{paper_id}/{uuid}.pdf`에 버전별로 저장한다.
 
+저자 입력은 이름·소속·이메일·비고 열을 가진 표에서 행을 추가·삭제한다. 첫 행이 대표저자이며 최소 1명, 최대 30명으로 제한한다. 이름·소속은 필수, 이메일·비고는 선택이며 비고는 `paper_authors.note`에 최대 200자로 저장한다. 기존 원고를 열 때 `sort_order` 순서로 행을 복원하고, 화면이 좁으면 같은 항목을 행별 카드로 배치한다.
+
 ## 상태와 화면
 - 저자: 로그인 → 프로필 → 초안 생성(제목·초록·유형·분야·발표 희망) → 저자 입력 → PDF 업로드 → 제출. 제출 후 상태 조회, 위원장이 `revision`으로 돌린 경우 수정·재제출.
 - 심사위원: 배정 목록 → 원고/PDF 열람 → `accept`/`revise`/`reject` 권고 및 의견 저장. 점수표 없이 간결하게 운영.

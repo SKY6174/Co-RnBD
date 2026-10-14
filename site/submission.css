@@ -121,6 +121,19 @@
 .portal-form fieldset { border: 0; padding: 0; margin: 7px 0 18px; }
 .portal-form legend { margin-bottom: 6px; }
 .portal-form fieldset textarea { display: block; }
+.author-fieldset { min-width: 0; }
+.author-table-wrap { width: 100%; overflow-x: auto; }
+.author-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.author-table th { padding: 11px 8px; border-bottom: 2px solid #cbd9c7; background: #f6f9f3; color: #314b3e; text-align: left; font-size: 12px; }
+.author-table td { padding: 9px 6px; border-bottom: 1px solid #e2e9df; }
+.author-table th:nth-child(1) { width: 17%; }
+.author-table th:nth-child(2) { width: 25%; }
+.author-table th:nth-child(3) { width: 25%; }
+.author-table th:nth-child(4) { width: 23%; }
+.author-table th:nth-child(5) { width: 10%; }
+.portal-form .author-table input { padding: 10px 8px; }
+.author-table .text-action { min-height: 40px; padding: 8px; }
+.author-fieldset > .portal-button { justify-self: start; margin-top: 12px; }
 .committee-fields { border-top: 1px solid #e2e9df !important; padding-top: 22px !important; margin-top: 20px !important; }
 .choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 5px 0 18px; }
 .portal-form .choice-option { display: flex; align-items: center; gap: 9px; min-height: 44px; margin: 0; padding: 10px 12px; border: 1px solid #d7e2d1; border-radius: 7px; background: #f8faf6; font-weight: 600; line-height: 1.45; cursor: pointer; }
@@ -137,6 +150,12 @@
 .muted-list p { margin: 6px 0; }
 [hidden] { display: none !important; }
 @media (max-width: 760px) {
+  .author-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .author-table, .author-table tbody, .author-table tr, .author-table td { display: block; width: 100%; }
+  .author-table tr { margin: 0 0 12px; padding: 9px 12px; border: 1px solid #dce4d7; border-radius: 9px; }
+  .author-table td { display: grid; grid-template-columns: 66px minmax(0, 1fr); align-items: center; gap: 7px; padding: 5px 0; border: 0; }
+  .author-table td::before { content: attr(data-label); color: #314b3e; font-size: 12px; font-weight: 800; }
+  .author-table td:last-child { justify-items: start; }
   .portal-nav { gap: 12px; }
   .portal-nav a { font-size: 11px; }
   .portal-main { padding: 46px 0 80px; }
