@@ -1,4 +1,4 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/+esm';
+import { conferenceClient, conferenceConfig } from './conference-client.js';
 
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -34,6 +34,27 @@ const STATUSES = { draft: '초안', submitted: '제출 완료', under_review: '�
 const RECOMMENDATIONS = { accept: '채택 권고', revise: '수정 권고', reject: '반려 권고' };
 const REVIEW_STATES = { assigned: '심사 대기', draft: '임시저장', submitted: '심사 제출', declined: '배정 거절' };
 const EMAIL_LINK_TYPES = { 'auth-signup': 'email', 'auth-magiclink': 'magiclink', 'auth-recovery': 'recovery' };
+
+// 반복 호출되는 날짜 포매터를 싱글톤으로 생성하여 렌더링 속도 최적화
+const kstMediumDateTimeFormatter = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+const kstMediumDateFormatter = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  dateStyle: 'medium',
+});
+const kstInputPartsFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Seoul',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
 const emailLinkParams = new URLSearchParams(location.hash.slice(1));
 const emailLink = Object.entries(EMAIL_LINK_TYPES)
   .map(([name, type]) => ({ token_hash: emailLinkParams.get(name), type }))
@@ -111,15 +132,12 @@ function beforeDeadline(value) {
 
 function formatKst(value) {
   if (!value) return '마감 시각 미설정';
-  return `${new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))} KST`;
+  return `${kstMediumDateTimeFormatter.format(new Date(value))} KST`;
 }
 
 function kstInputValue(value) {
   if (!value) return '';
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
-  }).formatToParts(new Date(value));
+  const parts = kstInputPartsFormatter.formatToParts(new Date(value));
   const get = (type) => parts.find((part) => part.type === type).value;
   return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
 }
@@ -160,14 +178,14 @@ async function loadSettings() {
 }
 
 async function loadAuthAvailability(config) {
-  let settings = {};
+  let authSettings = {};
   try {
     const response = await fetch(`${config.url}/auth/v1/settings`, {
-      headers: { apikey: config.publishableKey }, cache: 'no-store',
+      headers: { apikey: config.publishableKey },
     });
-    if (response.ok) settings = await response.json();
+    if (response.ok) authSettings = await response.json();
   } catch { /* Leave providers disabled; the rest of the portal can still load. */ }
-  const googleReady = settings.external?.google === true;
+  const googleReady = authSettings.external?.google === true;
   const naverReady = config.naverEnabled === true;
   $('[data-login="google"]').disabled = !googleReady;
   $('[data-login="custom:naver"]').disabled = !naverReady;
@@ -199,8 +217,13 @@ async function loadWorkspace() {
   $('#auth-panel').hidden = Boolean(user) || isRecovery;
   $('#workspace').hidden = !user || isRecovery;
   if (!user || isRecovery) return;
-  profile = check(await client.from('profiles').select('*').eq('user_id', user.id).single());
-  const role = check(await client.from('staff_roles').select('role,is_super_admin').eq('user_id', user.id).maybeSingle());
+  // 프로필(profiles)과 운영진 권한(staff_roles)을 병렬(Promise.all)로 동시에 조회하여 대기 시간 단축
+  const [profileResult, roleResult] = await Promise.all([
+    client.from('profiles').select('*').eq('user_id', user.id).single(),
+    client.from('staff_roles').select('role,is_super_admin').eq('user_id', user.id).maybeSingle(),
+  ]);
+  profile = check(profileResult);
+  const role = check(roleResult);
   isChair = role?.role === 'chair';
   $('#submission-monitor-link').hidden = !role?.is_super_admin;
   $('#welcome').textContent = `${profile.full_name || '회원'}님의 작업 공간`;
@@ -221,7 +244,7 @@ async function loadWorkspace() {
 }
 
 function paperCard(paper, action, label) {
-  const submitted = paper.submitted_at ? new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium' }).format(new Date(paper.submitted_at)) : '아직 제출하지 않음';
+  const submitted = paper.submitted_at ? kstMediumDateFormatter.format(new Date(paper.submitted_at)) : '아직 제출하지 않음';
   const sessionLabel = paper.assigned_session
     ? ` · ${SESSIONS[paper.assigned_session] || paper.assigned_session}`
     : paper.final_presentation
@@ -341,12 +364,17 @@ async function openAuthor(paperId = '') {
     $('#paper-keywords').value = (paper.keywords || []).join(', ');
     $('#paper-contact-name').value = paper.contact_name || '';
     $('#paper-contact-email').value = paper.contact_email || '';
-    const authors = check(await client.from('paper_authors').select('*').eq('paper_id', paperId).order('sort_order'));
+    // 저자 목록(paper_authors)과 첨부 파일(paper_files)을 병렬(Promise.all)로 동시에 조회
+    const [authorsResult, filesResult] = await Promise.all([
+      client.from('paper_authors').select('*').eq('paper_id', paperId).order('sort_order'),
+      client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }),
+    ]);
+    const authors = check(authorsResult);
+    const files = check(filesResult);
     $('#paper-authors').value = authors.map((author) => [author.full_name, author.affiliation, author.email].filter(Boolean).join(' | ')).join('\n');
-    const files = check(await client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }));
     showFiles(files, $('#paper-form'), 'paper-file-links');
     if (paper.submitted_at) {
-      const submitted = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(paper.submitted_at));
+      const submitted = kstMediumDateTimeFormatter.format(new Date(paper.submitted_at));
       const assignedText = paper.assigned_session
         ? ` · 배정 세션 ${SESSIONS[paper.assigned_session] || paper.assigned_session}`
         : paper.final_presentation
@@ -406,13 +434,20 @@ async function savePaper(event) {
     if (submit && (!input.contact_name || !input.contact_email)) throw new Error('원고 제출에는 연락 담당자 이름과 이메일이 필요합니다.');
     let id = paperId;
     if (id) {
-      check(await client.from('papers').update(input).eq('id', id));
-      check(await client.from('paper_authors').delete().eq('paper_id', id));
+      // 기존 원고 수정 시 메타데이터 업데이트와 기존 저자 목록 정리를 병렬 수행
+      const [updateResult, deleteAuthorsResult] = await Promise.all([
+        client.from('papers').update(input).eq('id', id),
+        client.from('paper_authors').delete().eq('paper_id', id),
+      ]);
+      check(updateResult);
+      check(deleteAuthorsResult);
     } else {
       id = check(await client.from('papers').insert({ ...input, owner_id: user.id, edition_year: edition.year }).select('id').single()).id;
     }
-    check(await client.from('paper_authors').insert(authors.map((author) => ({ ...author, paper_id: id }))));
-    await uploadFile(id, $('#paper-file').files[0]);
+    await Promise.all([
+      client.from('paper_authors').insert(authors.map((author) => ({ ...author, paper_id: id }))).then(check),
+      uploadFile(id, $('#paper-file').files[0]),
+    ]);
     if (submit) check(await client.from('papers').update({ status: 'submitted' }).eq('id', id));
     $('#paper-form').hidden = true;
     await loadMyPapers();
@@ -446,10 +481,15 @@ async function openReview(paperId) {
     $('#review-authors').hidden = true;
     document.getElementById('review-file-links')?.remove();
   } else {
-    const authors = check(await client.from('paper_authors').select('full_name,affiliation').eq('paper_id', paperId).order('sort_order'));
+    // 심사 대상 원고의 저자 목록과 첨부 PDF 파일을 병렬(Promise.all)로 동시에 조회
+    const [authorsResult, filesResult] = await Promise.all([
+      client.from('paper_authors').select('full_name,affiliation').eq('paper_id', paperId).order('sort_order'),
+      client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }),
+    ]);
+    const authors = check(authorsResult);
+    const files = check(filesResult);
     $('#review-authors').textContent = `저자·소속 확인: ${authors.map((author) => `${author.full_name} (${author.affiliation})`).join(', ') || '저자 정보 없음'}`;
     $('#review-authors').hidden = false;
-    const files = check(await client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }));
     showFiles(files, $('#review-form'), 'review-file-links');
   }
   $('#review-form').hidden = false;
@@ -460,19 +500,25 @@ async function openChair(paperId) {
   const paper = chairPapers.find((row) => row.id === paperId);
   $('#chair-paper-id').value = paperId;
   $('#chair-title').textContent = paper.title;
-  const authors = check(await client.from('paper_authors').select('full_name,affiliation,email').eq('paper_id', paperId).order('sort_order'));
-  $('#chair-paper-summary').innerHTML = `<p>${esc(paper.abstract)}</p><p class="field-help">모집 분야: ${esc(TRACKS[paper.track] || paper.track)} · 희망 발표 형태: ${esc(PRESENTATIONS[paper.preferred_presentation] || paper.preferred_presentation)}<br>저자: ${esc(authors.map((author) => `${author.full_name} (${author.affiliation})`).join(', ') || '미입력')}<br>키워드: ${esc((paper.keywords || []).join(', ') || '미입력')}<br>연락 담당자: ${esc(paper.contact_name || '미입력')} · ${esc(paper.contact_email || '미입력')}<br>접수번호 ${esc(paperId.slice(0, 8).toUpperCase())}</p>`;
   $('#chair-status').value = paper.status;
   $('#chair-presentation').value = paper.final_presentation || '';
   $('#chair-session').value = paper.assigned_session || '';
   $('#chair-note').value = paper.decision_note || '';
-  selectedChairReviews = check(await client.from('reviews').select('id,reviewer_id,review_state,recommendation,comments,decline_reason,submitted_at,profiles(full_name,email,expertise_tracks)').eq('paper_id', paperId));
+  // 저자 목록, 심사위원 배정/의견, 첨부 PDF 파일 3개 쿼리를 병렬(Promise.all)로 한 번에 조회
+  const [authorsResult, reviewsResult, filesResult] = await Promise.all([
+    client.from('paper_authors').select('full_name,affiliation,email').eq('paper_id', paperId).order('sort_order'),
+    client.from('reviews').select('id,reviewer_id,review_state,recommendation,comments,decline_reason,submitted_at,profiles(full_name,email,expertise_tracks)').eq('paper_id', paperId),
+    client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }),
+  ]);
+  const authors = check(authorsResult);
+  selectedChairReviews = check(reviewsResult);
+  const files = check(filesResult);
+  $('#chair-paper-summary').innerHTML = `<p>${esc(paper.abstract)}</p><p class="field-help">모집 분야: ${esc(TRACKS[paper.track] || paper.track)} · 희망 발표 형태: ${esc(PRESENTATIONS[paper.preferred_presentation] || paper.preferred_presentation)}<br>저자: ${esc(authors.map((author) => `${author.full_name} (${author.affiliation})`).join(', ') || '미입력')}<br>키워드: ${esc((paper.keywords || []).join(', ') || '미입력')}<br>연락 담당자: ${esc(paper.contact_name || '미입력')} · ${esc(paper.contact_email || '미입력')}<br>접수번호 ${esc(paperId.slice(0, 8).toUpperCase())}</p>`;
   $('#assigned-reviewers').innerHTML = selectedChairReviews.length ? selectedChairReviews.map((review) => {
     const detail = review.review_state === 'declined' ? review.decline_reason : review.review_state === 'submitted' ? review.comments : '';
     const expertise = (review.profiles?.expertise_tracks || []).map((track) => TRACKS[track] || track).join(', ');
     return `<p>${esc(review.profiles?.full_name || review.profiles?.email || '심사위원')} · ${esc(REVIEW_STATES[review.review_state] || '심사 대기')}${review.review_state === 'submitted' ? ` · ${esc(RECOMMENDATIONS[review.recommendation])}` : ''}<br><small>전문 분야: ${esc(expertise || '미입력')}</small>${detail ? `<br><small>${esc(detail)}</small>` : ''}</p>`;
   }).join('') : '<p>아직 배정된 심사위원이 없습니다. 2명 배정을 권장합니다.</p>';
-  const files = check(await client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }));
   showFiles(files, $('#chair-form'), 'chair-file-links');
   $('#chair-form').hidden = false;
   $('#chair-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -676,17 +722,16 @@ $('#decline-review').addEventListener('click', async () => {
 
 $('#assign-reviewer').addEventListener('click', async () => {
   try {
-    const email = $('#reviewer-email').value.trim();
+    const email = $('#reviewer-email').value.trim().toLowerCase();
     if (!email) throw new Error('심사위원 이메일을 입력해 주세요.');
     if (!EMAIL_RE.test(email)) throw new Error('심사위원 이메일 형식을 확인해 주세요.');
-    const reviewer = check(await client.from('profiles').select('user_id').eq('email', email).maybeSingle());
+    const reviewer = check(await client.from('profiles').select('user_id').ilike('email', email).maybeSingle());
     if (!reviewer) throw new Error('가입한 계정을 찾을 수 없습니다. 심사위원에게 먼저 로그인을 요청해 주세요.');
     const paperId = $('#chair-paper-id').value;
     check(await client.from('reviews').insert({ paper_id: paperId, reviewer_id: reviewer.user_id }));
     check(await client.from('papers').update({ status: 'under_review' }).eq('id', paperId));
     $('#reviewer-email').value = '';
-    await loadChairPapers();
-    await openChair(paperId);
+    await Promise.all([loadChairPapers(), openChair(paperId)]);
     message('심사위원을 배정했습니다.');
   } catch (error) { message(error.message, true); }
 });
@@ -740,10 +785,8 @@ $('#chair-form').addEventListener('submit', async (event) => {
 
 async function start() {
   try {
-    const response = await fetch('/api/config');
-    if (!response.ok) throw new Error('Supabase 공개 설정이 연결되지 않았습니다. Vercel 환경변수를 확인해 주세요.');
-    const config = await response.json();
-    client = createClient(config.url, config.publishableKey);
+    const config = await conferenceConfig();
+    client = await conferenceClient(config);
     client.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         isRecovery = true;
@@ -765,7 +808,6 @@ async function start() {
     $('#submission-footer-edition').textContent = edition.title;
     $('#submission-cfp-link').href = edition.year === 2026 ? './cfp.html' : './edition.html';
     $('#submission-cfp-link').textContent = edition.year === 2026 ? '모집공고 보기' : '학회 안내 보기';
-    await loadSettings();
     let emailLinkMessage;
     let emailLinkError = false;
     if (emailLink) {
@@ -782,7 +824,8 @@ async function start() {
       }
       history.replaceState(null, '', `${location.pathname}${location.search}`);
     }
-    await loadWorkspace();
+    // 학회 운영 설정(loadSettings)과 사용자 워크스페이스(loadWorkspace)를 병렬(Promise.all)로 동시에 로드
+    await Promise.all([loadSettings(), loadWorkspace()]);
     if (emailLink?.type === 'email' && !emailLinkError && !user) {
       showAuthMode('login');
       emailLinkMessage = '이메일 인증이 완료되어 회원가입이 완료되었습니다. 이메일과 비밀번호로 로그인해 주세요.';
