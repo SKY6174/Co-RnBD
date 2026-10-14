@@ -4,7 +4,28 @@ const $ = (selector) => document.querySelector(selector);
 const REGISTRATION_STATES = { applied: '확인 대기', confirmed: '참가 확정', cancelled: '취소됨' };
 const PAPER_STATES = { draft: '초안', submitted: '접수', under_review: '심사 중', revision: '수정 요청', accepted: '채택', rejected: '반려' };
 const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타' };
-const TRACKS = { applied: '전문기술석사 응용연구', industry: '산학공동기술개발과제 성과발표', convergence: '산업융합기술', education: 'T-VET 정책·교육연구' };
+const TRACKS = {
+  master_eng: '전문기술석사 (공학 분야)',
+  master_sci: '전문기술석사 (자연과학 분야)',
+  industry_joint: '산학공동기술개발과제',
+  convergence_etc: '기타 산학융합과제',
+  applied: '전문기술석사 응용연구',
+  industry: '산학공동기술개발과제 성과발표',
+  convergence: '산업융합기술',
+  education: 'T-VET 정책·교육연구',
+};
+const LEGACY_TRACK_MAP = {
+  applied: 'master_eng',
+  industry: 'industry_joint',
+  convergence: 'convergence_etc',
+  education: 'convergence_etc',
+};
+const SESSIONS = {
+  oral_1: 'Oral Session 1',
+  oral_2: 'Oral Session 2',
+  oral_3: 'Oral Session 3',
+  poster_1: 'Poster Session 1',
+};
 const PAGE_SIZE = 500;
 let client;
 let edition;
@@ -85,19 +106,24 @@ function renderPapers() {
   const visible = papers.filter((row) => [row.title, row.contact_name, row.contact_email]
     .some((value) => String(value || '').toLocaleLowerCase().includes(search))
     && (status === 'all' || row.status === status)
-    && (track === 'all' || row.track === track));
+    && (track === 'all' || (LEGACY_TRACK_MAP[row.track] || row.track) === track));
   const count = (key) => papers.filter((row) => row.status === key).length;
+  const acceptedRows = papers.filter((row) => row.status === 'accepted');
+  const acceptedOral = acceptedRows.filter((row) => (row.final_presentation || row.preferred_presentation) === 'oral').length;
+  const acceptedPoster = acceptedRows.filter((row) => (row.final_presentation || row.preferred_presentation) === 'poster').length;
   $('#monitor-paper-stats').innerHTML = [
     stat('전체 원고', papers.length), stat('초안', count('draft')),
     stat('제출된 원고', papers.length - count('draft')),
     stat('접수·심사 중', count('submitted') + count('under_review')),
     stat('수정 요청', count('revision')), stat('채택', count('accepted')),
+    stat('구두 채택 (목표 20+)', `${acceptedOral}/20`),
+    stat('포스터 채택 (목표 30+)', `${acceptedPoster}/30`),
     stat('반려', count('rejected')),
   ].join('');
   $('#monitor-paper-count').textContent = `${visible.length}건 표시 / 전체 ${papers.length}건`;
   $('#monitor-paper-list').innerHTML = visible.length ? visible.map((row) => `<article class="operations-item">
     <h3>${escapeHtml(row.title)} <span class="operations-meta">${escapeHtml(PAPER_STATES[row.status] || row.status)}</span></h3>
-    <p>${escapeHtml(TRACKS[row.track] || row.track)} · 접수번호 ${escapeHtml(row.id.slice(0, 8).toUpperCase())}</p>
+    <p>${escapeHtml(TRACKS[row.track] || row.track)}${row.assigned_session ? ` · ${escapeHtml(SESSIONS[row.assigned_session] || row.assigned_session)}` : ''} · 접수번호 ${escapeHtml(row.id.slice(0, 8).toUpperCase())}</p>
     <p>연락 담당자 ${escapeHtml(row.contact_name || '미입력')} · ${escapeHtml(row.contact_email || '이메일 미입력')}</p>
     <p class="operations-meta">작성 ${escapeHtml(dateTime(row.created_at))} · 제출 ${escapeHtml(dateTime(row.submitted_at))}</p>
   </article>`).join('') : '<p class="operations-empty">조건에 맞는 논문이 없습니다.</p>';
@@ -110,7 +136,7 @@ async function refresh() {
   try {
     const [applicationRows, paperRows] = await Promise.all([
       allRows('attendee_registrations', 'user_id,category,attendance_days,status,checked_in_at,created_at', edition.year),
-      allRows('papers', 'id,title,track,status,contact_name,contact_email,created_at,submitted_at', edition.year),
+      allRows('papers', 'id,title,track,status,preferred_presentation,final_presentation,assigned_session,contact_name,contact_email,created_at,submitted_at', edition.year),
     ]);
     const profiles = await registrationProfiles(applicationRows);
     registrations = applicationRows.map((row) => ({ ...row, person: profiles.get(row.user_id) || {} }));
