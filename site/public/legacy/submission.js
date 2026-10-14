@@ -451,10 +451,9 @@ async function openReview(paperId) {
     document.getElementById('review-file-links')?.remove();
   } else {
     // 심사 대상 원고의 저자 목록과 첨부 PDF 파일을 병렬(Promise.all)로 동시에 조회
-    const [authorsResult, filesResult, finalCheckResult] = await Promise.all([
+    const [authorsResult, filesResult] = await Promise.all([
       client.from('paper_authors').select('full_name,affiliation').eq('paper_id', paperId).order('sort_order'),
       client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }),
-      client.from('paper_final_checks').select('file_id,checked_at').eq('paper_id', paperId).maybeSingle(),
     ]);
     const authors = check(authorsResult);
     const files = check(filesResult);
