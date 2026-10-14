@@ -13,6 +13,10 @@ export function GET() {
 
   return Response.json(
     { url, publishableKey, naverEnabled: process.env.NAVER_OAUTH_ENABLED === "true" },
-    { headers: { "Cache-Control": "public, max-age=0, s-maxage=60" } },
+    {
+      headers: {
+        "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
+      },
+    },
   );
 }

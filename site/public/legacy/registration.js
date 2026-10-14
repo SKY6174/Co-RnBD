@@ -10,6 +10,18 @@ let open = false;
 let edition;
 let authGeneration = 0;
 
+const utcShortDayFormatter = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'UTC',
+  month: 'long',
+  day: 'numeric',
+  weekday: 'short',
+});
+const kstLongDateTimeFormatter = new Intl.DateTimeFormat('ko-KR', {
+  dateStyle: 'long',
+  timeStyle: 'short',
+  timeZone: 'Asia/Seoul',
+});
+
 function attendanceDays() {
   if (!edition.start_date || !edition.end_date) return [];
   const days = [];
@@ -17,7 +29,7 @@ function attendanceDays() {
     day <= new Date(`${edition.end_date}T00:00:00Z`) && days.length < 7;
     day.setUTCDate(day.getUTCDate() + 1)) {
     const value = day.toISOString().slice(0, 10);
-    const label = new Intl.DateTimeFormat('ko-KR', { timeZone: 'UTC', month: 'long', day: 'numeric', weekday: 'short' }).format(day);
+    const label = utcShortDayFormatter.format(day);
     days.push({ value, label });
   }
   return days;
@@ -43,7 +55,7 @@ async function loadAuthAvailability(config) {
   let settings = {};
   try {
     const settingsResponse = await fetch(`${config.url}/auth/v1/settings`, {
-      headers: { apikey: config.publishableKey }, cache: 'no-store',
+      headers: { apikey: config.publishableKey },
     });
     if (settingsResponse.ok) settings = await settingsResponse.json();
   } catch { /* 제공자 설정을 읽지 못해도 이메일 로그인 링크는 이용할 수 있습니다. */ }
@@ -74,8 +86,12 @@ $('#registration-login').addEventListener('click', async (event) => {
 
 async function load() {
   const generation = authGeneration;
-  const settingsResult = await client.from('conference_settings')
-    .select('registration_open,registration_deadline').eq('edition_year', edition.year).single();
+  // 학회 참가 설정(conference_settings)과 로그인 사용자 확인(getUser)을 병렬(Promise.all)로 동시에 수행
+  const [settingsResult, auth] = await Promise.all([
+    client.from('conference_settings')
+      .select('registration_open,registration_deadline').eq('edition_year', edition.year).single(),
+    client.auth.getUser(),
+  ]);
   if (generation !== authGeneration) return;
   const settings = requireData(settingsResult);
   open = Boolean(edition.start_date && settings.registration_open
@@ -85,7 +101,7 @@ async function load() {
     `<label class="inline-check"><input type="checkbox" name="attendance-day" value="${value}" /> ${escapeHtml(label)}</label>`).join('');
   $('#registration-edition-label').textContent = `CO-R&BD ${edition.year} / ATTENDANCE`;
   const deadlineText = settings.registration_deadline
-    ? `${new Intl.DateTimeFormat('ko-KR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(settings.registration_deadline))} KST`
+    ? `${kstLongDateTimeFormatter.format(new Date(settings.registration_deadline))} KST`
     : '확정 전';
   $('#registration-intro').innerHTML = [
     '논문 투고와 별도로 신청합니다.',
@@ -94,8 +110,6 @@ async function load() {
     '위원장 확인 후 참가가 확정됩니다.',
   ].map((line) => escapeHtml(line)).join('<br />');
   document.title = `참가 신청 | ${edition.title}`;
-  const auth = await client.auth.getUser();
-  if (generation !== authGeneration) return;
   if (auth.error && !/Auth session missing/i.test(auth.error.message)) throw auth.error;
   user = auth.data?.user;
   $('#registration-login').hidden = Boolean(user);
@@ -106,18 +120,20 @@ async function load() {
     return;
   }
   const currentUser = user;
-  const profileResult = await client.from('profiles')
-    .select('full_name,affiliation,email').eq('user_id', currentUser.id).single();
+  // 회원 프로필과 기존 참가 신청 내역을 병렬(Promise.all)로 동시에 조회
+  const [profileResult, registrationResult] = await Promise.all([
+    client.from('profiles')
+      .select('full_name,affiliation,email').eq('user_id', currentUser.id).single(),
+    client.from('attendee_registrations')
+      .select('id,category,attendance_days,status,checked_in_at,created_at')
+      .eq('edition_year', edition.year).eq('user_id', currentUser.id).maybeSingle(),
+  ]);
   if (generation !== authGeneration || user?.id !== currentUser.id) return;
   const profile = requireData(profileResult);
   const complete = Boolean(profile.full_name?.trim() && profile.affiliation?.trim());
   $('#registration-account').innerHTML = complete
     ? `<strong>${escapeHtml(profile.full_name)}</strong> · ${escapeHtml(profile.affiliation)}<br><small>${escapeHtml(profile.email || currentUser.email)}</small>`
     : '이름과 소속기관을 입력해야 참가 신청을 할 수 있습니다. <a href="./submission.html">내 정보 입력하기 →</a>';
-  const registrationResult = await client.from('attendee_registrations')
-    .select('id,category,attendance_days,status,checked_in_at,created_at')
-    .eq('edition_year', edition.year).eq('user_id', currentUser.id).maybeSingle();
-  if (generation !== authGeneration || user?.id !== currentUser.id) return;
   registration = requireData(registrationResult);
   const current = $('#registration-current');
   current.hidden = !registration;

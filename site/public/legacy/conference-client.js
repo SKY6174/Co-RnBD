@@ -1,5 +1,34 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/+esm';
 
+const CONFIG_CACHE_KEY = 'co_rnbd_runtime_config_v1';
+const CONFIG_TTL_MS = 5 * 60 * 1000;
+
+let cachedConfigPromise = null;
+let cachedClient = null;
+let cachedClientKey = '';
+
+// Intl.DateTimeFormat 인스턴스를 싱글톤으로 재사용하여 반복 렌더링 속도 개선
+const utcFullDateFormatter = new Intl.DateTimeFormat('ko-KR', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  timeZone: 'UTC',
+});
+
+const kstShortDateFormatter = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  month: 'long',
+  day: 'numeric',
+  weekday: 'short',
+});
+
+const kstTimeFormatter = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
 export const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 })[char]);
@@ -9,16 +38,61 @@ export function requireData(result) {
   return result.data;
 }
 
+function readCachedConfig() {
+  try {
+    const raw = window.sessionStorage.getItem(CONFIG_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.url || !parsed?.publishableKey) return null;
+    if (Date.now() - (parsed.cachedAt || 0) > CONFIG_TTL_MS) return null;
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedConfig(data) {
+  try {
+    if (data?.url && data?.publishableKey) {
+      window.sessionStorage.setItem(
+        CONFIG_CACHE_KEY,
+        JSON.stringify({ cachedAt: Date.now(), data }),
+      );
+    }
+  } catch {
+    // sessionStorage 비활성 환경에서는 무시
+  }
+}
+
 export async function conferenceConfig() {
-  const response = await fetch('/api/config');
-  if (!response.ok) throw new Error('사이트 데이터 연결을 확인할 수 없습니다.');
-  return response.json();
+  const fromStorage = readCachedConfig();
+  if (fromStorage) return fromStorage;
+  if (!cachedConfigPromise) {
+    cachedConfigPromise = fetch('/api/config')
+      .then(async (response) => {
+        if (!response.ok) throw new Error('사이트 데이터 연결을 확인할 수 없습니다.');
+        const data = await response.json();
+        writeCachedConfig(data);
+        return data;
+      })
+      .catch((error) => {
+        cachedConfigPromise = null;
+        throw error;
+      });
+  }
+  return cachedConfigPromise;
 }
 
 export async function conferenceClient(config) {
-  const { url, publishableKey } = config ?? await conferenceConfig();
+  const resolved = config ?? await conferenceConfig();
+  const { url, publishableKey } = resolved;
   if (!url || !publishableKey) throw new Error('사이트 데이터 설정이 완료되지 않았습니다.');
-  return createClient(url, publishableKey);
+  const key = `${url}::${publishableKey}`;
+  if (!cachedClient || cachedClientKey !== key) {
+    cachedClient = createClient(url, publishableKey);
+    cachedClientKey = key;
+  }
+  return cachedClient;
 }
 
 export async function currentEdition(client) {
@@ -29,17 +103,15 @@ export async function currentEdition(client) {
 
 export function editionDateRange(edition) {
   if (!edition.start_date || !edition.end_date) return '일정 확정 전';
-  const date = (value) => new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC',
-  }).format(new Date(`${value}T00:00:00Z`));
+  const date = (value) => utcFullDateFormatter.format(new Date(`${value}T00:00:00Z`));
   return edition.start_date === edition.end_date
     ? date(edition.start_date) : `${date(edition.start_date)}–${date(edition.end_date)}`;
 }
 
 export function kstDate(value) {
-  return new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'short' }).format(new Date(value));
+  return kstShortDateFormatter.format(new Date(value));
 }
 
 export function kstTime(value) {
-  return new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(value));
+  return kstTimeFormatter.format(new Date(value));
 }

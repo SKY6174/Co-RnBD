@@ -21,12 +21,17 @@ async function loadAssignments() {
     return;
   }
   const ids = assignments.map((row) => row.session_id);
-  const sessions = requireData(await client.from('program_sessions')
-    .select('id,title,session_type,starts_at,ends_at,room,edition_year')
-    .in('id', ids).eq('edition_year', edition.year).order('starts_at'));
-  const presentations = requireData(await client.from('session_presentations')
-    .select('id,session_id,paper_title,presenter_name,attendance,award_recommended,chair_note')
-    .in('session_id', ids).order('created_at'));
+  // 담당 세션 정보와 세션 내 발표 목록을 병렬(Promise.all)로 동시에 조회
+  const [sessionsResult, presentationsResult] = await Promise.all([
+    client.from('program_sessions')
+      .select('id,title,session_type,starts_at,ends_at,room,edition_year')
+      .in('id', ids).eq('edition_year', edition.year).order('starts_at'),
+    client.from('session_presentations')
+      .select('id,session_id,paper_title,presenter_name,attendance,award_recommended,chair_note')
+      .in('session_id', ids).order('created_at'),
+  ]);
+  const sessions = requireData(sessionsResult);
+  const presentations = requireData(presentationsResult);
   $('#session-chair-list').innerHTML = sessions.map((session) => {
     const assignment = assignments.find((row) => row.session_id === session.id);
     const rows = presentations.filter((row) => row.session_id === session.id);
@@ -100,11 +105,14 @@ $('#session-chair-list').addEventListener('submit', async (event) => {
 async function start() {
   try {
     client = await conferenceClient();
-    const auth = await client.auth.getUser();
+    const [auth, currentEditionData] = await Promise.all([
+      client.auth.getUser(),
+      currentEdition(client),
+    ]);
     if (auth.error && !/Auth session missing/i.test(auth.error.message)) throw auth.error;
     user = auth.data?.user;
     if (!user) throw new Error('먼저 투고·심사 화면에서 로그인해 주세요.');
-    edition = await currentEdition(client);
+    edition = currentEditionData;
     $('#session-chair-edition').textContent = `CO-R&BD ${edition.year} / SESSION CHAIR`;
     document.title = `세션 좌장 업무 | ${edition.title}`;
     await loadAssignments();

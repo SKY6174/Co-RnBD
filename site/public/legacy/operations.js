@@ -11,6 +11,14 @@ let sessionChairs = [];
 let sessionPresentations = [];
 let edition;
 
+const kstInputPartsFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+});
+const kstLongDateTimeFormatter = new Intl.DateTimeFormat('ko-KR', {
+  dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Seoul',
+});
+
 function notice(text, error = false) {
   $('#operations-message').textContent = text;
   $('#operations-message').classList.toggle('error', error);
@@ -18,10 +26,7 @@ function notice(text, error = false) {
 
 function toInput(value) {
   if (!value) return '';
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
-  }).formatToParts(new Date(value));
+  const parts = kstInputPartsFormatter.formatToParts(new Date(value));
   const part = (name) => parts.find((item) => item.type === name).value;
   return `${part('year')}-${part('month')}-${part('day')}T${part('hour')}:${part('minute')}`;
 }
@@ -31,16 +36,21 @@ function toUtc(value) {
 }
 
 async function loadRegistrations() {
-  const settings = requireData(await client.from('conference_settings')
-    .select('registration_open,registration_deadline').eq('edition_year', edition.year).single());
+  // 참가 설정과 참가 신청 목록을 병렬(Promise.all)로 동시에 조회
+  const [settingsResult, rowsResult] = await Promise.all([
+    client.from('conference_settings')
+      .select('registration_open,registration_deadline').eq('edition_year', edition.year).single(),
+    client.from('attendee_registrations')
+      .select('id,user_id,category,attendance_days,status,checked_in_at,created_at')
+      .eq('edition_year', edition.year).order('created_at', { ascending: false }),
+  ]);
+  const settings = requireData(settingsResult);
+  const rows = requireData(rowsResult);
   $('#registration-open').checked = settings.registration_open;
   $('#registration-deadline').value = toInput(settings.registration_deadline);
   $('#registration-deadline-note').textContent = settings.registration_deadline
-    ? `현재 마감: ${new Intl.DateTimeFormat('ko-KR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(settings.registration_deadline))} KST.`
+    ? `현재 마감: ${kstLongDateTimeFormatter.format(new Date(settings.registration_deadline))} KST.`
     : '신청을 열기 전에 마감 시각을 입력해 주세요.';
-  const rows = requireData(await client.from('attendee_registrations')
-    .select('id,user_id,category,attendance_days,status,checked_in_at,created_at')
-    .eq('edition_year', edition.year).order('created_at', { ascending: false }));
   const users = rows.map((row) => row.user_id);
   const profiles = users.length
     ? requireData(await client.from('profiles').select('user_id,full_name,affiliation,email').in('user_id', users))
@@ -64,12 +74,17 @@ async function loadRegistrations() {
 }
 
 async function loadProgram() {
-  speakers = requireData(await client.from('program_speakers')
-    .select('id,full_name,affiliation,bio,is_published')
-    .eq('edition_year', edition.year).order('full_name'));
-  sessions = requireData(await client.from('program_sessions')
-    .select('id,title,session_type,starts_at,ends_at,room,description,moderator,is_published')
-    .eq('edition_year', edition.year).order('starts_at', { nullsFirst: false }));
+  // 연사 목록과 세션 목록을 병렬(Promise.all)로 동시에 조회
+  const [speakersResult, sessionsResult] = await Promise.all([
+    client.from('program_speakers')
+      .select('id,full_name,affiliation,bio,is_published')
+      .eq('edition_year', edition.year).order('full_name'),
+    client.from('program_sessions')
+      .select('id,title,session_type,starts_at,ends_at,room,description,moderator,is_published')
+      .eq('edition_year', edition.year).order('starts_at', { nullsFirst: false }),
+  ]);
+  speakers = requireData(speakersResult);
+  sessions = requireData(sessionsResult);
   links = sessions.length
     ? requireData(await client.from('program_session_speakers')
       .select('session_id,speaker_id,sort_order').in('session_id', sessions.map((row) => row.id)))
@@ -99,13 +114,19 @@ async function loadSessionChairs() {
     return;
   }
   const ids = eligible.map((row) => row.id);
-  sessionChairs = requireData(await client.from('session_chairs')
-    .select('session_id,user_id,report_note,report_submitted_at').in('session_id', ids));
-  sessionPresentations = requireData(await client.from('session_presentations')
-    .select('id,session_id,paper_id,paper_title,presenter_name,attendance,award_recommended,chair_note')
-    .in('session_id', ids).order('created_at'));
-  const accepted = requireData(await client.from('papers')
-    .select('id,title,final_presentation').eq('edition_year', edition.year).eq('status', 'accepted').order('title'));
+  // 좌장 배정, 발표 배정, 채택 원고 목록 3개 쿼리를 병렬(Promise.all)로 동시에 조회
+  const [chairsResult, presentationsResult, acceptedResult] = await Promise.all([
+    client.from('session_chairs')
+      .select('session_id,user_id,report_note,report_submitted_at').in('session_id', ids),
+    client.from('session_presentations')
+      .select('id,session_id,paper_id,paper_title,presenter_name,attendance,award_recommended,chair_note')
+      .in('session_id', ids).order('created_at'),
+    client.from('papers')
+      .select('id,title,final_presentation').eq('edition_year', edition.year).eq('status', 'accepted').order('title'),
+  ]);
+  sessionChairs = requireData(chairsResult);
+  sessionPresentations = requireData(presentationsResult);
+  const accepted = requireData(acceptedResult);
   const userIds = [...new Set(sessionChairs.map((row) => row.user_id))];
   const profiles = userIds.length ? requireData(await client.from('profiles')
     .select('user_id,full_name,email').in('user_id', userIds)) : [];
@@ -369,8 +390,8 @@ $('#session-chair-list').addEventListener('submit', async (event) => {
   button.disabled = true;
   try {
     if (assign) {
-      const email = assign.elements.email.value.trim();
-      const profile = requireData(await client.from('profiles').select('user_id').eq('email', email).maybeSingle());
+      const email = assign.elements.email.value.trim().toLowerCase();
+      const profile = requireData(await client.from('profiles').select('user_id').ilike('email', email).maybeSingle());
       if (!profile) throw new Error('가입된 계정을 찾을 수 없습니다. 좌장이 먼저 로그인했는지 확인해 주세요.');
       const existing = sessionChairs.find((row) => row.session_id === assign.dataset.session);
       if (existing) requireData(await client.from('session_chairs').update({ user_id: profile.user_id })
@@ -418,10 +439,15 @@ async function start() {
     if (auth.error && !/Auth session missing/i.test(auth.error.message)) throw auth.error;
     const user = auth.data?.user;
     if (!user) throw new Error('위원장 계정으로 로그인해 주세요. 상단의 투고·심사 관리에서 로그인할 수 있습니다.');
-    const role = requireData(await client.from('staff_roles').select('role,is_super_admin').eq('user_id', user.id).maybeSingle());
+    // 권한 확인과 현재 학회 회차 조회를 병렬(Promise.all)로 동시에 수행
+    const [roleResult, currentEditionData] = await Promise.all([
+      client.from('staff_roles').select('role,is_super_admin').eq('user_id', user.id).maybeSingle(),
+      currentEdition(client),
+    ]);
+    const role = requireData(roleResult);
     if (role?.role !== 'chair') throw new Error('위원장 계정만 이 화면을 이용할 수 있습니다.');
     $('#operations-monitor-link').hidden = !role.is_super_admin;
-    edition = await currentEdition(client);
+    edition = currentEditionData;
     $('#operations-edition-label').textContent = `CO-R&BD ${edition.year} / CHAIR DESK`;
     $('#operations-intro').textContent = `${edition.title} 운영 화면입니다. 참가 신청, 프로그램 공개와 연도별 학회 기록을 관리합니다.`;
     document.title = `참가·프로그램 관리 | ${edition.title}`;
