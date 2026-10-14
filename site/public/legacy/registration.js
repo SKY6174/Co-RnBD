@@ -74,8 +74,11 @@ $('#registration-login').addEventListener('click', async (event) => {
 
 async function load() {
   const generation = authGeneration;
-  const settingsResult = await client.from('conference_settings')
-    .select('registration_open,registration_deadline').eq('edition_year', edition.year).single();
+  const [settingsResult, auth] = await Promise.all([
+    client.from('conference_settings')
+      .select('registration_open,registration_deadline').eq('edition_year', edition.year).single(),
+    client.auth.getUser(),
+  ]);
   if (generation !== authGeneration) return;
   const settings = requireData(settingsResult);
   open = Boolean(edition.start_date && settings.registration_open
@@ -94,8 +97,6 @@ async function load() {
     '위원장 확인 후 참가가 확정됩니다.',
   ].map((line) => escapeHtml(line)).join('<br />');
   document.title = `참가 신청 | ${edition.title}`;
-  const auth = await client.auth.getUser();
-  if (generation !== authGeneration) return;
   if (auth.error && !/Auth session missing/i.test(auth.error.message)) throw auth.error;
   user = auth.data?.user;
   $('#registration-login').hidden = Boolean(user);
@@ -106,18 +107,19 @@ async function load() {
     return;
   }
   const currentUser = user;
-  const profileResult = await client.from('profiles')
-    .select('full_name,affiliation,email').eq('user_id', currentUser.id).single();
+  const [profileResult, registrationResult] = await Promise.all([
+    client.from('profiles')
+      .select('full_name,affiliation,email').eq('user_id', currentUser.id).single(),
+    client.from('attendee_registrations')
+      .select('id,category,attendance_days,status,checked_in_at,created_at')
+      .eq('edition_year', edition.year).eq('user_id', currentUser.id).maybeSingle(),
+  ]);
   if (generation !== authGeneration || user?.id !== currentUser.id) return;
   const profile = requireData(profileResult);
   const complete = Boolean(profile.full_name?.trim() && profile.affiliation?.trim());
   $('#registration-account').innerHTML = complete
     ? `<strong>${escapeHtml(profile.full_name)}</strong> · ${escapeHtml(profile.affiliation)}<br><small>${escapeHtml(profile.email || currentUser.email)}</small>`
     : '이름과 소속기관을 입력해야 참가 신청을 할 수 있습니다. <a href="./submission.html">내 정보 입력하기 →</a>';
-  const registrationResult = await client.from('attendee_registrations')
-    .select('id,category,attendance_days,status,checked_in_at,created_at')
-    .eq('edition_year', edition.year).eq('user_id', currentUser.id).maybeSingle();
-  if (generation !== authGeneration || user?.id !== currentUser.id) return;
   registration = requireData(registrationResult);
   const current = $('#registration-current');
   current.hidden = !registration;
@@ -191,6 +193,7 @@ async function start() {
     [, edition] = await Promise.all([loadAuthAvailability(config), currentEdition(client)]);
     await load();
     client.auth.onAuthStateChange((event) => {
+      if (!['SIGNED_IN', 'SIGNED_OUT', 'USER_UPDATED'].includes(event)) return;
       if (event === 'SIGNED_OUT') authGeneration++;
       setTimeout(() => load().catch((error) => notice(error.message, true)), 0);
     });
