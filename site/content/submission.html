@@ -53,7 +53,9 @@
 
         <div id="workspace" hidden>
           <div class="workspace-top"><div><span class="portal-kicker">MY WORKSPACE</span><h2 id="welcome">내 작업 공간</h2><p id="account-email"></p></div><button id="sign-out" type="button" class="portal-button secondary">로그아웃</button></div>
-          <div class="portal-tabs" role="tablist" aria-label="작업 영역"><button type="button" class="active" data-tab="author" role="tab" aria-selected="true">내 투고</button><button type="button" data-tab="reviewer" role="tab" aria-selected="false" hidden>심사 배정</button><button type="button" data-tab="chair" role="tab" aria-selected="false" hidden>위원장 관리</button><button type="button" data-tab="profile" role="tab" aria-selected="false">내 정보</button></div>
+          <div class="portal-tabs" role="tablist" aria-label="작업 영역"><button type="button" class="active" data-tab="author" role="tab" aria-selected="true">내 투고</button><button type="button" data-tab="reviewer" role="tab" aria-selected="false" hidden>심사 배정</button><button type="button" data-tab="profile" role="tab" aria-selected="false">내 정보</button></div>
+
+          <div id="submission-chair-links" class="chair-quick-links" hidden><a class="chair-quick-link" href="./chair.html"><span>CHAIR DESK</span><strong>원고 심사 관리 →</strong></a></div>
 
           <section id="tab-author" class="tab-panel" role="tabpanel" aria-label="내 투고">
             <div class="section-head"><div><span class="portal-kicker">AUTHOR DESK</span><h2>내 원고</h2></div><button id="new-paper" type="button" class="portal-button">새 원고 작성</button></div>
@@ -95,16 +97,6 @@
               <div class="form-actions"><button type="submit" class="portal-button secondary" data-review-action="draft" formnovalidate>임시저장</button><button type="submit" class="portal-button" data-review-action="submit">심사 제출</button></div>
               <details id="review-decline-panel" class="conflict-action"><summary>이해관계가 있어 심사를 맡을 수 없나요?</summary><label>배정 거절 사유 <textarea id="review-decline-reason" rows="3" maxlength="1000" placeholder="저자·소속·과제 등 이해관계를 간략히 적어 주세요."></textarea></label><button type="button" id="decline-review" class="portal-button secondary">배정 거절</button></details>
             </form>
-          </section>
-
-          <section id="tab-chair" class="tab-panel" role="tabpanel" aria-label="위원장 관리" hidden>
-            <div class="section-head"><div><span class="portal-kicker">CHAIR DESK</span><h2>접수와 판정</h2></div><button id="refresh-chair" type="button" class="portal-button secondary">목록 새로고침</button></div>
-            <div class="chair-quick-links"><a class="chair-quick-link" href="./operations.html"><span>OPERATIONS</span><strong>참가 신청·연사·세션 관리 →</strong></a><a id="submission-monitor-link" class="chair-quick-link" href="./monitor.html" hidden><span>SUPER ADMIN</span><strong>참가·투고 현황 모니터링 →</strong></a></div>
-            <section class="portal-card" aria-labelledby="stage-management-title"><span class="portal-kicker">STAGE CONTROL</span><h3 id="stage-management-title">접수·심사·최종본 단계 설정</h3><p>현재 단계는 이 페이지 하단에서 확인할 수 있습니다. 단계 개방, 마감 시각과 공개 안내문은 학회 운영 관리에서 변경해 주세요.</p><a class="portal-button secondary" href="./operations.html#paper-management">투고 운영 설정 열기 →</a></section>
-            <div id="chair-summary" class="chair-summary" aria-live="polite"></div>
-            <div id="chair-quota-board" class="quota-board" aria-label="세션 목표 및 분야별 모집 현황"></div>
-            <div id="chair-list" class="paper-grid"></div>
-            <form id="chair-form" class="portal-card portal-form" hidden><div class="form-heading"><h3 id="chair-title">원고 관리</h3><button type="button" id="cancel-chair" class="text-action">닫기</button></div><input type="hidden" id="chair-paper-id" /><div id="chair-paper-summary"></div><label>심사위원 이메일 <input id="reviewer-email" type="email" placeholder="가입한 심사위원의 이메일" /></label><button type="button" id="assign-reviewer" class="portal-button secondary">심사위원 배정</button><div id="assigned-reviewers" class="muted-list"></div><div class="form-grid"><label>판정 <select id="chair-status"><option value="">판정 보류</option><option value="under_review">심사 중</option><option value="revision">수정 요청</option><option value="accepted">채택</option><option value="rejected">반려</option></select></label><label>발표 형태 <select id="chair-presentation"><option value="">추후 결정</option><option value="oral">구두 (Oral)</option><option value="poster">포스터 (Poster)</option><option value="demo">데모</option></select></label><label class="full">배정 세션 (Oral 3개 세션 · Poster 1개 세션) <select id="chair-session"><option value="">세션 미배정 (추후 편성)</option><optgroup label="구두 발표 (최소 20편 목표)"><option value="oral_1">Oral Session 1</option><option value="oral_2">Oral Session 2</option><option value="oral_3">Oral Session 3</option></optgroup><optgroup label="포스터 발표 (최소 30편 목표)"><option value="poster_1">Poster Session 1</option></optgroup></select></label><label class="full">판정 메모 <textarea id="chair-note" rows="3" placeholder="저자에게 안내할 수정 또는 판정 사유"></textarea></label></div><div class="form-actions"><button type="submit" class="portal-button">판정 저장</button></div></form>
           </section>
 
           <section id="tab-profile" class="tab-panel" role="tabpanel" aria-label="내 정보" hidden>
