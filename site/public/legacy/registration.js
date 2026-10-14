@@ -208,7 +208,10 @@ async function start() {
     client = await conferenceClient(config);
     [, edition] = await Promise.all([loadAuthAvailability(config), currentEdition(client)]);
     await load();
-    client.auth.onAuthStateChange((event) => {
+    client.auth.onAuthStateChange((event, session) => {
+      // Startup already loaded the account. Token refresh/focus must not reset an edited form.
+      if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') return;
+      if (event === 'SIGNED_IN' && session?.user?.id === user?.id) return;
       if (event === 'SIGNED_OUT') authGeneration++;
       setTimeout(() => load().catch((error) => notice(error.message, true)), 0);
     });

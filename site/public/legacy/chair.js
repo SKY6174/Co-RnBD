@@ -10,10 +10,11 @@ const FILTERS = [['all','전체 접수'],['unassigned','미배정'],['reviewing'
 const dateFormatter = new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',dateStyle:'short',timeStyle:'short'});
 const date = (value) => value ? dateFormatter.format(new Date(value))+' KST' : '—';
 const sameTime = (a,b) => Boolean(a && b) && new Date(a).getTime()===new Date(b).getTime();
-let client, user, edition, selectedId, pendingDecision;
+let client, user, edition, selectedId, selectedPaper, pendingDecision;
 let papers=[], members=[], membersById=new Map(), busy=false;
 let detailRequest=0;
-const selected = () => papers.find(p=>p.id===selectedId);
+const selected = () => selectedPaper;
+const OVERVIEW_COLUMNS = 'id,title,track,status,submitted_at,contact_name,final_presentation,assigned_session,paper_authors(full_name,affiliation,sort_order),reviews(reviewer_id,review_state,revoked_at,manuscript_submitted_at),paper_files(id,version,file_stage),paper_final_checks(file_id)';
 const currentReviews = (p) => (p.reviews||[]).filter(r=>sameTime(r.manuscript_submitted_at,p.submitted_at));
 const activeReviews = (p) => currentReviews(p).filter(r=>!r.revoked_at && r.review_state!=='declined');
 const complete = (p) => activeReviews(p).length>0 && activeReviews(p).every(r=>r.review_state==='submitted');
@@ -34,7 +35,7 @@ async function allRows(factory) {
 }
 async function load() {
   const [list,profiles]=await Promise.all([
-    allRows(()=>client.from('papers').select('*,paper_authors(*),reviews(*),paper_files(*),paper_final_checks(*)').eq('edition_year',edition.year).neq('status','draft').not('submitted_at','is',null).order('id')),
+    allRows(()=>client.from('papers').select(OVERVIEW_COLUMNS).eq('edition_year',edition.year).neq('status','draft').not('submitted_at','is',null).order('id')),
     allRows(()=>client.from('profiles').select('user_id,full_name,email,affiliation,expertise_tracks').order('user_id')),
   ]);
   papers=list.sort((a,b)=>new Date(b.submitted_at)-new Date(a.submitted_at));members=profiles;membersById=new Map(profiles.map(p=>[p.user_id,p]));renderList();
@@ -115,19 +116,35 @@ function eventDetail(event) {
   return `${STATUS[b.status]||b.status||''} → ${STATUS[a.status]||a.status||''}`;
 }
 async function openPaper(id,focus=true) {
-  selectedId=id;const p=selected();if(!p)throw Error('원고를 찾을 수 없습니다. 목록을 새로고침해 주세요.');
+  selectedId=id;selectedPaper=null;pendingDecision=null;
   const request=++detailRequest;
+  $('#chair-detail').hidden=true;
+  notice('원고와 최신 심사 의견을 불러오고 있습니다.');
+  let p, events;
+  try {
+    const [paperResult, history]=await Promise.all([
+      client.from('papers').select('*,paper_authors(*),reviews(*),paper_files(*),paper_final_checks(*)').eq('id',id).eq('edition_year',edition.year).neq('status','draft').not('submitted_at','is',null).single(),
+      allRows(()=>client.from('paper_events').select('*').eq('paper_id',id).order('created_at',{ascending:false}).order('id')),
+    ]);
+    p=data(paperResult);events=history;
+  } catch(error) {
+    if(request!==detailRequest)return;
+    selectedId=null;$('#chair-overview').hidden=false;
+    throw error;
+  }
+  if(request!==detailRequest)return;
+  selectedPaper=p;
+  papers=papers.map(paper=>paper.id===id?p:paper);renderList();
   $('#chair-overview').hidden=true;$('#chair-detail').hidden=false;
   $('#chair-paper-number').textContent=`${p.id.slice(0,8).toUpperCase()} / ${TRACKS[p.track]||p.track}`;
   $('#chair-paper-title').textContent=p.title;$('#chair-paper-badges').innerHTML=badge(p.status)+`<span class="chair-badge">제출 ${esc(date(p.submitted_at))}</span>`;
   $('#chair-paper-abstract').textContent=p.abstract;
   $('#chair-paper-authors').innerHTML='<ol class="chair-author-list">'+[...p.paper_authors].sort((a,b)=>a.sort_order-b.sort_order).map(a=>`<li><strong>${esc(a.full_name)}</strong> · ${esc(a.affiliation)}<br><span>${esc(a.email)}${a.note?' · '+esc(a.note):''}</span></li>`).join('')+'</ol>';
   $('#chair-contact').textContent=`연락 담당자: ${p.contact_name} · ${p.contact_email}`;
-  renderReviews(p);renderDecision(p);renderFiles(p);$('#chair-events').innerHTML='<li>처리 이력을 불러오고 있습니다.</li>';
+  renderReviews(p);renderDecision(p);renderFiles(p);
   if(focus)$('#chair-paper-title').focus();
-  const events=await allRows(()=>client.from('paper_events').select('*').eq('paper_id',id).order('created_at',{ascending:false}).order('id'));
-  if(request!==detailRequest)return;
   $('#chair-events').innerHTML=events.map(e=>`<li><strong>${esc(ACTION[e.action]||e.action)}</strong><time datetime="${esc(e.created_at)}">${esc(date(e.created_at))} · ${esc(e.actor_label)}</time><p>${esc(eventDetail(e))}</p></li>`).join('')||'<li>아직 기록된 처리 이력이 없습니다.</li>';
+  notice('최신 원고와 심사 의견을 불러왔습니다.');
 }
 async function run(action) {
   if(busy)return;busy=true;document.querySelectorAll('[data-chair-write],#chair-refresh,#chair-detail-refresh').forEach(b=>b.disabled=true);
@@ -142,7 +159,7 @@ $('#chair-track-filter').addEventListener('change',renderList);
 $('#chair-reviewer-search').addEventListener('input',reviewerOptions);
 $('#chair-reviewer').addEventListener('change',reviewerInfo);
 $('#chair-replace').addEventListener('change',()=>{const replacing=Boolean($('#chair-replace').value);$('#chair-replace-reason-label').hidden=!replacing;$('#chair-replace-reason').required=replacing;});
-$('#chair-back').addEventListener('click',()=>{selectedId=null;detailRequest++;$('#chair-detail').hidden=true;$('#chair-overview').hidden=false;$('#chair-search').focus();});
+$('#chair-back').addEventListener('click',()=>{selectedId=null;selectedPaper=null;detailRequest++;$('#chair-detail').hidden=true;$('#chair-overview').hidden=false;$('#chair-search').focus();});
 document.querySelectorAll('#chair-refresh,#chair-detail-refresh').forEach(button=>button.addEventListener('click',()=>run(async()=>{await reloadDetail();notice('최신 원고와 심사 의견을 불러왔습니다.');})));
 $('#chair-stats').addEventListener('click',event=>{const el=event.target.closest('[data-filter]');if(el){$('#chair-status-filter').value=el.dataset.filter;renderList();}});
 $('#chair-rows').addEventListener('click',event=>{const el=event.target.closest('[data-open]');if(el)run(()=>openPaper(el.dataset.open));});

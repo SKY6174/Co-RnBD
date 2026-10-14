@@ -43,8 +43,9 @@ function readCachedConfig() {
     const raw = window.sessionStorage.getItem(CONFIG_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed?.url || !parsed?.publishableKey) return null;
-    if (Date.now() - (parsed.cachedAt || 0) > CONFIG_TTL_MS) return null;
+    if (!parsed?.data?.url || !parsed?.data?.publishableKey) return null;
+    const age = Date.now() - parsed.cachedAt;
+    if (!Number.isFinite(parsed.cachedAt) || age < 0 || age >= CONFIG_TTL_MS) return null;
     return parsed.data;
   } catch {
     return null;
@@ -75,9 +76,8 @@ export async function conferenceConfig() {
         writeCachedConfig(data);
         return data;
       })
-      .catch((error) => {
+      .finally(() => {
         cachedConfigPromise = null;
-        throw error;
       });
   }
   return cachedConfigPromise;
