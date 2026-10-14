@@ -115,3 +115,16 @@ export function kstDate(value) {
 export function kstTime(value) {
   return kstTimeFormatter.format(new Date(value));
 }
+
+
+export function renderConferenceContext(edition) {
+  const panel = document.querySelector('[data-conference-context]');
+  if (!panel) return;
+  panel.innerHTML = `<div class="conference-context-heading"><span>${edition.status === 'archived' ? '지난 학회' : '참여 학회'}</span><strong>${escapeHtml(edition.title)}</strong></div>
+    <dl><div><dt>개최 기간</dt><dd>${escapeHtml(editionDateRange(edition))}</dd></div>
+    <div><dt>개최 장소</dt><dd>${escapeHtml(edition.venue || '장소 확정 전')}</dd></div></dl>`;
+  panel.hidden = false;
+  document.querySelectorAll('[data-conference-footer]').forEach((element) => {
+    element.textContent = edition.title;
+  });
+}

@@ -1,4 +1,4 @@
-import { conferenceClient, conferenceConfig } from './conference-client.js';
+import { conferenceClient, conferenceConfig, renderConferenceContext } from './conference-client.js';
 
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -801,9 +801,10 @@ async function start() {
     });
     const [, editionResult] = await Promise.all([
       loadAuthAvailability(config),
-      client.from('conference_editions').select('year,title,status').eq('status', 'current').single(),
+      client.from('conference_editions').select('year,title,status,start_date,end_date,venue').eq('status', 'current').single(),
     ]);
     edition = check(editionResult);
+    renderConferenceContext(edition);
     document.title = `논문 투고·심사 | ${edition.title}`;
     $('#submission-edition-label').textContent = `CO-R&BD ${edition.year} / PAPER PORTAL`;
     $('#submission-footer-edition').textContent = edition.title;

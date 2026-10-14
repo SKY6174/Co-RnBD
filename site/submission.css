@@ -175,7 +175,7 @@
 }
 @media (max-width: 440px) {
   .portal-header .header-inner { flex-wrap: wrap; gap: 4px; padding-block: 8px; }
-  .portal-header .portal-nav { width: 100%; justify-content: space-between; }
+  .portal-header .portal-nav { width: 100%; flex-wrap: wrap; justify-content: space-between; }
   .portal-nav a:first-child { display: none; }
   .portal-nav { gap: 10px; }
   .portal-nav a { white-space: nowrap; }
@@ -277,7 +277,7 @@
 @media (max-width: 760px) {
   .portal-main { padding: 32px 0 76px; }
   .portal-intro { min-height: 250px; padding: 34px 28px; border-radius: 22px; }
-  .portal-intro h1 { max-width: 10ch; margin-bottom: 25px; }
+  .portal-intro h1 { max-width: none; margin-bottom: 25px; word-break: keep-all; }
   .portal-hero-art { right: -95px; width: 230px; height: 230px; }
   .auth-card { gap: 0; padding: 8px; }
   .auth-card > div:first-child { padding: 26px; }
@@ -294,7 +294,7 @@
 @media (max-width: 440px) {
   .portal-intro { min-height: 225px; padding: 28px 22px; }
   .portal-intro .section-index { font-size: 10px; letter-spacing: .08em; }
-  .portal-intro h1 { font-size: 40px; }
+  .portal-intro h1 { font-size: clamp(32px, 10vw, 40px); }
   .portal-hero-art { right: -125px; opacity: .23; }
   .auth-actions { padding: 20px 14px; }
   .portal-notice { align-items: start; }

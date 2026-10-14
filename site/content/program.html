@@ -1,21 +1,28 @@
 <a class="skip-link" href="#main">본문으로 바로가기</a>
   <header class="site-header operations-header"><div class="shell header-inner">
     <a class="brand" href="./index.html" aria-label="T-VET Co-R&BD 홈"><span class="brand-logo"><img src="./assets/t-vet-co-rbd-conference-logo.png" alt="T-VET Co-R&BD" width="2920" height="706" /></span></a>
-    <nav class="operations-header-nav" aria-label="주 메뉴"><a href="./index.html">행사 안내</a><a id="program-cfp-link" href="./cfp.html">모집공고</a><a href="./program.html" aria-current="page">프로그램</a><a id="program-registration-link" href="./registration.html">참가 신청</a><a id="program-submission-link" href="./submission.html">논문 투고</a><a href="./archive.html">지난 학회</a></nav>
+    <nav class="operations-header-nav" aria-label="주 메뉴"><a href="./index.html">학회 안내</a><a id="program-cfp-link" hidden href="./cfp.html">모집공고</a><a href="./program.html" aria-current="page">학술 프로그램</a><a id="program-registration-link" hidden href="./registration.html">참가 신청</a><a id="program-submission-link" hidden href="./submission.html">논문 투고</a><a href="./archive.html">지난 학회</a></nav>
   </div></header>
   <main id="main" class="operations-main"><div class="shell">
     <div class="operations-intro">
       <p id="program-edition-label" class="section-index">T-VET CO-R&amp;BD / PROGRAM</p>
       <h1>프로그램과 연사</h1>
-      <p id="program-intro">학회 정보를 불러오는 중입니다.</p>
-      <div class="operations-spec-grid" aria-label="학술 세션 구성 요약">
+      <p id="program-intro">공개가 승인된 세션과 연사를 안내합니다.</p>
+      <div id="program-plan-summary" class="operations-spec-grid" aria-label="2026 학술 세션 구성 가안" hidden>
         <div class="operations-spec-item"><span>4 MAIN TRACKS</span><strong>전문기술석사(공학·자연과학) · 산학공동 · 융합</strong></div>
-        <div class="operations-spec-item"><span>ORAL SESSIONS</span><strong>구두 3개 세션 (Oral 1~3 · 최소 20편 이상)</strong></div>
-        <div class="operations-spec-item"><span>POSTER SESSION</span><strong>포스터 1개 세션 (Poster 1 · 최소 30편 이상)</strong></div>
+        <div class="operations-spec-item"><span>ORAL SESSIONS · 편성 가안</span><strong>구두 3개 세션 (Oral 1~3 · 최소 20편 이상)</strong></div>
+        <div class="operations-spec-item"><span>POSTER SESSION · 편성 가안</span><strong>포스터 1개 세션 (Poster 1 · 최소 30편 이상)</strong></div>
       </div>
     </div>
+    <section class="conference-context" data-conference-context aria-label="학술대회 정보" hidden></section>
     <div id="program-message" class="operations-note" role="status" aria-live="polite">확정 프로그램을 불러오는 중입니다.</div>
+    <div id="program-retry-actions" class="operations-actions" hidden><button id="program-retry" class="operations-button secondary" type="button">다시 불러오기</button></div>
     <div id="program-list"></div>
-    <div id="program-current-actions" class="operations-actions"><a class="operations-button secondary" href="./registration.html">참가 신청</a><a class="operations-button secondary" href="./submission.html">논문 투고</a></div>
+    <aside id="program-outline" class="program-outline" aria-labelledby="program-outline-title" hidden>
+      <div><span class="section-index">2026 PROGRAM OUTLINE</span><h2 id="program-outline-title">학술대회 전체 일정 미리보기</h2><p>홈페이지에서 1박 2일 프로그램 구성을 확인하세요. 운영 가안이며 연사·발표자와 세부 장소는 확정 후 공개됩니다.</p></div>
+      <a class="text-link" href="./index.html#program">전체 일정(가안) 보기 <span aria-hidden="true">↗</span></a>
+    </aside>
+    <div id="program-current-actions" class="operations-actions" hidden><a class="operations-button secondary" href="./registration.html">참가 신청</a><a class="operations-button secondary" href="./submission.html">논문 투고</a></div>
     <div id="program-archive-link" class="operations-actions" hidden><a class="operations-button secondary" href="./archive.html">지난 학회 목록</a></div>
   </div></main>
+  <footer class="site-footer"><div class="shell footer-inner"><div><strong data-conference-footer>T-VET Co-R&amp;BD Conference</strong><p>College–Industry Cooperation for Research and Business Development</p></div><nav class="footer-links" aria-label="안내 및 정책 링크"><a href="./index.html">학회 안내</a><a href="./archive.html">지난 학회</a><a href="./privacy.html">개인정보처리방침</a><a href="./terms.html">이용약관</a></nav></div></footer>
