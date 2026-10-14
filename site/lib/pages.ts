@@ -34,7 +34,7 @@ const PAGE_SCRIPTS: Partial<Record<PageId, string>> = {
 const PAGE_METADATA: Record<PageId, Metadata> = {
   index: {
     title: "T-VET Co-R&BD Conference 2026 | 제1회 전문대학 산학공동 R&BD 컨퍼런스",
-    description: "T-VET Co-R&BD Conference 2026 행사 안내 시안. 전문기술석사 연구와 산학공동기술개발과제의 만남.",
+    description: "제1회 전문대학 산학공동 R&BD 컨퍼런스. 2027년 1월 21–22일 울산과학대학교 동부캠퍼스에서 개최합니다. 주요 일정, 논문·현장사례 모집, 학술 프로그램과 참가 안내를 확인하세요.",
   },
   cfp: {
     title: "논문·현장사례 모집 | T-VET Co-R&BD Conference 2026",
