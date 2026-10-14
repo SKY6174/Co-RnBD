@@ -11,6 +11,7 @@ export const PAGE_IDS = [
   "submission",
   "registration",
   "operations",
+  "chair",
   "session-chair",
   "monitor",
   "privacy",
@@ -27,6 +28,7 @@ const PAGE_SCRIPTS: Partial<Record<PageId, string>> = {
   submission: "submission.js",
   registration: "registration.js",
   operations: "operations.js",
+  chair: "chair.js",
   "session-chair": "session-chair.js",
   monitor: "monitor.js",
 };
@@ -59,6 +61,10 @@ const PAGE_METADATA: Record<PageId, Metadata> = {
   registration: {
     title: "참가 신청 | T-VET Co-R&BD Conference",
     description: "T-VET Co-R&BD Conference 일반 참가 신청",
+  },
+  chair: {
+    title: "원고 심사 관리 | T-VET Co-R&BD Conference",
+    robots: { index: false, follow: false },
   },
   operations: {
     title: "학회 운영 관리 | T-VET Co-R&BD Conference",
