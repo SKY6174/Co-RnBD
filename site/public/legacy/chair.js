@@ -6,7 +6,8 @@ const STATUS = {submitted:'제출 완료',under_review:'심사 중',revision:'�
 const REVIEW = {assigned:'심사 대기',draft:'임시저장',submitted:'심사 제출',declined:'배정 거절'};
 const RECOMMENDATION = {accept:'채택 권고',revise:'수정 권고',reject:'반려 권고'};
 const ACTION = {paper_submitted:'원고 제출',paper_status_changed:'진행 상태 변경',review_assigned:'심사위원 배정',review_revoked:'심사 배정 철회',review_submitted:'심사 의견 제출',review_declined:'심사 배정 거절',decision_published:'판정 확정·공개',file_uploaded:'PDF 업로드',final_checked:'최종본 확인 완료'};
-const FILTERS = [['all','전체 접수'],['unassigned','미배정'],['reviewing','심사 중'],['ready','판정 대기'],['revision','수정 요청'],['accepted','채택'],['rejected','반려']];
+const REQUIRED_REVIEWERS = 2;
+const FILTERS = [['all','전체 접수'],['unassigned','배정 필요'],['reviewing','심사 중'],['ready','판정 대기'],['revision','수정 요청'],['accepted','채택'],['rejected','반려']];
 const dateFormatter = new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',dateStyle:'short',timeStyle:'short'});
 const date = (value) => value ? dateFormatter.format(new Date(value))+' KST' : '—';
 const sameTime = (a,b) => Boolean(a && b) && new Date(a).getTime()===new Date(b).getTime();
@@ -17,7 +18,8 @@ const selected = () => selectedPaper;
 const OVERVIEW_COLUMNS = 'id,title,track,status,submitted_at,contact_name,final_presentation,assigned_session,paper_authors(full_name,affiliation,sort_order),reviews(reviewer_id,review_state,revoked_at,manuscript_submitted_at),paper_files(id,version,file_stage),paper_final_checks(file_id)';
 const currentReviews = (p) => (p.reviews||[]).filter(r=>sameTime(r.manuscript_submitted_at,p.submitted_at));
 const activeReviews = (p) => currentReviews(p).filter(r=>!r.revoked_at && r.review_state!=='declined');
-const complete = (p) => activeReviews(p).length>0 && activeReviews(p).every(r=>r.review_state==='submitted');
+const panelReady = (p) => Boolean(p) && activeReviews(p).length===REQUIRED_REVIEWERS;
+const complete = (p) => panelReady(p) && activeReviews(p).every(r=>r.review_state==='submitted');
 const latestFinal = (p) => (p.paper_files||[]).filter(f=>f.file_stage==='final').sort((a,b)=>b.version-a.version)[0];
 const finalCheck = (p) => Array.isArray(p.paper_final_checks) ? p.paper_final_checks[0] : p.paper_final_checks;
 const finalConfirmed = (p) => Boolean(latestFinal(p) && finalCheck(p)?.file_id===latestFinal(p).id);
@@ -26,6 +28,7 @@ const badge = (status) => `<span class="chair-badge ${esc(status)}">${esc(STATUS
 function notice(text,error=false) { const el=$('#chair-message');el.textContent=text;el.classList.toggle('error',error);el.setAttribute('role',error?'alert':'status'); }
 function friendly(error) {
   const text=error?.message||'처리하지 못했습니다. 다시 시도해 주세요.';
+  if (/Exactly two active reviewers/.test(text)) return '현재 제출본에 심사위원 2명을 배정해야 판정할 수 있습니다. 거절·철회된 배정은 제외됩니다.';
   const messages=[[/duplicate key|reviews_manuscript_reviewer_key/,'이미 이 제출본에 배정된 심사위원입니다.'],[/Reviewer is an author/,'저자·공동저자는 심사위원으로 배정할 수 없습니다.'],[/At most two/,'유효 심사위원은 최대 2명입니다. 기존 배정을 교체해 주세요.'],[/Incomplete reviews/,'미완료 심사에 대한 예외 판정 사유를 5자 이상 입력해 주세요.'],[/Reviews changed|Review snapshot required/,'심사 내용이 변경됐거나 화면이 오래되었습니다. 새로고침 후 최신 심사 의견을 확인해 주세요.'],[/Paper changed|Assignment changed/,'다른 작업으로 원고가 변경됐습니다. 새로고침 후 다시 확인해 주세요.'],[/latest final PDF/,'더 최신인 최종본이 있습니다. 새로고침 후 확인해 주세요.'],[/Chair permission|required.*permission|row-level security/,'이 작업에 필요한 위원장 권한을 확인해 주세요.'],[/Remove the paper from its session/,'프로그램에 편성된 원고입니다. 운영 관리에서 편성을 해제한 뒤 판정·발표 형태를 변경해 주세요.']];
   return messages.find(([pattern])=>pattern.test(text))?.[1]||text;
 }
@@ -43,8 +46,8 @@ async function load() {
 function matches(p,status) {
   const pending=['submitted','under_review'].includes(p.status);
   if(status==='all')return true;
-  if(status==='unassigned')return pending && !activeReviews(p).length;
-  if(status==='reviewing')return pending && activeReviews(p).length>0 && !complete(p);
+  if(status==='unassigned')return pending && activeReviews(p).length<REQUIRED_REVIEWERS;
+  if(status==='reviewing')return pending && panelReady(p) && !complete(p);
   if(status==='ready')return pending && complete(p);
   if(status==='final_pending')return p.status==='accepted' && latestFinal(p) && !finalConfirmed(p);
   return p.status===status;
@@ -62,7 +65,7 @@ function renderList() {
   $('#chair-rows').innerHTML=list.map(p=>{
     const authors=[...p.paper_authors].sort((a,b)=>a.sort_order-b.sort_order), reviews=activeReviews(p), done=reviews.filter(r=>r.review_state==='submitted').length;
     const final=p.status==='accepted'?(latestFinal(p)?finalConfirmed(p)?'최종본 확인 완료':'최종본 확인 대기':'최종본 미제출'):'';
-    return `<tr><td data-label="원고"><small>${esc(p.id.slice(0,8).toUpperCase())} · ${esc(TRACKS[p.track]||p.track)}</small><strong>${esc(p.title)}</strong></td><td data-label="대표저자 / 제출">${esc(authors[0]?.full_name||p.contact_name)}<small>${esc(authors[0]?.affiliation||'')}</small><small>${esc(date(p.submitted_at))}</small></td><td data-label="심사위원 / 진행">${reviews.length?reviews.map(r=>esc(memberName(r.reviewer_id))).join('<br>'):'미배정'}<small>${done}/${reviews.length} 심사 완료${complete(p)?' · 판정 가능':''}</small></td><td data-label="판정 / 최종본">${badge(p.status)}<small>${final}</small></td><td><button class="chair-open" type="button" data-open="${p.id}" aria-label="${esc(p.title)} 관리">관리 →</button></td></tr>`;
+    return `<tr><td data-label="원고"><small>${esc(p.id.slice(0,8).toUpperCase())} · ${esc(TRACKS[p.track]||p.track)}</small><strong>${esc(p.title)}</strong></td><td data-label="대표저자 / 제출">${esc(authors[0]?.full_name||p.contact_name)}<small>${esc(authors[0]?.affiliation||'')}</small><small>${esc(date(p.submitted_at))}</small></td><td data-label="심사위원 / 진행">${reviews.length?reviews.map(r=>esc(memberName(r.reviewer_id))).join('<br>'):'미배정'}<small>배정 ${reviews.length}/${REQUIRED_REVIEWERS}명 · 심사 제출 ${done}/${REQUIRED_REVIEWERS}명${complete(p)?' · 판정 가능':!panelReady(p)?' · 추가 배정 필요':''}</small></td><td data-label="판정 / 최종본">${badge(p.status)}<small>${final}</small></td><td><button class="chair-open" type="button" data-open="${p.id}" aria-label="${esc(p.title)} 관리">관리 →</button></td></tr>`;
   }).join('');
 }
 function reviewerOptions() {
@@ -82,14 +85,17 @@ function reviewerOptions() {
 function reviewerInfo() {const m=membersById.get($('#chair-reviewer').value);$('#chair-reviewer-info').textContent=m?`${m.email||''} · 전문 분야: ${(m.expertise_tracks||[]).map(t=>TRACKS[t]||t).join(', ')||'미입력'}`:'검색 후 가입 회원을 선택하세요.';}
 function renderReviews(p) {
   const ordered=[...p.reviews].sort((a,b)=>new Date(b.assigned_at)-new Date(a.assigned_at));
-  $('#chair-review-progress').textContent=`현재 제출본 ${activeReviews(p).filter(r=>r.review_state==='submitted').length}/${activeReviews(p).length} 완료`;
+  $('#chair-review-progress').textContent=`배정 ${activeReviews(p).length}/${REQUIRED_REVIEWERS}명 · 심사 제출 ${activeReviews(p).filter(r=>r.review_state==='submitted').length}/${REQUIRED_REVIEWERS}명`;
+  $('#chair-assignment-status').textContent=panelReady(p)?'2명 배정 완료. 변경하려면 기존 심사위원을 선택해 교체해 주세요.':`${REQUIRED_REVIEWERS-activeReviews(p).length}명을 추가 배정해 주세요. 거절·철회된 배정은 정원에서 제외됩니다.`;
   $('#chair-reviews').innerHTML=ordered.map(r=>{
     const current=sameTime(r.manuscript_submitted_at,p.submitted_at), m=membersById.get(r.reviewer_id);
     const state=r.revoked_at?'배정 철회':REVIEW[r.review_state];
     return `<article class="chair-review ${current&&!r.revoked_at?'':'history'}"><header><strong>${esc(memberName(r.reviewer_id))}</strong><span class="chair-badge">${current?'현재 제출본':'이전 제출본'} · ${esc(state)}</span></header><p>${esc(m?.affiliation||'')} · ${esc((m?.expertise_tracks||[]).map(t=>TRACKS[t]||t).join(', ')||'전문 분야 미입력')}</p>${r.review_state==='submitted'?`<strong>${esc(RECOMMENDATION[r.recommendation])}</strong><p class="chair-prose">${esc(r.comments)}</p><small>${esc(date(r.submitted_at))}</small>`:r.review_state==='declined'?`<p>거절 사유: ${esc(r.decline_reason)}</p>`:'<p>제출된 심사 의견이 없습니다.</p>'}${r.revoked_at?`<p>교체 사유: ${esc(r.revocation_reason)}</p>`:''}</article>`;
   }).join('')||'<p class="operations-meta">배정된 심사위원이 없습니다.</p>';
   $('#chair-assignment-form').hidden=!['submitted','under_review'].includes(p.status);
-  $('#chair-replace').innerHTML='<option value="">추가 배정</option>'+currentReviews(p).filter(r=>!r.revoked_at).map(r=>`<option value="${r.id}">${esc(memberName(r.reviewer_id))} 배정 교체${r.review_state==='declined'?' (거절)':''}</option>`).join('');
+  $('#chair-replace').required=panelReady(p);
+  $('#chair-replace').innerHTML=`<option value=""${panelReady(p)?' disabled':''}>${panelReady(p)?'교체할 배정을 선택하세요':'추가 배정'}</option>`+currentReviews(p).filter(r=>!r.revoked_at && (!panelReady(p)||r.review_state!=='declined')).map(r=>`<option value="${r.id}">${esc(memberName(r.reviewer_id))} 배정 교체${r.review_state==='declined'?' (거절)':''}</option>`).join('');
+  $('#chair-replace').value='';
   $('#chair-replace-reason').value='';$('#chair-replace-reason').required=false;$('#chair-replace-reason-label').hidden=true;
   $('#chair-reviewer-search').value='';reviewerOptions();
 }
@@ -97,7 +103,9 @@ function renderDecision(p) {
   $('#desk-decision').value=['accepted','rejected','revision'].includes(p.status)?p.status:'';
   $('#desk-presentation').value=p.final_presentation||'';$('#desk-session').value=p.assigned_session||'';
   $('#desk-note').value=p.decision_note||'';$('#desk-exception').value='';
-  $('#chair-exception-panel').hidden=complete(p);$('#desk-exception').required=!complete(p);
+  $('#chair-exception-panel').hidden=!panelReady(p)||complete(p);$('#desk-exception').required=panelReady(p)&&!complete(p);
+  $('#chair-decision-requirement').textContent=!panelReady(p)?'판정하려면 현재 제출본의 심사위원 2명을 먼저 구성해 주세요.':complete(p)?'2명의 심사가 모두 제출되었습니다. 의견을 검토하고 판정해 주세요.':'2명의 심사 제출을 기다리고 있습니다. 완료 전 예외 판정은 저자에게 공개할 사유를 입력해야 합니다.';
+  $('#chair-decision-submit').disabled=busy||!panelReady(p);
   $('#chair-accepted-fields').hidden=p.status!=='accepted';
   $('#chair-decision-current').textContent=p.decision_published_at?`최근 공개 ${date(p.decision_published_at)} · ${memberName(p.decided_by)}`:'아직 공개한 판정이 없습니다.';
 }
@@ -149,7 +157,7 @@ async function openPaper(id,focus=true) {
 async function run(action) {
   if(busy)return;busy=true;document.querySelectorAll('[data-chair-write],#chair-refresh,#chair-detail-refresh').forEach(b=>b.disabled=true);
   try {await action();}catch(error){if ($('#chair-publish-dialog').open) $('#chair-publish-dialog').close();notice(friendly(error),true);$('#chair-message').scrollIntoView({block:'center',behavior:'smooth'});}
-  finally {busy=false;document.querySelectorAll('[data-chair-write],#chair-refresh,#chair-detail-refresh').forEach(b=>b.disabled=false);}
+  finally {busy=false;document.querySelectorAll('[data-chair-write],#chair-refresh,#chair-detail-refresh').forEach(b=>b.disabled=false);$('#chair-decision-submit').disabled=!panelReady(selected());}
 }
 async function reloadDetail() {await load();if(selectedId)await openPaper(selectedId,false);}
 $('#chair-login').addEventListener('click',()=>{try { sessionStorage.setItem('co_rnbd_return_to','chair'); } catch { /* Fixed login query is the fallback. */ }});
@@ -170,6 +178,7 @@ $('#desk-session').addEventListener('change',()=>{const value=$('#desk-session')
 $('#desk-presentation').addEventListener('change',()=>{const value=$('#desk-presentation').value,s=$('#desk-session').value;if((s.startsWith('oral')&&value!=='oral')||(s==='poster_1'&&value!=='poster'))$('#desk-session').value='';});
 $('#chair-decision-form').addEventListener('submit',event=>{
   event.preventDefault();if(busy)return;const p=selected(),accepted=$('#desk-decision').value==='accepted';
+  if(!panelReady(p)){notice('현재 제출본에 심사위원 2명을 배정해야 판정할 수 있습니다.',true);return;}
   pendingDecision={p_paper_id:p.id,p_status:$('#desk-decision').value,p_note:$('#desk-note').value.trim(),p_presentation:accepted?$('#desk-presentation').value||null:null,p_session:accepted?$('#desk-session').value||null:null,p_exception_reason:complete(p)?'':$('#desk-exception').value.trim(),p_expected_updated_at:p.updated_at,p_expected_reviews:currentReviews(p).slice().sort((a,b)=>a.id.localeCompare(b.id))};
   $('#chair-publish-paper').textContent=p.title;$('#chair-publish-status').textContent=STATUS[pendingDecision.p_status];$('#chair-publish-note').textContent=pendingDecision.p_note;$('#chair-publish-exception').textContent=pendingDecision.p_exception_reason?'예외 사유: '+pendingDecision.p_exception_reason:'';$('#chair-publish-dialog').showModal();
 });
