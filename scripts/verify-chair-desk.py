@@ -98,7 +98,7 @@ with sync_playwright() as p:
         code,_=m.request('POST','/rest/v1/rpc/chair_assign_reviewer',payload);assert code>=400
         code,_=m.call('chair','POST','/rest/v1/paper_events',{'paper_id':pid,'actor_label':'forged','action':'fake','after_data':{}});assert code>=400
         code,_=m.call('author','GET',f'/rest/v1/paper_events?paper_id=eq.{pid}');assert code==200
-        decision={'p_paper_id':pid,'p_status':'accepted','p_note':'검증 판정','p_presentation':'oral','p_session':'oral_1','p_exception_reason':'','p_expected_updated_at':s['paper']['updated_at']}
+        decision={'p_paper_id':pid,'p_status':'accepted','p_note':'검증 판정','p_presentation':'oral','p_session':'oral_1','p_exception_reason':'','p_expected_updated_at':s['paper']['updated_at'],'p_expected_reviews':[]}
         code,_=m.call('chair','POST','/rest/v1/rpc/chair_publish_decision',decision);assert code>=400
         assert state(pid)['paper']['status']=='submitted'
         record('03-authorization-and-incomplete-review',{'forged_event':'denied','nonchair_rpc':'denied','incomplete_decision':'denied'})
