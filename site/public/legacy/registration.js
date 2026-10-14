@@ -1,4 +1,4 @@
-import { conferenceClient, conferenceConfig, currentEdition, editionDateRange, escapeHtml, requireData } from './conference-client.js';
+import { conferenceClient, conferenceConfig, currentEdition, renderConferenceContext, escapeHtml, requireData } from './conference-client.js';
 
 const $ = (selector) => document.querySelector(selector);
 const STATES = { applied: '확인 대기', confirmed: '참가 확정', cancelled: '취소됨' };
@@ -103,10 +103,10 @@ async function load() {
   const deadlineText = settings.registration_deadline
     ? `${kstLongDateTimeFormatter.format(new Date(settings.registration_deadline))} KST`
     : '확정 전';
-  // 안내 문구를 과한 줄글 대신 3칸 스마트 요약 블록으로 렌더링
+  renderConferenceContext(edition);
   $('#registration-intro').innerHTML = `
     <div class="operations-spec-grid">
-      <div class="operations-spec-item"><span>EVENT DATE</span><strong>${escapeHtml(editionDateRange(edition))}</strong></div>
+      <div class="operations-spec-item"><span>REGISTRATION</span><strong>${open ? '참가신청 접수 중' : '참가신청 마감 또는 준비 중'}</strong></div>
       <div class="operations-spec-item"><span>DEADLINE</span><strong>${escapeHtml(deadlineText)}</strong></div>
       <div class="operations-spec-item"><span>APPROVAL</span><strong>논문 투고와 별도 신청 · 위원장 확인 후 확정</strong></div>
     </div>

@@ -1,13 +1,26 @@
-import { conferenceClient, currentEdition, editionDateRange, escapeHtml, kstDate, kstTime, requireData } from './conference-client.js';
+import { conferenceClient, currentEdition, renderConferenceContext, escapeHtml, kstDate, kstTime, requireData } from './conference-client.js';
 
 const status = document.querySelector('#program-message');
 const list = document.querySelector('#program-list');
+const retryActions = document.querySelector('#program-retry-actions');
+let loading = false;
 const KINDS = {
   keynote: '기조강연', oral: '구두발표', poster: '포스터', panel: '토론',
   workshop: '워크숍', ceremony: '공식행사', networking: '교류', break: '휴식', other: '기타',
 };
 
 async function start() {
+  if (loading) return;
+  loading = true;
+  retryActions.hidden = true;
+  status.classList.remove('error');
+  status.textContent = '확정 프로그램을 불러오는 중입니다.';
+  list.innerHTML = '';
+  document.querySelector('[data-conference-context]').hidden = true;
+  ['program-plan-summary', 'program-outline', 'program-current-actions', 'program-archive-link',
+    'program-cfp-link', 'program-registration-link', 'program-submission-link'].forEach((id) => {
+    document.getElementById(id).hidden = true;
+  });
   try {
     const client = await conferenceClient();
     const yearParam = new URLSearchParams(location.search).get('year');
@@ -21,7 +34,10 @@ async function start() {
     }
     document.title = `프로그램·연사 | ${edition.title}`;
     document.querySelector('#program-edition-label').textContent = `CO-R&BD ${edition.year} / PROGRAM`;
-    document.querySelector('#program-intro').textContent = `${editionDateRange(edition)}, ${edition.venue || '장소 확정 전'}. 공개가 승인된 세션과 연사를 안내합니다.`;
+    renderConferenceContext(edition);
+    const show2026Plan = edition.year === 2026 && edition.status === 'current';
+    document.querySelector('#program-plan-summary').hidden = !show2026Plan;
+    document.querySelector('#program-outline').hidden = !show2026Plan;
     document.querySelector('#program-current-actions').hidden = edition.status !== 'current';
     document.querySelector('#program-archive-link').hidden = edition.status !== 'archived';
     document.querySelector('#program-cfp-link').hidden = edition.year !== 2026 || edition.status !== 'current';
@@ -32,7 +48,7 @@ async function start() {
       .eq('edition_year', edition.year).eq('is_published', true).order('starts_at'));
     if (!sessions.length) {
       status.textContent = '공개된 세부 프로그램이 아직 없습니다.';
-      list.innerHTML = '<div class="operations-empty">공개된 세부 세션이 없습니다. 심사 완료 후 Oral Session 1~3(구두 3개 세션 · 최소 20편 이상) 및 Poster Session 1(포스터 1개 세션 · 최소 30편 이상)의 발표 시간·장소를 안내합니다.</div>';
+      list.innerHTML = `<div class="operations-empty"><h2>${edition.status === 'archived' ? '공개된 세션 기록이 없습니다' : '세부 프로그램을 준비하고 있습니다'}</h2><p>${edition.status === 'archived' ? '이 회차에 공개된 세션과 연사 기록이 없습니다. 지난 학회 목록에서 공개된 행사 정보를 확인해 주세요.' : '세션 편성과 연사 안내는 확정 후 이곳에 공개됩니다. 발표 시간과 장소는 공개된 프로그램을 기준으로 확인해 주세요.'}</p></div>`;
       return;
     }
     const links = requireData(await client.from('program_session_speakers')
@@ -68,11 +84,15 @@ async function start() {
       ? '확정 프로그램을 준비 중입니다. 세션과 연사는 확정 후 이곳에 공개합니다.'
       : '프로그램을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
     if (preparing) {
-      list.innerHTML = '<div class="operations-empty">공개된 세션이 없습니다. 홈페이지의 1박 2일 일정(Oral Session 1~3 및 Poster Session 1)은 운영 가안입니다.</div>';
+      list.innerHTML = '<div class="operations-empty">세부 프로그램은 준비가 완료되면 공개됩니다.</div>';
     } else {
       status.classList.add('error');
     }
+    retryActions.hidden = false;
+  } finally {
+    loading = false;
   }
 }
 
+document.querySelector('#program-retry').addEventListener('click', start);
 start();
