@@ -54,6 +54,12 @@ with sync_playwright() as p:
             assert response.status == 200
             expect(page.locator(ready)).to_be_visible()
             expect(page.locator(private)).to_be_hidden()
+            if route == 'chair':
+                expect(page.locator('#chair-assignment-form')).to_contain_text('심사위원 2명 필수')
+                expect(page.locator('#chair-decision-submit')).to_be_disabled()
+            if route == 'submission':
+                expect(page.locator('#workflow-title').locator('..').locator('..')).to_contain_text('투고부터 심사까지')
+                expect(page.locator('main')).to_contain_text('원고별로 심사위원 2명을 배정')
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), (route, width)
             page.screenshot(path=str(OUT / f'production-{route}-{width}.png'), full_page=True)
     assert len(config_requests) == 1, len(config_requests)

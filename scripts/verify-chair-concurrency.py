@@ -143,7 +143,14 @@ with sync_playwright() as p:
     other.once('dialog',lambda dialog:dialog.accept());other.locator('#decline-review').click();expect(other.locator('#message')).to_contain_text('배정을 거절했습니다')
     code,rows=call('outsider','GET',f'/rest/v1/papers?id=eq.{PID}');assert code==200 and rows==[]
     file=fixture['files'][0];code,_=m.request('GET','/storage/v1/object/authenticated/paper-pdfs/'+file['storage_path'],token=TOKENS['outsider']);assert code>=400
-    code,result=call('chair','POST','/rest/v1/rpc/chair_assign_reviewer',{'p_paper_id':PID,'p_reviewer_id':m.FIXTURES['actors']['reviewer']['id'],'p_replace_review_id':RID,'p_reason':'이해관계로 배정을 거절한 심사위원을 교체합니다.'});assert code==200,(code,result)
+    # A declined reviewer no longer fills a slot, even when an exception reason is given.
+    missing=decision(paper());missing['p_exception_reason']='이해관계 거절 후에도 인원 부족을 우회할 수 없는지 검증합니다.'
+    code,result=call('chair','POST','/rest/v1/rpc/chair_publish_decision',missing)
+    assert code>=400 and 'Exactly two active reviewers' in str(result),(code,result)
+    chair.locator('#chair-detail-refresh').click()
+    expect(chair.locator('#chair-review-progress')).to_contain_text('배정 1/2명')
+    expect(chair.locator('#chair-decision-submit')).to_be_disabled()
+    code,result=call('chair','POST','/rest/v1/rpc/chair_assign_reviewer',{'p_paper_id':PID,'p_reviewer_id':m.FIXTURES['actors']['chair']['id'],'p_replace_review_id':RID,'p_reason':'이해관계로 배정을 거절한 심사위원을 교체합니다.'});assert code==200,(code,result)
     record('05-closed-review-conflict-decline',{'decline':'saved','paper_and_pdf_access':'revoked','replacement':'saved'})
     assert not m.ERRORS,m.ERRORS
     browser.close()

@@ -13,7 +13,7 @@
       <details class="chair-card"><summary>발표 편성·분야별 현황</summary><div id="chair-program-stats"></div></details>
       <section class="chair-card" aria-labelledby="chair-list-title">
         <div class="chair-section-head"><div><span class="operations-kicker">MANUSCRIPTS</span><h2 id="chair-list-title">접수 원고</h2></div><button id="chair-refresh" class="operations-button secondary" type="button">새로고침</button></div>
-        <div class="chair-filters"><label>원고 검색<input id="chair-search" type="search" placeholder="접수번호, 제목, 저자, 소속" /></label><label>진행 상태<select id="chair-status-filter"><option value="all">전체 접수</option><option value="unassigned">미배정</option><option value="reviewing">심사 중</option><option value="ready">판정 대기</option><option value="revision">수정 요청</option><option value="accepted">채택</option><option value="rejected">반려</option><option value="final_pending">최종본 확인 대기</option></select></label><label>모집 분야<select id="chair-track-filter"><option value="all">전체 분야</option></select></label></div>
+        <div class="chair-filters"><label>원고 검색<input id="chair-search" type="search" placeholder="접수번호, 제목, 저자, 소속" /></label><label>진행 상태<select id="chair-status-filter"><option value="all">전체 접수</option><option value="unassigned">배정 필요</option><option value="reviewing">심사 중</option><option value="ready">판정 대기</option><option value="revision">수정 요청</option><option value="accepted">채택</option><option value="rejected">반려</option><option value="final_pending">최종본 확인 대기</option></select></label><label>모집 분야<select id="chair-track-filter"><option value="all">전체 분야</option></select></label></div>
         <p id="chair-count" class="operations-meta" aria-live="polite"></p>
         <div id="chair-empty" class="chair-empty" hidden>접수된 원고가 없습니다. 저자가 제출을 완료하면 여기에 표시됩니다.</div>
         <table id="chair-table" class="chair-table"><caption class="sr-only">접수 원고와 심사 진행 현황</caption><thead><tr><th scope="col">원고</th><th scope="col">대표저자 / 제출</th><th scope="col">심사위원 / 진행</th><th scope="col">판정 / 최종본</th><th scope="col">관리</th></tr></thead><tbody id="chair-rows"></tbody></table>
@@ -27,7 +27,7 @@
           <section class="chair-card"><h3>원고·저자 정보</h3><p id="chair-paper-abstract" class="chair-prose"></p><div id="chair-paper-authors"></div><p id="chair-contact" class="operations-meta"></p><h4>원고 PDF · 버전 기록</h4><div id="chair-files" class="chair-files"></div></section>
           <section class="chair-card"><div class="chair-section-head"><div><span class="operations-kicker">PEER REVIEW</span><h3>심사 배정과 의견</h3></div><span id="chair-review-progress" class="chair-badge"></span></div><div id="chair-reviews"></div>
             <form id="chair-assignment-form" class="chair-form">
-              <h4>심사위원 배정</h4><p class="operations-meta">원고당 1~2명. 저자·공동저자는 제외됩니다. 소속·과제 등 추가 이해관계도 확인해 주세요.</p>
+              <h4>심사위원 배정</h4><p class="operations-meta">원고별 심사위원 2명 필수. 저자·공동저자는 제외됩니다. 소속·과제 등 추가 이해관계도 확인해 주세요.</p><p id="chair-assignment-status" class="operations-note" aria-live="polite"></p>
               <label>가입 회원 검색<input id="chair-reviewer-search" type="search" placeholder="이름, 이메일, 소속" /></label>
               <label>심사위원 선택<select id="chair-reviewer" required><option value="">심사위원을 선택하세요</option></select></label><p id="chair-reviewer-info" class="operations-meta"></p>
               <label>배정 방식<select id="chair-replace"><option value="">추가 배정</option></select></label>
@@ -39,13 +39,14 @@
         </div>
         <aside class="chair-side-column">
           <section class="chair-card chair-decision-card"><span class="operations-kicker">DECISION</span><h3>위원장 판정</h3><p id="chair-decision-current" class="operations-meta"></p>
+            <p id="chair-decision-requirement" class="operations-note" aria-live="polite"></p>
             <form id="chair-decision-form" class="chair-form">
               <label>판정<select id="desk-decision" required><option value="">선택하세요</option><option value="revision">수정 요청</option><option value="accepted">채택</option><option value="rejected">반려</option></select></label>
               <div id="chair-accepted-fields" class="chair-form" hidden><label>발표 형태<select id="desk-presentation"><option value="">추후 결정</option><option value="oral">구두</option><option value="poster">포스터</option><option value="demo">데모</option></select></label><label>배정 세션<select id="desk-session"><option value="">추후 편성</option><option value="oral_1">Oral Session 1</option><option value="oral_2">Oral Session 2</option><option value="oral_3">Oral Session 3</option><option value="poster_1">Poster Session 1</option></select></label></div>
               <label>저자에게 공개할 판정 사유<textarea id="desk-note" rows="5" maxlength="5000" required placeholder="판정 근거 또는 수정할 내용을 입력하세요"></textarea></label>
               <div id="chair-exception-panel" hidden><p class="chair-warning">현재 제출본의 심사가 완료되지 않았습니다. 예외 판정에는 사유가 필요합니다.</p><label>심사 미완료 판정 사유 · 저자 공개<textarea id="desk-exception" rows="3" minlength="5" maxlength="1000" placeholder="심사 완료 전 판정하는 이유를 5자 이상 입력하세요"></textarea></label></div>
               <p class="chair-publication-note">확정하면 저자 포털에 즉시 공개됩니다.<br><strong>자동 이메일은 발송되지 않습니다.</strong></p>
-              <button type="submit" class="operations-button" data-chair-write>판정 확정·결과 공개</button>
+              <button id="chair-decision-submit" type="submit" class="operations-button" data-chair-write disabled>판정 확정·결과 공개</button>
             </form>
           </section>
           <section class="chair-card"><span class="operations-kicker">FINAL MANUSCRIPT</span><h3>최종본 확인</h3><p id="chair-final-status"></p><form id="chair-final-form" class="chair-form" hidden><label class="chair-check-label"><input type="checkbox" id="chair-final-confirm" required /> 최신 최종 PDF의 내용과 버전을 확인했습니다.</label><button type="submit" class="operations-button secondary" data-chair-write>최종본 확인 완료</button></form></section>

@@ -37,7 +37,9 @@ def assign(page,user_id,replace=None):
     if replace:
         page.locator('#chair-replace').select_option(replace)
         page.locator('#chair-replace-reason').fill('로컬 검증을 위한 심사위원 교체')
-    page.locator('#chair-assignment-form button[type=submit]').click()
+    with page.expect_response(lambda r: '/rpc/chair_assign_reviewer' in r.url):
+        page.locator('#chair-assignment-form button[type=submit]').click()
+    expect(page.locator('#chair-assignment-form button[type=submit]')).to_be_enabled()
     expect(page.locator('#chair-message')).to_contain_text('배정과 원고 상태를 저장')
 
 def publish(page,status,note,exception=''):
@@ -99,10 +101,32 @@ with sync_playwright() as p:
         code,_=m.call('chair','POST','/rest/v1/paper_events',{'paper_id':pid,'actor_label':'forged','action':'fake','after_data':{}});assert code>=400
         code,_=m.call('author','GET',f'/rest/v1/paper_events?paper_id=eq.{pid}');assert code==200
         decision={'p_paper_id':pid,'p_status':'accepted','p_note':'검증 판정','p_presentation':'oral','p_session':'oral_1','p_exception_reason':'','p_expected_updated_at':s['paper']['updated_at'],'p_expected_reviews':[]}
-        code,_=m.call('chair','POST','/rest/v1/rpc/chair_publish_decision',decision);assert code>=400
+        for exception in ('','배정 인원 부족을 우회하려는 검증 사유입니다.'):
+            code,result=m.call('chair','POST','/rest/v1/rpc/chair_publish_decision',{**decision,'p_exception_reason':exception})
+            assert code>=400 and 'Exactly two active reviewers' in str(result),(code,result)
+        expect(chair.locator('#chair-decision-submit')).to_be_disabled()
+        expect(chair.locator('#chair-review-progress')).to_contain_text('배정 0/2명')
         assert state(pid)['paper']['status']=='submitted'
         record('03-authorization-and-incomplete-review',{'forged_event':'denied','nonchair_rpc':'denied','incomplete_decision':'denied'})
         assign(chair,m.FIXTURES['actors']['reviewer']['id']);s=state(pid);rid=s['reviews'][0]['id']
+        review(reviewer,pid)
+        fresh_chair(chair,pid);expect(chair.locator('#chair-review-progress')).to_contain_text('심사 제출 1/2명')
+        expect(chair.locator('#chair-decision-submit')).to_be_disabled()
+        expect(chair.locator('#chair-decision-requirement')).to_contain_text('2명을 먼저 구성')
+        s=state(pid)
+        one_review={**decision,'p_expected_updated_at':s['paper']['updated_at'],'p_expected_reviews':sorted(s['reviews'],key=lambda r:r['id']),'p_exception_reason':'한 명의 심사로 판정하려는 검증 사유입니다.'}
+        for outcome in ('accepted','revision','rejected'):
+            code,result=m.call('chair','POST','/rest/v1/rpc/chair_publish_decision',{**one_review,'p_status':outcome})
+            assert code>=400 and 'Exactly two active reviewers' in str(result),(code,result)
+        code,result=m.call('chair','PATCH',f'/rest/v1/papers?id=eq.{pid}',{'status':'accepted','decision_note':'직접 업데이트 우회 검증','decision_exception_reason':'직접 요청으로 2명 조건을 우회하는지 확인합니다.'})
+        assert code>=400 and 'Exactly two active reviewers' in str(result),(code,result)
+        chair.locator('#chair-back').click();chair.locator('#chair-search').fill(title)
+        chair.locator('#chair-status-filter').select_option('ready');expect(chair.locator('#chair-empty')).to_be_visible()
+        chair.locator('#chair-status-filter').select_option('unassigned');expect(chair.locator('#chair-rows tr')).to_have_count(1)
+        chair.set_viewport_size({'width':390,'height':844});assert not chair.evaluate('document.documentElement.scrollWidth>innerWidth')
+        chair.screenshot(path=str(OUT/'two-reviewers-needed-mobile.png'),full_page=True)
+        chair.set_viewport_size({'width':1440,'height':1000});fresh_chair(chair,pid)
+        record('03b-two-reviewer-minimum',{'zero_and_one_reviewer_decisions':'denied even with exception','direct_update':'denied','one_complete_review':'assignment needed','mobile_overflow':False})
         code,_=m.call('chair','POST','/rest/v1/rpc/chair_assign_reviewer',payload);assert code>=400
         code,_=m.call('chair','POST','/rest/v1/rpc/chair_assign_reviewer',{'p_paper_id':pid,'p_reviewer_id':m.FIXTURES['actors']['author']['id']});assert code>=400
         # Failed replacement must preserve the original assignment and access.
@@ -115,9 +139,14 @@ with sync_playwright() as p:
         record('04-assignment-replacement',{'old_assignment_preserved':True,'old_access_revoked':True,'failed_replacement_rolled_back':True})
         # A second reviewer is allowed; a third is rejected. One pending review requires an explicit exception.
         assign(chair,m.FIXTURES['actors']['chair']['id'])
-        code,_=m.call('chair','POST','/rest/v1/rpc/chair_assign_reviewer',payload);assert code>=400
+        assert chair.locator('#chair-replace').evaluate('(el)=>el.options[0].disabled && el.required && !el.checkValidity()')
+        code,result=m.call('chair','POST','/rest/v1/rpc/chair_assign_reviewer',payload);assert code>=400 and 'At most two' in str(result)
         review(other,pid,'revise')
         fresh_chair(chair,pid)
+        s=state(pid)
+        incomplete={**decision,'p_expected_updated_at':s['paper']['updated_at'],'p_expected_reviews':sorted(s['reviews'],key=lambda r:r['id'])}
+        code,result=m.call('chair','POST','/rest/v1/rpc/chair_publish_decision',incomplete)
+        assert code>=400 and 'Incomplete reviews' in str(result),(code,result)
         publish(chair,'revision','검증 방법을 보완하여 수정본을 제출해 주세요.','시범 운영 검증을 위해 제출된 한 명의 의견으로 수정 요청합니다.')
         s=state(pid);assert s['paper']['decided_by']==m.FIXTURES['actors']['chair']['id'];assert s['paper']['decision_published_at']
         m.reload(author);author.locator(f'[data-action=author][data-id="{pid}"]').click();expect(author.locator('#message')).to_contain_text('수정본을 제출')
@@ -126,11 +155,19 @@ with sync_playwright() as p:
         old_basis=s['paper']['submitted_at'];author.locator('#paper-file').set_input_files(str(m.OUT/'submission-v2.pdf'));author.locator('[data-save=submitted]').click();expect(author.locator('#message')).to_contain_text('원고가 제출되었습니다')
         assert state(pid)['paper']['submitted_at']!=old_basis
         fresh_chair(chair,pid);assign(chair,m.FIXTURES['actors']['outsider']['id']);review(other,pid)
+        fresh_chair(chair,pid);expect(chair.locator('#chair-decision-submit')).to_be_disabled()
+        expect(chair.locator('#chair-review-progress')).to_contain_text('배정 1/2명')
+        assign(chair,m.FIXTURES['actors']['reviewer']['id']);review(reviewer,pid)
         s=state(pid);assert len([r for r in s['reviews'] if r['reviewer_id']==m.FIXTURES['actors']['outsider']['id']])==2
         old=next(r for r in s['reviews'] if r['reviewer_id']==m.FIXTURES['actors']['outsider']['id'] and r['manuscript_submitted_at']==old_basis)
         code,result=m.call('outsider','PATCH',f'/rest/v1/reviews?id=eq.{old["id"]}',{'comments':'지난 제출본을 임의 수정합니다.'});assert code>=400
         code,_=m.call('chair','POST','/rest/v1/rpc/chair_publish_decision',decision);assert code>=400
         fresh_chair(chair,pid);assert chair.locator('#chair-exception-panel').is_hidden()
+        expect(chair.locator('#chair-review-progress')).to_contain_text('심사 제출 2/2명')
+        expect(chair.locator('#chair-decision-submit')).to_be_enabled()
+        chair.locator('#chair-back').click();chair.locator('#chair-search').fill(title)
+        chair.locator('#chair-status-filter').select_option('ready');expect(chair.locator('#chair-rows tr')).to_have_count(1)
+        chair.locator(f'[data-open="{pid}"]').click();expect(chair.locator('#chair-detail')).to_be_visible()
         publish(chair,'accepted','수정 사항을 확인하여 구두 발표로 채택합니다.')
         record('06-revision-review-and-acceptance',{'review_rows_preserved':len(s['reviews']),'stale_decision':'denied','old_review_edit':'denied'})
         m.reload(author);author.locator(f'[data-action=author][data-id="{pid}"]').click();author.locator('#final-file').set_input_files(str(m.OUT/'final-v3.pdf'));author.locator('#final-form button[type=submit]').click();expect(author.locator('#message')).to_contain_text('최종 PDF를 업로드')
