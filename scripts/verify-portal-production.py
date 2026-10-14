@@ -17,7 +17,9 @@ with sync_playwright() as p:
     context = browser.new_context(viewport={'width': 1440, 'height': 1000})
     response = context.request.get(BASE + '/api/config')
     assert response.status == 200
-    assert 's-maxage=300' in response.headers['cache-control']
+    # Vercel consumes/strips s-maxage; the browser receives its separate max-age.
+    # https://vercel.com/docs/caching/cache-control-headers
+    assert 'public' in response.headers['cache-control'] and 'max-age=60' in response.headers['cache-control']
     config = response.json()
     assert 'lvtdnrmwunahgwutafhv' in config['url']
     assert set(config) == {'url', 'publishableKey', 'naverEnabled'}
