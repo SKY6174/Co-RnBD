@@ -446,20 +446,14 @@ async function savePaper(event) {
     if (submit && (!input.contact_name || !input.contact_email)) throw new Error('원고 제출에는 연락 담당자 이름과 이메일이 필요합니다.');
     let id = paperId;
     if (id) {
-      // 기존 원고 수정 시 메타데이터 업데이트와 기존 저자 목록 정리를 병렬 수행
-      const [updateResult, deleteAuthorsResult] = await Promise.all([
-        client.from('papers').update(input).eq('id', id),
-        client.from('paper_authors').delete().eq('paper_id', id),
-      ]);
-      check(updateResult);
-      check(deleteAuthorsResult);
+      check(await client.from('papers').update(input).eq('id', id).select('id').single());
     } else {
       id = check(await client.from('papers').insert({ ...input, owner_id: user.id, edition_year: edition.year }).select('id').single()).id;
+      $('#paper-id').value = id;
     }
-    await Promise.all([
-      client.from('paper_authors').insert(authors.map((author) => ({ ...author, paper_id: id }))).then(check),
-      uploadFile(id, $('#paper-file').files[0]),
-    ]);
+    // Keep existing authors if validation or insertion fails; RLS is enforced by the RPC.
+    check(await client.rpc('replace_paper_authors', { p_paper_id: id, p_authors: authors }));
+    await uploadFile(id, $('#paper-file').files[0]);
     if (submit) check(await client.from('papers').update({ status: 'submitted' }).eq('id', id));
     $('#paper-form').hidden = true;
     await loadMyPapers();

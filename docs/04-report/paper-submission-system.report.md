@@ -20,3 +20,13 @@
 - 행사 일정·위원회·문의처 확정 후 CFP와 공개 안내 갱신
 
 참고 문서: [CMT 컨퍼런스 사이트 요청](https://cmt3.research.microsoft.com/docs/help/general/request-conference.html), [저자 투고](https://cmt3.research.microsoft.com/docs/help/author/author-submission-form.html), [심사위원 안내](https://cmt3.research.microsoft.com/docs/help/reviewer/reviewing-guide.html).
+
+## 2026-10-15 실제 로컬 통합 검증
+
+운영과 동일한 23개 마이그레이션 및 app_private 함수 25개 정의 해시를 대조한 독립 로컬 Supabase에서 실제 Auth/Postgres/Storage/브라우저로 검수했다. 운영에는 읽기만 수행했으며 원고/심사/파일 0건과 단계 설정 유지, 새 RPC 미적용을 마지막에 확인했다.
+
+발견: 운영 관리 HTML의 paper-settings-form 누락으로 초기화 중단; revision 저장의 트리거/RLS 거부와 병렬 저자 삭제로 저자 유실. 복구 양식, 중복 양식 대신 설정 링크, revision 유지 편집 허용, SECURITY INVOKER 저자 교체 트랜잭션 RPC를 준비해 로컬에만 적용했다.
+
+수정 후 15개 단계 점검 통과: 실제 계정/프로필 → 초안·저자·PDF → 제출 → 배정 → 닫힌 심사 차단 → PDF 다운로드·심사 임시저장/제출 → 위원장 수정 요청·저자 결과 표시 → 수정본 v2 재제출 → 위원장 채택·세션 배정 → 닫힌 최종본 차단 → 최종본 v3 → 위원장 파일 해시 일치. 비배정 열람 및 심사위원 최종본 열람 차단도 포함한다. 추가 6개 검사에서 잘못된 저자 교체의 원자성/행 ID 보존, 비소유자/익명 RPC 거부, draft→revision 임의 전이 거부, PDF 필수 및 접수 종료 후 revision 재제출을 확인했다. 타입/빌드/JS 문법/diff 통과.
+
+자동 판정 이메일, 전체 판정 변경 이력/판정자, 최종본 검수완료 상태는 현재 구현에 없다. 이번 테스트에서 배정 거절/반려/재심사 라운드/OAuth/실메일/동시 부하는 검증하지 않았다. UI/권한 관련 오류 수정은 검토용이며 운영 적용 완료를 의미하지 않는다. 상세 증거는 로컬 outputs/submission-lifecycle-20261015/report.md와 JSON/스크린샷에 남겼다.
