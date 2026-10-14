@@ -1,9 +1,9 @@
 <a class="skip-link" href="#main">본문으로 바로가기</a>
-    <div class="draft-bar" role="note"><span class="draft-dot" aria-hidden="true"></span><span>투고 시스템 시범 운영 · 접수 일정 확정 후 제출 기능을 엽니다.</span></div>
+    <div class="draft-bar" role="note"><span class="draft-dot" aria-hidden="true"></span><span id="submission-pilot-status">투고 시스템의 접수 상태를 확인하는 중입니다.</span></div>
     <header class="site-header portal-header">
       <div class="shell header-inner">
         <a class="brand" href="./index.html" aria-label="T-VET Co-R&BD 홈"><span class="brand-logo" aria-hidden="true"><img src="./assets/t-vet-co-rbd-conference-logo.png" alt="" width="2920" height="706" /></span></a>
-        <nav class="portal-nav" aria-label="주 메뉴"><a href="./index.html">행사 안내</a><a href="./program.html">프로그램</a><a href="./registration.html">참가 신청</a><a href="./submission.html" aria-current="page">투고·심사</a><a href="./session-chair.html">좌장 업무</a></nav>
+        <nav class="portal-nav" aria-label="주 메뉴"><a href="./index.html">행사 안내</a><a href="./program.html">프로그램</a><a href="./registration.html">참가 신청</a><a href="./submission.html" aria-current="page">투고·심사</a><a href="./session-chair.html">좌장 업무</a><a id="submission-operations-link" href="./operations.html" hidden>운영 관리</a></nav>
       </div>
     </header>
     <main id="main" class="portal-main">
@@ -93,18 +93,7 @@
 
           <section id="tab-chair" class="tab-panel" role="tabpanel" aria-label="위원장 관리" hidden>
             <div class="section-head"><div><span class="portal-kicker">CHAIR DESK</span><h2>접수와 판정</h2></div><button id="refresh-chair" type="button" class="portal-button secondary">목록 새로고침</button></div>
-            <p><a href="./operations.html">참가 신청·연사·세션 관리 →</a> <a id="submission-monitor-link" href="./monitor.html" hidden>참가·투고 현황 모니터링 →</a></p>
-            <form id="phase-form" class="portal-card portal-form phase-form">
-              <h3>단계 운영</h3><p class="field-help">각 단계는 열림 설정과 마감 시각을 모두 확인합니다. 마감은 선택 사항이며 한국시간(KST)으로 입력합니다. 수정 요청을 받은 원고는 일반 접수 종료 후에도 재제출할 수 있습니다.</p>
-              <div class="phase-fields">
-                <div><label class="checkbox-row"><input id="phase-submissions" type="checkbox" /> 원고 접수 열기</label><label>접수 마감 (선택)<input id="phase-submission-deadline" type="datetime-local" /></label></div>
-                <div><label class="checkbox-row"><input id="phase-reviews" type="checkbox" /> 심사 입력 열기</label><label>심사 마감 (선택)<input id="phase-review-deadline" type="datetime-local" /></label></div>
-                <div><label class="checkbox-row"><input id="phase-final" type="checkbox" /> 최종본 제출 열기</label><label>최종본 마감 (선택)<input id="phase-final-deadline" type="datetime-local" /></label></div>
-              </div>
-              <label>공개 투고 안내문 <textarea id="phase-notice" rows="3" maxlength="500" required placeholder="투고자에게 보여줄 접수·일정 안내를 적어 주세요."></textarea></label>
-              <p class="field-help">로그인 전에도 화면 상단에 표시됩니다. 마감 상태는 안내문과 별도로 자동 표시됩니다.</p>
-              <div class="form-actions"><button type="submit" class="portal-button">운영 설정 저장</button></div>
-            </form>
+            <p><a href="./operations.html#paper-management">투고 접수·심사 단계 설정 →</a> <a href="./operations.html#registration-management">참가신청 관리 →</a> <a id="submission-monitor-link" href="./monitor.html" hidden>참가·투고 현황 모니터링 →</a></p>
             <div id="chair-summary" class="chair-summary" aria-live="polite"></div>
             <div id="chair-quota-board" class="quota-board" aria-label="세션 목표 및 분야별 모집 현황"></div>
             <div id="chair-list" class="paper-grid"></div>

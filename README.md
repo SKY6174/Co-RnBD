@@ -38,7 +38,7 @@ Vercel에는 `SUPABASE_URL`과 `SUPABASE_PUBLISHABLE_KEY`가 설정되어 있습
 
 [`/submission.html`](https://co-rnbd.org/submission.html)은 저자·심사위원·위원장 작업 공간입니다. 이메일·비밀번호 가입/로그인/재설정과 Google/Naver 로그인 연결을 지원합니다. 원고, 공동저자, PDF 버전, 심사 배정과 판정은 Supabase Postgres·비공개 Storage에 저장되며 RLS가 역할별 접근을 제한합니다. 참가등록과 투고는 별개입니다.
 
-DB 마이그레이션은 `supabase/migrations/`에 있고 연결된 `Co-RnBD-2026` 프로젝트에 적용했습니다. 접수 스위치는 기본적으로 **닫힘**입니다. 논문 일정·주최기관·개인정보 보존 기준이 확정되면 위원장 계정에서 접수를 열 수 있습니다. Google/Naver OAuth 제공자 등록과 최초 위원장 지정 방법은 [운영 설정](site/README.md#투고-시스템-운영-설정)에 있습니다.
+DB 마이그레이션은 `supabase/migrations/`에 있고 연결된 `Co-RnBD-2026` 프로젝트에 적용했습니다. 2026 회차의 원고 접수는 시범 운영으로 열며, 심사·최종본 단계는 별도로 관리합니다. 접수 상태와 안내문은 위원장이 [학회 운영 관리](https://co-rnbd.org/operations.html)에서 조정할 수 있습니다. 시범 원고와 PDF도 운영 DB에 저장되므로 공식 심사 여부는 별도 공지를 확인해야 합니다. Google/Naver OAuth 제공자 등록과 최초 위원장 지정 방법은 [운영 설정](site/README.md#투고-시스템-운영-설정)에 있습니다.
 
 Next.js Route Handler가 `/api/config`와 `/api/naver-userinfo`를 제공합니다. 로컬 공개 설정이 없으면 데이터 화면에는 연결 안내가 표시되며, 실제 투고 흐름은 별도의 안전한 Supabase 환경에서 검증해야 합니다.
 

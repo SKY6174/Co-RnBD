@@ -45,16 +45,6 @@ const kstMediumDateFormatter = new Intl.DateTimeFormat('ko-KR', {
   timeZone: 'Asia/Seoul',
   dateStyle: 'medium',
 });
-const kstInputPartsFormatter = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Asia/Seoul',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  hourCycle: 'h23',
-});
-
 const emailLinkParams = new URLSearchParams(location.hash.slice(1));
 const emailLink = Object.entries(EMAIL_LINK_TYPES)
   .map(([name, type]) => ({ token_hash: emailLinkParams.get(name), type }))
@@ -135,18 +125,6 @@ function formatKst(value) {
   return `${kstMediumDateTimeFormatter.format(new Date(value))} KST`;
 }
 
-function kstInputValue(value) {
-  if (!value) return '';
-  const parts = kstInputPartsFormatter.formatToParts(new Date(value));
-  const get = (type) => parts.find((part) => part.type === type).value;
-  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
-}
-
-function deadlineValue(selector) {
-  const value = $(selector).value;
-  return value ? new Date(`${value}:00+09:00`).toISOString() : null;
-}
-
 function phaseCard(title, configured, deadline) {
   const open = configured && beforeDeadline(deadline);
   const status = open ? '진행 중' : configured && deadline ? '마감' : '닫힘';
@@ -164,17 +142,13 @@ async function loadSettings() {
   $('#notice').textContent = settings.submissions_open && !submissionsOpen
     ? `투고 접수 기간이 종료되었습니다. ${publicNotice}`
     : publicNotice;
+  $('#submission-pilot-status').textContent = edition.year === 2026
+    ? `투고 시스템 시범 운영 · 현재 원고 접수가 ${submissionsOpen ? '열려 있습니다.' : '닫혀 있습니다.'}`
+    : `원고 접수가 ${submissionsOpen ? '열려 있습니다.' : '닫혀 있습니다.'}`;
   $('#phase-overview').innerHTML = phaseCard('원고 접수', settings.submissions_open, settings.submission_deadline)
     + phaseCard('심사 입력', settings.reviews_open, settings.review_deadline)
     + phaseCard('최종본 제출', settings.final_uploads_open, settings.final_deadline);
   $('#new-paper').disabled = !submissionsOpen;
-  $('#phase-submissions').checked = settings.submissions_open;
-  $('#phase-reviews').checked = settings.reviews_open;
-  $('#phase-final').checked = settings.final_uploads_open;
-  $('#phase-submission-deadline').value = kstInputValue(settings.submission_deadline);
-  $('#phase-review-deadline').value = kstInputValue(settings.review_deadline);
-  $('#phase-final-deadline').value = kstInputValue(settings.final_deadline);
-  $('#phase-notice').value = settings.notice || '';
 }
 
 async function loadAuthAvailability(config) {
@@ -216,7 +190,10 @@ async function loadWorkspace() {
   $('#recovery-panel').hidden = !isRecovery;
   $('#auth-panel').hidden = Boolean(user) || isRecovery;
   $('#workspace').hidden = !user || isRecovery;
-  if (!user || isRecovery) return;
+  if (!user || isRecovery) {
+    $('#submission-operations-link').hidden = true;
+    return;
+  }
   // 프로필(profiles)과 운영진 권한(staff_roles)을 병렬(Promise.all)로 동시에 조회하여 대기 시간 단축
   const [profileResult, roleResult] = await Promise.all([
     client.from('profiles').select('*').eq('user_id', user.id).single(),
@@ -225,6 +202,7 @@ async function loadWorkspace() {
   profile = check(profileResult);
   const role = check(roleResult);
   isChair = role?.role === 'chair';
+  $('#submission-operations-link').hidden = !isChair;
   $('#submission-monitor-link').hidden = !role?.is_super_admin;
   $('#welcome').textContent = `${profile.full_name || '회원'}님의 작업 공간`;
   $('#account-email').textContent = profile.email || user.email || '이메일 정보 없음';
@@ -241,6 +219,7 @@ async function loadWorkspace() {
   });
   $('[data-tab="chair"]').hidden = !isChair;
   await Promise.all([loadMyPapers(), loadReviews(), isChair ? loadChairPapers() : Promise.resolve()]);
+  if (isChair && location.hash === '#chair') showTab('chair');
 }
 
 function paperCard(paper, action, label) {
@@ -570,27 +549,7 @@ $('#final-form').addEventListener('submit', async (event) => {
 $('#cancel-review').addEventListener('click', () => { $('#review-form').hidden = true; });
 $('#cancel-chair').addEventListener('click', () => { $('#chair-form').hidden = true; });
 $('#refresh-chair').addEventListener('click', () => loadChairPapers().catch((error) => message(error.message, true)));
-$('#phase-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  try {
-    const submissionsRequested = $('#phase-submissions').checked;
-    const submissionDeadline = deadlineValue('#phase-submission-deadline');
-    const notice = $('#phase-notice').value.trim();
-    if (!notice || notice.length > 500) throw new Error('공개 투고 안내문을 1~500자로 입력해 주세요.');
-    check(await client.from('conference_settings').update({
-      submissions_open: submissionsRequested,
-      submission_deadline: submissionDeadline,
-      reviews_open: $('#phase-reviews').checked,
-      review_deadline: deadlineValue('#phase-review-deadline'),
-      final_uploads_open: $('#phase-final').checked,
-      final_deadline: deadlineValue('#phase-final-deadline'),
-      notice,
-    }).eq('edition_year', edition.year).select('edition_year').single());
-    await loadSettings();
-    message('접수·심사·최종본 운영 설정과 공개 안내문을 저장했습니다.');
-  } catch (error) { message(error.message, true); }
-});
-$('#sign-out').addEventListener('click', async () => { await client.auth.signOut(); user = null; $('#workspace').hidden = true; $('#auth-panel').hidden = false; showAuthMode('login'); showTab('author'); });
+$('#sign-out').addEventListener('click', async () => { await client.auth.signOut(); user = null; isChair = false; $('#submission-operations-link').hidden = true; $('#workspace').hidden = true; $('#auth-panel').hidden = false; showAuthMode('login'); showTab('author'); });
 
 document.querySelectorAll('[data-auth-mode]').forEach((button) => button.addEventListener('click', () => {
   $('#auth-password').value = '';
