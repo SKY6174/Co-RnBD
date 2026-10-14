@@ -2,7 +2,33 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-const TRACKS = { applied: '전문기술석사 응용연구', industry: '산학공동기술개발과제 성과발표', convergence: '산업융합기술', education: 'T-VET 정책·교육연구' };
+// 모집 분야 코드와 화면 표시명 매핑 (신규 4개 분야 및 기존 데이터 호환 코드)
+const TRACKS = {
+  master_eng: '전문기술석사 (공학 분야)',
+  master_sci: '전문기술석사 (자연과학 분야)',
+  industry_joint: '산학공동기술개발과제',
+  convergence_etc: '기타 산학융합과제',
+  applied: '전문기술석사 응용연구',
+  industry: '산학공동기술개발과제 성과발표',
+  convergence: '산업융합기술',
+  education: 'T-VET 정책·교육연구',
+};
+const ACTIVE_TRACK_KEYS = ['master_eng', 'master_sci', 'industry_joint', 'convergence_etc'];
+const LEGACY_TRACK_MAP = {
+  applied: 'master_eng',
+  industry: 'industry_joint',
+  convergence: 'convergence_etc',
+  education: 'convergence_etc',
+};
+const PRESENTATIONS = { oral: '구두', poster: '포스터', demo: '데모' };
+const SESSIONS = {
+  oral_1: 'Oral Session 1',
+  oral_2: 'Oral Session 2',
+  oral_3: 'Oral Session 3',
+  poster_1: 'Poster Session 1',
+};
+const ORAL_MIN_TARGET = 20;
+const POSTER_MIN_TARGET = 30;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STATUSES = { draft: '초안', submitted: '제출 완료', under_review: '심사 중', revision: '수정 요청', accepted: '채택', rejected: '반려', declined: '배정 거절' };
 const RECOMMENDATIONS = { accept: '채택 권고', revise: '수정 권고', reject: '반려 권고' };
@@ -186,8 +212,9 @@ async function loadWorkspace() {
   $('#profile-orcid').value = profile.orcid || '';
   $('#profile-email').value = profile.email || user.email || '';
   $('#profile-listing-consent').checked = Boolean(profile.committee_listing_consent);
+  const normalizedExpertise = (profile.expertise_tracks || []).map((track) => LEGACY_TRACK_MAP[track] || track);
   document.querySelectorAll('[name="expertise-track"]').forEach((input) => {
-    input.checked = (profile.expertise_tracks || []).includes(input.value);
+    input.checked = normalizedExpertise.includes(input.value);
   });
   $('[data-tab="chair"]').hidden = !isChair;
   await Promise.all([loadMyPapers(), loadReviews(), isChair ? loadChairPapers() : Promise.resolve()]);
@@ -195,7 +222,12 @@ async function loadWorkspace() {
 
 function paperCard(paper, action, label) {
   const submitted = paper.submitted_at ? new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium' }).format(new Date(paper.submitted_at)) : '아직 제출하지 않음';
-  const detail = paper.status === 'declined' ? '원고 열람 권한이 종료됐습니다.' : `${TRACKS[paper.track] || '분야 미지정'} · ${submitted}`;
+  const sessionLabel = paper.assigned_session
+    ? ` · ${SESSIONS[paper.assigned_session] || paper.assigned_session}`
+    : paper.final_presentation
+      ? ` · ${PRESENTATIONS[paper.final_presentation] || paper.final_presentation} 확정`
+      : '';
+  const detail = paper.status === 'declined' ? '원고 열람 권한이 종료됐습니다.' : `${TRACKS[paper.track] || '분야 미지정'} · ${submitted}${sessionLabel}`;
   return `<article class="paper-card"><div class="paper-card-top"><span class="status status-${esc(paper.status)}">${STATUSES[paper.status] || esc(paper.status)}</span><span class="paper-id">${esc(paper.id.slice(0, 8).toUpperCase())}</span></div><h3>${esc(paper.title)}</h3><p>${esc(detail)}</p><button type="button" class="card-action" data-action="${action}" data-id="${esc(paper.id)}">${label} <span aria-hidden="true">↗</span></button></article>`;
 }
 
@@ -216,11 +248,52 @@ async function loadReviews() {
   }).join('') : '<p class="empty-state">배정된 원고가 없습니다.</p>';
 }
 
+function renderChairQuotaBoard() {
+  const board = $('#chair-quota-board');
+  if (!board) return;
+  const preferredOral = chairPapers.filter((paper) => paper.preferred_presentation === 'oral').length;
+  const preferredPoster = chairPapers.filter((paper) => paper.preferred_presentation === 'poster').length;
+  const acceptedPapers = chairPapers.filter((paper) => paper.status === 'accepted');
+  const acceptedOral = acceptedPapers.filter((paper) => (paper.final_presentation || paper.preferred_presentation) === 'oral').length;
+  const acceptedPoster = acceptedPapers.filter((paper) => (paper.final_presentation || paper.preferred_presentation) === 'poster').length;
+  const sessionCount = (sessionKey) => acceptedPapers.filter((paper) => paper.assigned_session === sessionKey).length;
+  const trackRows = ACTIVE_TRACK_KEYS.map((key) => {
+    const inTrack = chairPapers.filter((paper) => (LEGACY_TRACK_MAP[paper.track] || paper.track) === key);
+    const acceptedInTrack = inTrack.filter((paper) => paper.status === 'accepted').length;
+    return `<li><span>${esc(TRACKS[key])}</span><strong>접수 ${inTrack.length}편 · 채택 ${acceptedInTrack}편</strong></li>`;
+  }).join('');
+  board.innerHTML = `
+    <article class="quota-card">
+      <span class="portal-kicker">ORAL SESSIONS (3개 세션)</span>
+      <strong>구두 채택 ${acceptedOral}편 / 최소 ${ORAL_MIN_TARGET}편 목표</strong>
+      <p>구두 희망 접수 ${preferredOral}편 · ${acceptedOral >= ORAL_MIN_TARGET ? '목표 달성' : `${ORAL_MIN_TARGET - acceptedOral}편 추가 확보 필요`}</p>
+      <div class="quota-sublist">
+        <span>Oral 1: ${sessionCount('oral_1')}편</span>
+        <span>Oral 2: ${sessionCount('oral_2')}편</span>
+        <span>Oral 3: ${sessionCount('oral_3')}편</span>
+      </div>
+    </article>
+    <article class="quota-card">
+      <span class="portal-kicker">POSTER SESSION (1개 세션)</span>
+      <strong>포스터 채택 ${acceptedPoster}편 / 최소 ${POSTER_MIN_TARGET}편 목표</strong>
+      <p>포스터 희망 접수 ${preferredPoster}편 · ${acceptedPoster >= POSTER_MIN_TARGET ? '목표 달성' : `${POSTER_MIN_TARGET - acceptedPoster}편 추가 확보 필요`}</p>
+      <div class="quota-sublist">
+        <span>Poster 1 배정: ${sessionCount('poster_1')}편</span>
+      </div>
+    </article>
+    <article class="quota-card quota-card-wide">
+      <span class="portal-kicker">TRACK BREAKDOWN (3대 분야 · 4개 세부 트랙)</span>
+      <ul class="quota-track-list">${trackRows}</ul>
+    </article>
+  `;
+}
+
 async function loadChairPapers() {
   chairPapers = check(await client.from('papers').select('*').eq('edition_year', edition.year)
     .neq('status', 'draft').order('created_at', { ascending: false }));
   const count = (statuses) => chairPapers.filter((paper) => statuses.includes(paper.status)).length;
   $('#chair-summary').innerHTML = `<span>전체 ${chairPapers.length}</span><span>심사 대기·진행 ${count(['submitted', 'under_review'])}</span><span>수정 요청 ${count(['revision'])}</span><span>채택 ${count(['accepted'])}</span><span>반려 ${count(['rejected'])}</span>`;
+  renderChairQuotaBoard();
   $('#chair-list').innerHTML = chairPapers.length ? chairPapers.map((paper) => paperCard(paper, 'chair', '배정·판정')).join('') : '<p class="empty-state">접수된 원고가 없습니다.</p>';
 }
 
@@ -262,7 +335,7 @@ async function openAuthor(paperId = '') {
     const paper = myPapers.find((item) => item.id === paperId);
     $('#paper-title').value = paper.title;
     $('#paper-abstract').value = paper.abstract;
-    $('#paper-track').value = paper.track;
+    $('#paper-track').value = ACTIVE_TRACK_KEYS.includes(paper.track) ? paper.track : (LEGACY_TRACK_MAP[paper.track] || 'master_eng');
     $('#paper-type').value = paper.paper_type;
     $('#paper-presentation').value = paper.preferred_presentation;
     $('#paper-keywords').value = (paper.keywords || []).join(', ');
@@ -274,7 +347,12 @@ async function openAuthor(paperId = '') {
     showFiles(files, $('#paper-form'), 'paper-file-links');
     if (paper.submitted_at) {
       const submitted = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(paper.submitted_at));
-      $('#paper-receipt').textContent = `접수번호 ${paper.id.slice(0, 8).toUpperCase()} · 최근 제출 ${submitted} · 현재 상태 ${STATUSES[paper.status] || paper.status}. 이 화면에서 접수 상태와 PDF 버전을 다시 확인할 수 있습니다.`;
+      const assignedText = paper.assigned_session
+        ? ` · 배정 세션 ${SESSIONS[paper.assigned_session] || paper.assigned_session}`
+        : paper.final_presentation
+          ? ` · 확정 발표 형태 ${PRESENTATIONS[paper.final_presentation] || paper.final_presentation}`
+          : '';
+      $('#paper-receipt').textContent = `접수번호 ${paper.id.slice(0, 8).toUpperCase()} · 최근 제출 ${submitted} · 현재 상태 ${STATUSES[paper.status] || paper.status}${assignedText}. 이 화면에서 접수 상태와 PDF 버전을 다시 확인할 수 있습니다.`;
       $('#paper-receipt').hidden = false;
     }
     if (paper.decision_note) message(`위원장 메모: ${paper.decision_note}`);
@@ -383,9 +461,10 @@ async function openChair(paperId) {
   $('#chair-paper-id').value = paperId;
   $('#chair-title').textContent = paper.title;
   const authors = check(await client.from('paper_authors').select('full_name,affiliation,email').eq('paper_id', paperId).order('sort_order'));
-  $('#chair-paper-summary').innerHTML = `<p>${esc(paper.abstract)}</p><p class="field-help">저자: ${esc(authors.map((author) => `${author.full_name} (${author.affiliation})`).join(', ') || '미입력')}<br>키워드: ${esc((paper.keywords || []).join(', ') || '미입력')}<br>연락 담당자: ${esc(paper.contact_name || '미입력')} · ${esc(paper.contact_email || '미입력')}<br>접수번호 ${esc(paperId.slice(0, 8).toUpperCase())}</p>`;
+  $('#chair-paper-summary').innerHTML = `<p>${esc(paper.abstract)}</p><p class="field-help">모집 분야: ${esc(TRACKS[paper.track] || paper.track)} · 희망 발표 형태: ${esc(PRESENTATIONS[paper.preferred_presentation] || paper.preferred_presentation)}<br>저자: ${esc(authors.map((author) => `${author.full_name} (${author.affiliation})`).join(', ') || '미입력')}<br>키워드: ${esc((paper.keywords || []).join(', ') || '미입력')}<br>연락 담당자: ${esc(paper.contact_name || '미입력')} · ${esc(paper.contact_email || '미입력')}<br>접수번호 ${esc(paperId.slice(0, 8).toUpperCase())}</p>`;
   $('#chair-status').value = paper.status;
   $('#chair-presentation').value = paper.final_presentation || '';
+  $('#chair-session').value = paper.assigned_session || '';
   $('#chair-note').value = paper.decision_note || '';
   selectedChairReviews = check(await client.from('reviews').select('id,reviewer_id,review_state,recommendation,comments,decline_reason,submitted_at,profiles(full_name,email,expertise_tracks)').eq('paper_id', paperId));
   $('#assigned-reviewers').innerHTML = selectedChairReviews.length ? selectedChairReviews.map((review) => {
@@ -612,16 +691,50 @@ $('#assign-reviewer').addEventListener('click', async () => {
   } catch (error) { message(error.message, true); }
 });
 
+$('#chair-session').addEventListener('change', () => {
+  const sessionKey = $('#chair-session').value;
+  if (sessionKey.startsWith('oral_')) $('#chair-presentation').value = 'oral';
+  else if (sessionKey === 'poster_1') $('#chair-presentation').value = 'poster';
+});
+
+$('#chair-presentation').addEventListener('change', () => {
+  const presentation = $('#chair-presentation').value;
+  const sessionKey = $('#chair-session').value;
+  if (presentation === 'oral' && sessionKey === 'poster_1') $('#chair-session').value = '';
+  else if (presentation === 'poster' && sessionKey.startsWith('oral_')) $('#chair-session').value = 'poster_1';
+  else if (!presentation || presentation === 'demo') $('#chair-session').value = '';
+});
+
 $('#chair-form').addEventListener('submit', async (event) => {
   event.preventDefault();
   try {
     const status = $('#chair-status').value;
     if (!status) throw new Error('판정을 선택해 주세요.');
+    let finalPresentation = $('#chair-presentation').value || null;
+    const assignedSession = $('#chair-session').value || null;
+    if (assignedSession && status !== 'accepted') {
+      throw new Error('세션 배정은 채택 판정인 원고에만 지정할 수 있습니다.');
+    }
+    if (assignedSession && !finalPresentation) {
+      finalPresentation = assignedSession.startsWith('oral_') ? 'oral' : 'poster';
+    }
+    if (assignedSession?.startsWith('oral_') && finalPresentation !== 'oral') {
+      throw new Error('Oral Session 1~3 배정 시 발표 형태는 구두(Oral)여야 합니다.');
+    }
+    if (assignedSession === 'poster_1' && finalPresentation !== 'poster') {
+      throw new Error('Poster Session 1 배정 시 발표 형태는 포스터(Poster)여야 합니다.');
+    }
     const paperId = $('#chair-paper-id').value;
-    check(await client.from('papers').update({ status, decision_note: $('#chair-note').value.trim(), final_presentation: $('#chair-presentation').value || null, decided_at: ['accepted', 'rejected'].includes(status) ? new Date().toISOString() : null }).eq('id', paperId));
+    check(await client.from('papers').update({
+      status,
+      decision_note: $('#chair-note').value.trim(),
+      final_presentation: finalPresentation,
+      assigned_session: status === 'accepted' ? assignedSession : null,
+      decided_at: ['accepted', 'rejected'].includes(status) ? new Date().toISOString() : null,
+    }).eq('id', paperId));
     $('#chair-form').hidden = true;
     await loadChairPapers();
-    message('원고 상태를 저장했습니다. 저자는 대시보드에서 결과를 확인할 수 있습니다.');
+    message('원고 판정 및 세션 배정 상태를 저장했습니다. 저자는 대시보드에서 결과를 확인할 수 있습니다.');
   } catch (error) { message(error.message, true); }
 });
 
