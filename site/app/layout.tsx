@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import "../styles.css";
 import "../submission.css";
 import "../operations.css";
+import "../member-documents.css";
 import "../chair.css";
 import "../legal.css";
 

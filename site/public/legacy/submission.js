@@ -43,11 +43,12 @@ const kstMediumDateFormatter = new Intl.DateTimeFormat('ko-KR', {
   timeZone: 'Asia/Seoul',
   dateStyle: 'medium',
 });
-let returnToChair = location.hash === '#chair' || new URLSearchParams(location.search).get('returnTo') === 'chair';
+const RETURN_DESTINATIONS = { chair: './chair.html', mypage: './mypage.html', 'document-admin': './document-admin.html', registration: './registration.html' };
+let returnTo = location.hash === '#chair' ? 'chair' : new URLSearchParams(location.search).get('returnTo');
 try {
-  returnToChair = returnToChair || sessionStorage.getItem('co_rnbd_return_to') === 'chair';
-  if (returnToChair) sessionStorage.setItem('co_rnbd_return_to', 'chair');
-} catch { /* The fixed query/hash destination still works without session storage. */ }
+  returnTo = returnTo || sessionStorage.getItem('co_rnbd_return_to');
+  if (Object.hasOwn(RETURN_DESTINATIONS, returnTo)) sessionStorage.setItem('co_rnbd_return_to', returnTo);
+} catch { /* Fixed query destinations work without session storage. */ }
 const emailLinkParams = new URLSearchParams(location.hash.slice(1));
 const emailLink = Object.entries(EMAIL_LINK_TYPES)
   .map(([name, type]) => ({ token_hash: emailLinkParams.get(name), type }))
@@ -235,9 +236,9 @@ async function refreshWorkspace(generation) {
     input.checked = normalizedExpertise.includes(input.value);
   });
   $('#submission-chair-links').hidden = !isChair;
-  if (returnToChair && !isRecovery) {
+  if (Object.hasOwn(RETURN_DESTINATIONS, returnTo) && !isRecovery) {
     try { sessionStorage.removeItem('co_rnbd_return_to'); } catch {}
-    location.replace('./chair.html');
+    location.replace(RETURN_DESTINATIONS[returnTo]);
     return;
   }
   await Promise.all([loadMyPapers(), loadReviews()]);
