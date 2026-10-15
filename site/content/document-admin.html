@@ -1,0 +1,31 @@
+<a class="skip-link" href="#main">본문으로 바로가기</a>
+<header class="site-header operations-header"><div class="shell header-inner"><a class="brand" href="./index.html" aria-label="T-VET Co-R&BD 홈"><span class="brand-logo"><img src="./assets/t-vet-co-rbd-conference-logo.png" alt="T-VET Co-R&BD" width="2920" height="706" /></span></a><nav class="operations-header-nav" aria-label="주 메뉴"><a href="./index.html">학회 안내</a><a href="./registration.html">참가 신청</a><a href="./submission.html">논문 투고</a><a href="./mypage.html">마이페이지</a></nav></div></header>
+<main id="main" class="operations-main member-main"><div class="shell">
+ <div class="operations-intro"><p class="section-index">CHAIR / DOCUMENTS</p><h1>증빙 발급 관리</h1><p>발급기관과 실제 납부 내역을 설정하면 참가자가 마이페이지에서 증빙을 자동 발급할 수 있습니다.</p><a href="./operations.html#registration-management">참가 확정·체크인 관리 →</a></div>
+ <p id="documents-message" class="operations-note" role="status" aria-live="polite">권한을 확인하고 있습니다.</p>
+ <section id="documents-access" class="operations-card" hidden><h2>위원장 전용</h2><a class="operations-button" href="./submission.html?returnTo=document-admin">로그인</a></section>
+ <div id="documents-workspace" hidden>
+  <div class="operations-actions document-toolbar"><label>학회 회차<select id="documents-year"></select></label><button id="documents-refresh" type="button" class="operations-button secondary">새로고침</button></div>
+  <details class="operations-card document-settings"><summary>발급기관 설정</summary><p>공식 발급기관의 확인된 정보만 입력하세요. 정보가 없거나 자동 발급이 꺼져 있으면 새 증빙 발급이 제한됩니다.</p>
+   <form id="issuer-form" class="operations-form-grid">
+    <label>발급기관명<input id="issuer-organization" maxlength="150" required></label><label>대표자명<input id="issuer-representative" maxlength="80" required></label>
+    <label class="wide">기관 주소<input id="issuer-address" maxlength="300" required></label><label>사업자·고유번호 (선택)<input id="issuer-organization_number" maxlength="40"></label><label>문의 이메일<input id="issuer-contact_email" type="email" maxlength="254" required></label>
+    <label class="inline-check"><input id="issuer-enabled" type="checkbox">자동 발급 열기</label><label class="inline-check"><input id="issuer-verified" type="checkbox" required>발급기관 정보와 발급 권한을 확인했습니다.</label>
+    <div class="wide"><button class="operations-button" type="submit">발급기관 설정 저장</button></div>
+   </form>
+  </details>
+  <div class="document-admin-grid">
+   <section class="operations-card"><h2>참가자 선택</h2><label>이름·소속·이메일 검색<input id="documents-search" type="search" placeholder="참가자 검색"></label><div id="documents-participants" class="document-person-list"></div></section>
+   <section id="documents-detail" class="operations-card" hidden><span class="operations-kicker">REGISTRATION &amp; BILLING</span><h2 id="documents-person"></h2><p id="documents-state" class="document-summary"></p>
+    <h3>등록비·수동 납부 확인</h3><p>은행 입금·현장 수납 등 실제 내역을 확인한 후 저장하세요. 이 화면에서 결제나 환불이 실행되지는 않습니다.</p>
+    <form id="billing-form" class="operations-form-grid">
+     <label>등록비 (원)<input id="billing-amount" type="number" min="0" max="100000000" step="1" required></label><label>납부 상태<select id="billing-status"><option value="unpaid">납부 확인 전</option><option value="paid">납부 확인</option><option value="waived">등록비 면제 (0원)</option><option value="refunded">환불 확인</option></select></label>
+     <div id="billing-payment-fields" class="operations-form-grid wide" hidden><label>납부 방법<select id="billing-method"><option value="">선택하세요</option><option value="transfer">계좌이체</option><option value="cash">현금</option><option value="other">기타</option></select></label><label>납부 일시 (KST)<input id="billing-paid-at" type="datetime-local"></label></div>
+     <label class="inline-check wide"><input id="billing-verified" type="checkbox" required>대상 참가자·등록비·실제 납부 또는 환불 내역을 확인했습니다.</label>
+     <p class="wide document-warning">금액·납부 내역을 변경하면 기존 영수증·거래명세서가 취소됩니다. 이미 저장·인쇄한 사본은 회수할 수 없습니다.</p><div class="wide"><button class="operations-button" type="submit">확인 내역 저장</button></div>
+    </form>
+    <h3>증빙 발급</h3><div id="documents-current"></div><h3>발급·취소 이력</h3><ul id="documents-history" class="document-audit"></ul>
+   </section>
+  </div>
+ </div>
+</div></main><footer class="site-footer"><div class="shell footer-inner"><strong>T-VET Co-R&amp;BD Conference</strong><nav class="footer-links"><a href="./privacy.html">개인정보처리방침</a><a href="./terms.html">이용약관</a></nav></div></footer>
