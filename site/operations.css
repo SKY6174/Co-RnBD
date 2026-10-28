@@ -9,6 +9,20 @@
 .operations-spec-item strong { display: block; color: var(--ink); font-size: 13px; font-weight: 700; line-height: 1.45; }
 .operations-hint-block { display: flex; align-items: center; gap: 10px; margin: 12px 0 16px; padding: 11px 14px; border: 1px solid #dce5d7; border-radius: 10px; background: #f6f9f2; color: #53665a; font-size: 12.5px; line-height: 1.55; }
 .operations-hint-block span { padding: 3px 7px; border-radius: 4px; background: #e8f2dc; color: #4e7a31; font-size: 9px; font-weight: 800; letter-spacing: .12em; flex: 0 0 auto; }
+.registration-hint {
+  display: block;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+.registration-hint-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .375rem .625rem;
+}
+.registration-hint-heading > span { white-space: nowrap; }
+.registration-hint-heading > strong { min-width: 0; text-wrap: balance; }
+.registration-hint > p { margin: .5rem 0 0; text-wrap: pretty; }
 .step-block-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 14px 0 18px; }
 .step-block { padding: 13px 15px; border: 1px solid #dce5d7; border-radius: 11px; background: #f9fbf7; }
 .step-block span { display: inline-block; margin-bottom: 4px; color: #588235; font-size: 9.5px; font-weight: 800; letter-spacing: .13em; }
