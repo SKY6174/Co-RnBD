@@ -44,7 +44,7 @@ def buildPdf(output, fontDir, background):
     c = canvas.Canvas(str(output), pagesize=A4, pageCompression=1)
     c.setTitle("T-VET Co-R&BD Conference 2026 | Call for Papers & Cases")
     c.setAuthor("T-VET Co-R&BD Conference")
-    c.setSubject("2027. 1. 21.-22. | 울산과학대학교 동부캠퍼스 | CFP 초안")
+    c.setSubject("2027. 1. 20.-21. | 울산과학대학교 동부캠퍼스 | CFP 초안")
 
     def text(value, x, y, size=9.4, font="Regular", color=INK):
         c.setFillColor(color)
@@ -105,7 +105,7 @@ def buildPdf(output, fontDir, background):
          size=14, font="Bold", color=colors.white)
     text("전문기술석사 연구와 산학공동기술개발과제의 만남", MARGIN, H - 153,
          size=10, color=colors.HexColor("#d5e6ef"))
-    text("2027. 1. 21.(목) - 1. 22.(금)", MARGIN, headerBottom + 33,
+    text("2027. 1. 20.(수) - 1. 21.(목)", MARGIN, headerBottom + 33,
          size=15, font="Bold", color=CYAN)
     text("울산과학대학교 동부캠퍼스", MARGIN, headerBottom + 15,
          size=10, font="Bold", color=colors.white)

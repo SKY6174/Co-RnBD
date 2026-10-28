@@ -39,7 +39,7 @@
 | 원고 마감 | 2026년 12월 21일 18:00 KST | 가안 |
 | 채택·수정 요청 통보 | 2027년 1월 4일 | 가안 |
 | 최종본·발표자 별도 등록 마감 | 2027년 1월 12일(화) 18:00 KST | 가안 |
-| **행사** | **2027년 1월 21일(목)–22일(금), 울산과학대학교 동부캠퍼스** | **일자·캠퍼스 확정** |
+| **행사** | **2027년 1월 20일(수)–21일(목), 울산과학대학교 동부캠퍼스** | **일자·캠퍼스 확정** |
 
 일반 참가자는 2027년 1월 5일 18:00 KST까지 신청하며, 발표자는 채택 통보 후 별도 절차로 등록합니다. 채택된 원고는 구두 또는 포스터로 발표하며, 발표자 1명 이상이 등록하고 현장에서 발표해야 합니다. 공개 동의를 받은 최종본은 행사 발표자료집에 수록할 예정입니다. 자료집 수록이 학술지 게재 또는 학위요건 인정을 뜻하지는 않습니다.
 
@@ -70,7 +70,7 @@ The conference invites applied research and practice cases from professional tec
 
 **Submission types:** a 2–4-page extended abstract for research; a 2-page report for a collaborative R&D or education practice case; or a 1-page summary for a work-in-progress poster or demonstration. Submit a PDF in Korean or English. At least one author must be affiliated with a college or be a collaborator in that college's joint project. Authors may indicate a preferred presentation format; the program committee will make the final assignment after review.
 
-**Confirmed conference dates and campus:** January 21–22, 2027, Eastern Campus, Ulsan College, Ulsan, Republic of Korea. **General attendee application deadline:** January 5, 2027, 18:00 KST. Presenters register separately after acceptance. Proposed paper dates: submissions open November 16; deadline December 21, 18:00 KST; notification January 4, 2027; final submission and presenter registration January 12, 2027, 18:00 KST. Paper dates, room details, and presenter registration procedures require confirmation before publication.
+**Confirmed conference dates and campus:** January 20–21, 2027, Eastern Campus, Ulsan College, Ulsan, Republic of Korea. **General attendee application deadline:** January 5, 2027, 18:00 KST. Presenters register separately after acceptance. Proposed paper dates: submissions open November 16; deadline December 21, 18:00 KST; notification January 4, 2027; final submission and presenter registration January 12, 2027, 18:00 KST. Paper dates, room details, and presenter registration procedures require confirmation before publication.
 
 At least one author of each accepted contribution must register and present onsite. Final contributions approved for release may be included in the conference proceedings.
 
