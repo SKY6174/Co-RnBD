@@ -1,0 +1,36 @@
+name: Pull request quality
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-quality-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: PR quality gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci --include=dev --include=optional --prefer-offline --no-audit
+        working-directory: site
+      - run: npm audit --omit=dev --audit-level=high
+        working-directory: site
+      - run: npm run typecheck
+        working-directory: site
+      - run: npm run build
+        working-directory: site
