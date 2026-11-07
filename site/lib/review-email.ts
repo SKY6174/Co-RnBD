@@ -7,10 +7,10 @@ const DECISIONS: Record<string, string> = { accepted: 'Accept · 채택', revisi
 const TRACKS: Record<string, string> = { master_eng: '전문기술석사 공학', master_sci: '전문기술석사 자연과학', industry_joint: '산학공동기술개발과제', convergence_etc: '기타 산학융합과제', applied: '전문기술석사 응용연구', industry: '산학공동기술개발', convergence: '산업융합기술', education: 'T-VET 정책·교육연구' };
 
 type MailEvent = {
-  version: 1 | 2; eventId: string; kind: 'reviewer_assignment' | 'decision' | 'review_submitted';
+  version: 1 | 2 | 3; eventId: string; kind: 'reviewer_assignment' | 'decision' | 'review_submitted' | 'paper_submitted' | 'paper_resubmitted';
   recipient: string; recipientName: string; paperId: string; paperTitle: string;
   conferenceTitle: string; editionYear: number; track: string;
-  reviewId?: string; reviewFingerprint?: string; decision?: string | null; note: string; exceptionReason?: string; test?: boolean;
+  manuscriptAt?: string; reviewId?: string; reviewFingerprint?: string; decision?: string | null; note: string; exceptionReason?: string; test?: boolean;
 };
 
 export function authorized(bearer: string | null, secret: string | undefined): boolean {
@@ -27,9 +27,10 @@ function text(value: unknown, max: number, min = 0): value is string {
 export function parseMailEvent(value: unknown): MailEvent | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const e = value as Record<string, unknown>;
-  if ((e.kind === 'review_submitted' ? e.version !== 2 : e.version !== 1) || !text(e.eventId, 36, 36) || !UUID.test(e.eventId)
+  const paperSubmission = e.kind === 'paper_submitted' || e.kind === 'paper_resubmitted';
+  if (e.version !== (paperSubmission ? 3 : e.kind === 'review_submitted' ? 2 : 1) || !text(e.eventId, 36, 36) || !UUID.test(e.eventId)
     || !text(e.paperId, 36, 36) || !UUID.test(e.paperId)
-    || !['reviewer_assignment', 'decision', 'review_submitted'].includes(String(e.kind))
+    || !['reviewer_assignment', 'decision', 'review_submitted', 'paper_submitted', 'paper_resubmitted'].includes(String(e.kind))
     || !text(e.recipient, 254, 3) || !EMAIL.test(e.recipient)
     || !text(e.recipientName, 120, 1) || !text(e.paperTitle, 250, 5)
     || !text(e.conferenceTitle, 250, 1) || !text(e.track, 50, 1) || !Object.hasOwn(TRACKS, e.track)
@@ -38,6 +39,8 @@ export function parseMailEvent(value: unknown): MailEvent | null {
     || (e.test !== undefined && typeof e.test !== 'boolean')
     || (e.kind === 'review_submitted' && (!text(e.reviewId, 36, 36) || !UUID.test(e.reviewId)
       || !text(e.reviewFingerprint, 32, 32) || !/^[0-9a-f]{32}$/.test(e.reviewFingerprint) || e.note !== '' || (e.exceptionReason !== undefined && e.exceptionReason !== '')))
+    || (paperSubmission && (!text(e.manuscriptAt, 40, 20) || !Number.isFinite(Date.parse(e.manuscriptAt))
+      || e.note !== '' || (e.exceptionReason !== undefined && e.exceptionReason !== '')))
     || (e.kind === 'decision' && (!text(e.decision, 20) || !Object.hasOwn(DECISIONS, e.decision)))) return null;
   return e as MailEvent;
 }
@@ -47,6 +50,7 @@ const esc = (v: string) => v.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt
 // Keep version 1 rendering stable across retries; a future format uses a new version.
 export function renderMail(e: MailEvent) {
   if (e.kind === 'review_submitted') return renderReviewSubmitted(e);
+  if (e.kind === 'paper_submitted' || e.kind === 'paper_resubmitted') return renderPaperSubmitted(e);
   const assigned = e.kind === 'reviewer_assignment';
   const heading = assigned ? '논문 심사 배정 요청' : DECISIONS[e.decision!];
   const subject = `${e.test ? '[테스트] ' : ''}[Co-R&BD ${e.editionYear}] ${heading}`.replace(/[\r\n]/g, ' ');
@@ -93,6 +97,22 @@ function renderReviewSubmitted(e: MailEvent) {
     `원고: ${e.paperTitle}`, `접수번호: ${e.paperId.slice(0, 8).toUpperCase()} · ${TRACKS[e.track]}`,
     '원고 심사 관리에 로그인하여 최신 진행 상태와 제출된 심사의견을 확인해 주세요. 판정 전에는 현재 제출본의 심사 완료 요건을 확인해 주세요.',
     `원고 심사 관리: ${portal}`, '심사의견 본문과 심사위원 정보는 권한이 있는 계정으로 포털에서 확인해 주세요. 이 주소는 자동 발송용입니다.'].filter(Boolean);
+  return { subject, text: lines.join('\n\n'), html: '<!doctype html><html lang="ko"><head><meta charset="UTF-8"></head><body><main style="font-family:Arial,sans-serif;max-width:640px;margin:auto;line-height:1.7;color:#14382e">'
+    + `<h1 style="font-size:22px">${heading}</h1>` + lines.map(line => `<p style="white-space:pre-wrap">${esc(line)}</p>`).join('')
+    + `<p><a href="${portal}">원고 심사 관리 열기</a></p></main></body></html>` };
+}
+
+// v3 leaves prior v1/v2 retry payloads unchanged.
+function renderPaperSubmitted(e: MailEvent) {
+  const portal = 'https://co-rnbd.org/chair.html';
+  const revision = e.kind === 'paper_resubmitted';
+  const heading = revision ? '수정본 재제출 알림' : '신규 논문 투고 알림';
+  const subject = `${e.test ? '[테스트] ' : ''}[Co-R&BD ${e.editionYear}] ${heading}`;
+  const lines = [e.test ? '이 메일은 투고 알림 연결 확인용 테스트입니다. 실제 논문 투고·수정본 재제출이 아니며 조치하지 않으셔도 됩니다.' : '',
+    `${e.recipientName}님,`, e.conferenceTitle, revision ? '담당 원고의 수정본이 재제출되었습니다.' : '담당 분야에 새 논문이 투고되었습니다.',
+    `원고: ${e.paperTitle}`, `접수번호: ${e.paperId.slice(0, 8).toUpperCase()} · ${TRACKS[e.track]}`,
+    '원고 심사 관리에 로그인하여 현재 제출본과 진행 상태를 확인해 주세요.',
+    `원고 심사 관리: ${portal}`, '원고 PDF와 저자 정보는 권한이 있는 계정으로 포털에서 확인해 주세요. 이 주소는 자동 발송용입니다.'].filter(Boolean);
   return { subject, text: lines.join('\n\n'), html: '<!doctype html><html lang="ko"><head><meta charset="UTF-8"></head><body><main style="font-family:Arial,sans-serif;max-width:640px;margin:auto;line-height:1.7;color:#14382e">'
     + `<h1 style="font-size:22px">${heading}</h1>` + lines.map(line => `<p style="white-space:pre-wrap">${esc(line)}</p>`).join('')
     + `<p><a href="${portal}">원고 심사 관리 열기</a></p></main></body></html>` };

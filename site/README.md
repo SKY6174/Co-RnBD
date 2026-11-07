@@ -199,3 +199,18 @@ uv run --with playwright --with pymupdf python scripts/verify-review-email.py --
 
 새 알림만 중지/롤백하려면 `review_submitted_enabled=false`로 바꾼 뒤 이전 배포를 복원합니다.
 새 kind 대기 요청은 보존·정지되며 기존 배정·판정 큐는 계속 처리합니다. 이미 접수한 메일은 회수할 수 없습니다.
+
+
+## 신규 투고·수정본 재제출 → AE·심사위원장 알림
+
+`20261107153715_paper_submitted_notifications.sql`은 정상 완료된 신규 투고와 수정본 재제출을 구분해
+담당 AE와 지정 심사위원장에게 알립니다. 초안·임시저장·실패한 제출은 제외하고 같은 제출본의 감사
+이벤트를 다시 기록해도 수신자별 한 통만 생성합니다. PDF·초록·저자 목록은 이메일로 보내지 않습니다.
+
+기존 편집 담당자 선택기와 `review_submitted_chair_ids` 수신 설정을 공유합니다. 같은 종류의 현재
+회차·분야·인증·이해관계·역할 회수 검사를 적용하며 발송 전 제출본 시각을 다시 확인합니다.
+이전 제출본과 권한이 회수된 수신자는 대기 메일을 취소합니다. 기존 키·SMTP·hook을 재사용합니다.
+
+기본 `paper_submitted_enabled=false`입니다. migration → v3 지원 production 배포 → 기존 위원장 수신자
+확인 후 이 flag만 true로 켭니다. 중지/롤백은 이 flag를 false로 한 뒤 이전 배포를 복원합니다.
+새 두 kind 대기열을 보존하며 기존 배정·판정·심사의견 제출 알림은 계속 처리합니다.
