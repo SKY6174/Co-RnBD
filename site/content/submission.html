@@ -55,11 +55,12 @@
           <div class="workspace-top"><div><span class="portal-kicker">MY WORKSPACE</span><h2 id="welcome">내 작업 공간</h2><p id="account-email"></p></div><button id="sign-out" type="button" class="portal-button secondary">로그아웃</button></div>
           <div class="portal-tabs" role="tablist" aria-label="작업 영역"><button type="button" class="active" data-tab="author" role="tab" aria-selected="true">내 투고</button><button type="button" data-tab="reviewer" role="tab" aria-selected="false" hidden>심사 배정</button><button type="button" data-tab="profile" role="tab" aria-selected="false">내 정보</button></div>
 
-          <div id="submission-chair-links" class="chair-quick-links" hidden><a class="chair-quick-link" href="./chair.html"><span>CHAIR DESK</span><strong>원고 심사 관리 →</strong></a></div>
+          <div id="submission-chair-links" class="chair-quick-links" hidden><a class="chair-quick-link" href="./chair.html"><span>CHAIR DESK</span><strong>원고 심사·편집위원장 업무 →</strong></a></div>
 
           <section id="tab-author" class="tab-panel" role="tabpanel" aria-label="내 투고">
             <div class="section-head"><div><span class="portal-kicker">AUTHOR DESK</span><h2>내 원고</h2></div><button id="new-paper" type="button" class="portal-button">새 원고 작성</button></div>
             <div id="my-papers" class="paper-grid"></div>
+            <section id="author-review-feedback" class="portal-card" hidden aria-live="polite"></section>
             <form id="paper-form" class="portal-card portal-form" hidden>
               <div class="form-heading"><div><span class="portal-kicker">SUBMISSION</span><h3 id="paper-form-title">새 원고</h3></div><button type="button" id="cancel-paper" class="text-action">닫기</button></div>
               <input type="hidden" id="paper-id" />
@@ -92,7 +93,7 @@
               <div class="form-heading"><h3 id="review-title">심사 입력</h3><button type="button" id="cancel-review" class="text-action">닫기</button></div>
               <input type="hidden" id="review-id" /><p id="review-paper-summary"></p><div id="review-authors" class="muted-list"></div><p id="review-state-notice" class="field-help"></p>
               <label class="checkbox-row"><input id="review-conflict" type="checkbox" required /> 저자·소속·과제 관계를 확인했으며 이해관계가 없습니다.</label>
-              <label>권고 <select id="review-recommendation" required><option value="">선택하세요</option><option value="accept">채택 권고</option><option value="revise">수정 권고</option><option value="reject">반려 권고</option></select></label>
+              <label>권고 <select id="review-recommendation" required><option value="">선택하세요</option><option value="accept">Accept · 채택 권고</option><option value="revise">Accept after revision · 수정 후 채택 권고</option><option value="reject">Reject · 반려 권고</option></select></label>
               <label>저자에게 전할 의견 <textarea id="review-comments" required minlength="10" rows="5"></textarea></label>
               <div class="form-actions"><button type="submit" class="portal-button secondary" data-review-action="draft" formnovalidate>임시저장</button><button type="submit" class="portal-button" data-review-action="submit">심사 제출</button></div>
               <details id="review-decline-panel" class="conflict-action"><summary>이해관계가 있어 심사를 맡을 수 없나요?</summary><label>배정 거절 사유 <textarea id="review-decline-reason" rows="3" maxlength="1000" placeholder="저자·소속·과제 등 이해관계를 간략히 적어 주세요."></textarea></label><button type="button" id="decline-review" class="portal-button secondary">배정 거절</button></details>
@@ -134,7 +135,7 @@
           <div class="workflow-grid">
             <article class="portal-card"><span class="workflow-step">01 / 저자</span><h3>원고 투고</h3><p>내 정보에 이름·소속을 입력한 뒤 분야, 제목·초록, 저자와 연락 담당자를 적습니다. 키워드는 선택 사항입니다. 원고는 PDF 1개 이상, 파일당 20 MB 이하입니다.</p><p>초안은 접수가 아니며, PDF를 올리고 <strong>저장하고 제출</strong>을 눌러야 접수번호가 발급됩니다. 수정 요청을 받으면 같은 원고에서 새 버전을 제출할 수 있습니다.</p></article>
             <article class="portal-card"><span class="workflow-step">02 / 심사위원</span><h3>배정과 심사</h3><p>내 정보에서 전문 분야를 1~3개 선택합니다. 배정된 원고의 저자·소속을 확인하고 이해관계가 있으면 사유를 남겨 배정을 거절합니다. 심사를 맡을 경우 PDF를 읽고 의견을 임시저장하거나 권고와 함께 제출합니다.</p><p>임시저장한 의견은 판정에 반영되지 않습니다. 제출 후에도 위원장 판정 전에는 의견을 수정할 수 있습니다.</p></article>
-            <article class="portal-card"><span class="workflow-step">03 / 위원장</span><h3>판정과 결과</h3><p>원고별로 심사위원 2명을 배정하고 두 명의 제출된 심사 의견을 검토해 수정 요청·채택·반려를 결정합니다. 결과와 판정 메모는 저자의 작업 공간에서 확인할 수 있습니다.</p></article>
+            <article class="portal-card"><span class="workflow-step">03 / 편집위원장 (AE)</span><h3>검토와 저자 통보</h3><p>심사위원장이 분야별 심사위원 2명을 배정합니다. 담당 AE는 두 심사가 완료되면 Accept·수정 후 채택 검토·Reject를 결정하고 판정 사유와 심사의견을 저자 포털에 공개합니다. 수정 요청은 같은 원고의 수정본 제출·재심으로 이어집니다.</p></article>
           </div>
           <div class="guide-footnote-blocks">
             <div class="guide-footnote-block"><span>CO-AUTHORS</span><strong>공동저자 정보 사전 확인</strong><p>공동저자 이메일의 계정 보유·수신 여부는 자동 검증되지 않으므로 제출 전 직접 확인해 주세요.</p></div>
@@ -145,11 +146,12 @@
         <section class="portal-help" aria-labelledby="help-title">
           <div class="section-head"><div><span class="portal-kicker">HELP</span><h2 id="help-title">역할별 이용 안내</h2></div></div>
           <details><summary>계정과 내 정보</summary><p>이메일 가입 후 확인 메일로 인증하거나 연결된 Google·Naver 계정으로 로그인합니다. 이메일 비밀번호를 잊었다면 로그인 화면의 재설정을 이용하세요. 이름·소속은 제출과 심사에 필요하고, 심사위원은 전문 분야를 선택합니다. 계정 이메일 변경·삭제는 운영 담당자에게 문의해 주세요. 별도 CMT 계정이나 여러 학회 계정 병합은 필요하지 않습니다.</p></details>
-          <details><summary>저자: 초안, 제출, 수정</summary><p>제목·초록·분야·저자·연락처를 입력하고 PDF를 올립니다. 초안 저장만으로 접수되지 않습니다. 제출 후 접수번호와 상태를 내 원고에서 확인하세요. 위원장이 수정을 요청하면 같은 원고에 새 PDF를 올려 재제출할 수 있습니다. 공동저자 이메일의 실제 수신 여부는 자동 검증되지 않습니다.</p></details>
-          <details><summary>심사위원: 이해관계와 의견</summary><p>배정 원고의 저자·소속을 먼저 확인하세요. 같은 과제 등 이해관계가 있으면 사유를 적어 거절합니다. 심사 단계가 열려 있으면 PDF를 읽고 의견을 임시저장하거나 권고와 함께 제출합니다. 위원장이 판정하면 심사 수정은 종료됩니다.</p></details>
+          <details><summary>저자: 초안, 제출, 수정</summary><p>제목·초록·분야·저자·연락처를 입력하고 PDF를 올립니다. 초안 저장만으로 접수되지 않습니다. 제출 후 접수번호와 상태를 내 원고에서 확인하세요. 편집위원장이 수정을 요청하면 같은 원고에 새 PDF를 올려 재제출할 수 있습니다. 공동저자 이메일의 실제 수신 여부는 자동 검증되지 않습니다.</p></details>
+          <details><summary>심사위원: 이해관계와 의견</summary><p>배정 원고의 저자·소속을 먼저 확인하세요. 같은 과제 등 이해관계가 있으면 사유를 적어 거절합니다. 심사 단계가 열려 있으면 PDF를 읽고 의견을 임시저장하거나 권고와 함께 제출합니다. 판정이 공개되면 심사 수정은 종료됩니다.</p></details>
           <details><summary>위원장: 배정과 판정</summary><p>접수·심사·최종본 단계를 열고 필요한 마감을 한국시간으로 설정합니다. 현재 제출본마다 심사위원 2명을 배정하고, 두 명의 제출된 의견을 확인해 판정합니다. 배정 거절·철회 시 다른 심사위원을 보충해야 합니다. 2명 배정 후 심사 미완료 상태의 예외 판정에는 저자에게 공개되는 사유가 필요합니다. 공동저자 본인 계정은 배정이 차단됩니다. 같은 기관·과제 관계는 배정 전에 별도로 확인하세요. 판정은 저장 즉시 저자의 작업 공간에 표시됩니다.</p></details>
+          <details><summary>분야별 편집위원장(AE): 검토와 통보</summary><p>투고 화면의 원고 심사·편집위원장 업무에서 담당 분야 원고를 확인합니다. 현재 제출본의 심사 2건이 모두 완료된 뒤 판정 사유를 작성하고 공개합니다. 저자에게는 익명화된 심사의견이 함께 표시됩니다. 수정 후 채택 검토는 수정본 요청이며 재투고·재심 후 최종 채택을 결정합니다. 본인 저자·공동저자 원고의 판정과 심사 배정·운영 설정은 허용되지 않습니다. 배정·결과 확인은 로그인 포털에서 진행하며 자동 이메일은 발송하지 않습니다.</p></details>
           <details><summary>세션 좌장: 발표 진행과 보고</summary><p>위원장이 구두·포스터 세션에 계정을 배정하면 <a href="./session-chair.html">좌장 업무 화면</a>에서 담당 발표를 볼 수 있습니다. 시작 전 발표자 참석을 확인하고 발표 시간·질의응답 또는 포스터 토론을 진행합니다. 발표 여부와 우수발표 후보 추천 또는 미추천을 기록해 보고서를 제출합니다. 좌장 권한은 논문 심사·채택 판정·PDF 열람 권한과 별개입니다.</p></details>
-          <details><summary>채택 후 최종본</summary><p>채택된 저자는 최종본 단계가 열려 있을 때 같은 원고 화면에서 최종 PDF를 올립니다. 투고본과 최종본은 각각 버전으로 보관하며 최종본은 저자와 위원장만 열람합니다. 자동 결정 이메일, 별도 메타심사·자료집 편집자, 외부 재위임은 이 행사에서 사용하지 않습니다.</p></details>
+          <details><summary>채택 후 최종본</summary><p>채택된 저자는 최종본 단계가 열려 있을 때 같은 원고 화면에서 최종 PDF를 올립니다. 투고본과 최종본은 각각 버전으로 보관하며 최종본은 저자와 위원장만 열람합니다. 자동 결정 이메일, 별도 자료집 편집자, 외부 재위임은 이 행사에서 사용하지 않습니다.</p></details>
         </section>
 
       </div>
