@@ -18,7 +18,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 BASE = 'http://127.0.0.1:8770'
 CONTAINER = 'supabase_db_co-rnbd-lifecycle-20261015'
 LOCAL = ROOT / 'tmp/submission-lifecycle'
-status = json.loads(subprocess.run(['supabase', 'status', '--workdir', str(LOCAL), '-o', 'json'], capture_output=True, text=True, check=True).stdout)
+status = json.loads(subprocess.run(['sh', str(ROOT / 'scripts/supabase.sh'), 'status', '--workdir', str(LOCAL), '-o', 'json'], capture_output=True, text=True, check=True).stdout)
 API = status['API_URL']
 assert urlparse(API).hostname in ('127.0.0.1', 'localhost'), 'Local Supabase only'
 assert urlparse(BASE).hostname == '127.0.0.1', 'Local browser only'

@@ -32,7 +32,27 @@ npm run dev
 | Vercel | `ucsky6174/co-rnbd` · 루트 `site/` · `co-rnbd.org` | Next.js App Router 배포 |
 | Supabase | `Co-RnBD/Co-RnBD-2026` · ref `lvtdnrmwunahgwutafhv` | Auth·Postgres·비공개 PDF Storage |
 
-Vercel에는 `SUPABASE_URL`과 `SUPABASE_PUBLISHABLE_KEY`가 설정되어 있습니다. 로컬 연결은 `supabase link --project-ref lvtdnrmwunahgwutafhv`로 재현할 수 있습니다. 키 값과 `.env.local`은 Git에 올리지 않습니다.
+Vercel에는 `SUPABASE_URL`과 `SUPABASE_PUBLISHABLE_KEY`가 설정되어 있습니다. Supabase CLI 버전과 원격 명령은 아래 기준을 따릅니다. 키 값과 `.env.local`은 Git에 올리지 않습니다.
+
+## Supabase CLI 3
+
+CLI는 [`.supabase-cli-version`](.supabase-cli-version)의 **3.0.0**으로 통일합니다(2026-11-07 공식 최신 안정판). Homebrew에서는 `brew update && brew upgrade supabase` 후 `supabase --version`을 확인합니다. 정확한 버전이 필요하면 [공식 릴리스](https://github.com/supabase/cli/releases/tag/v3.0.0)의 OS·CPU별 바이너리를 사용합니다. PR CI도 같은 파일에서 버전을 읽어 설치합니다. `latest`나 beta를 별도로 설치하지 않습니다. 업데이트 시 이 파일과 호환성 검증을 함께 검토합니다.
+
+저장소 루트에서 `sh scripts/supabase.sh ...`로 실행합니다. 이 진입점은 버전 불일치를 차단하고 기본 workdir를 이 저장소로 고정합니다. 별도 로컬 테스트 환경은 명시적 `--workdir`로 지정할 수 있습니다.
+
+```sh
+sh scripts/supabase.sh --version
+python3 scripts/verify-supabase-cli.py
+# 로컬 DB가 기본 대상입니다. status는 운영 상태 확인 명령이 아닙니다.
+sh scripts/supabase.sh status
+# 운영 DB 읽기는 대상을 명시하며 읽기 전용으로 실행합니다.
+sh scripts/supabase.sh db query --remote=lvtdnrmwunahgwutafhv --read-only 'select current_database()'
+sh scripts/supabase.sh migration list --remote=lvtdnrmwunahgwutafhv
+```
+
+CLI 3에서 `db push/pull/dump`, `migration list`, `gen types`, Storage 명령은 **기본적으로 로컬**입니다. 원격은 `--remote=<project-ref>`로 지정합니다. 원격 변경은 대화형 확인이 필요하며 사전 검토·승인된 자동화에서만 `--yes`를 명시합니다. 파이프의 `y`나 `.env`의 `SUPABASE_YES`는 동의로 인정되지 않습니다. 원격 설정은 먼저 `sh scripts/supabase.sh config diff --remote=lvtdnrmwunahgwutafhv`로 비교합니다. 로컬 개발용 `config.toml` 전체를 운영에 push하지 않습니다. 현재 PR 품질 검사는 원격 DB에 배포하지 않습니다.
+
+CLI 버전은 개발 도구의 버전입니다. 브라우저의 `supabase-js` SDK 버전과 별개이며 CLI 변경만으로 운영 DB·Auth·Storage가 업그레이드되지는 않습니다. [공식 CLI 3 이전 안내](https://supabase.com/docs/guides/local-development/cli/migrating-to-v3).
 
 ## 논문 투고·심사
 

@@ -16,6 +16,16 @@ npm run dev
 
 ## 현재 범위
 
+전체 페이지 읽기 전용 호환성 검사(Python Playwright, Chromium·WebKit): 저장소 루트에서 실행합니다.
+페이지 목록은 `site/lib/pages.ts`에서 읽으며 1440px·390px, 기존 HTML/clean URL, API·공개 DB 조회,
+익명 접근 차단, 자산 일치, 메뉴·탭 키보드 동작을 검사합니다. 운영 계정으로 로그인하거나 신청·원고·메일을 생성하지 않습니다.
+이 검사는 인증 후 투고·심사·등록·문서 발급의 쓰기 생명주기를 대신하지 않습니다.
+
+```sh
+uv run --with playwright playwright install chromium webkit
+uv run --with playwright python scripts/verify-site-compatibility.py --base https://co-rnbd.org --output /tmp/co-rnbd-compatibility
+```
+
 - 행사명·목적·발표 분야·1박 2일 프로그램·CFP 요약·참가 안내
 - 국·영문 CFP 전문과 확정/가안 일정의 구분
 - 모바일 메뉴와 날짜별 프로그램 탭
@@ -38,7 +48,7 @@ Google OAuth 앱에 입력할 공개 문서: [개인정보처리방침](https://
 
 1. Vercel 프로젝트의 Root Directory를 `site/`, Framework Preset을 `Next.js`로 설정하고 `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`를 설정합니다. 이 두 값만 `/api/config`에서 공개합니다. 서비스 역할 키는 웹·Vercel 공개 환경변수에 넣지 않습니다.
 2. Supabase Auth의 Site URL을 `https://co-rnbd.org`로, 허용 Redirect URL에 `https://co-rnbd.org/submission.html`을 등록합니다. 이메일 제공자와 이메일 확인을 활성화하고, 본운영 전 전용 SMTP를 연결합니다. 이메일·비밀번호 가입, 로그인, 비밀번호 재설정 메일이 이 설정을 사용합니다. 기본 Supabase 발송 서비스는 테스트 용량이 제한됩니다.
-   인증 메일 4종의 제목과 HTML은 `supabase/config.toml` 및 `supabase/templates/`에 버전 관리하며, 운영 프로젝트의 Authentication → Emails에도 적용했습니다. `supabase/config.toml`에는 로컬 개발용 값(`auth.email.enable_confirmations = false` 등)이 포함되어 있습니다. 운영 프로젝트에 `supabase config push`를 실행하기 전에는 설정 전체를 운영 값과 비교해야 합니다.
+   인증 메일 4종의 제목과 HTML은 `supabase/config.toml` 및 `supabase/templates/`에 버전 관리하며, 운영 프로젝트의 Authentication → Emails에도 적용했습니다. `supabase/config.toml`에는 로컬 개발용 값(`auth.email.enable_confirmations = false` 등)이 포함되어 있습니다. CLI는 루트 [버전 기준과 실행 안내](../README.md#supabase-cli-3)를 따릅니다. 운영 설정을 변경하기 전에는 `sh scripts/supabase.sh config diff --remote=lvtdnrmwunahgwutafhv`로 전체 설정을 비교해야 합니다(저장소 루트에서 실행).
 3. Google Cloud OAuth 웹 앱을 만들고 Google 제공자 화면에 표시된 Supabase callback URL을 Google의 승인된 리다이렉트 URI에 등록합니다. Client ID/Secret은 Supabase Auth Providers의 Google 설정에만 입력합니다.
 4. Naver 개발자 앱에 Supabase 사용자 지정 provider의 callback URL을 등록합니다. Supabase Auth의 Custom OAuth Provider를 `custom:naver`로 만들고 Authorization URL `https://nid.naver.com/oauth2.0/authorize`, Token URL `https://nid.naver.com/oauth2.0/token`, UserInfo URL `https://co-rnbd.org/api/naver-userinfo`를 사용합니다. Naver 프로필의 중첩된 `response` 객체를 Next.js Route Handler가 표준 `sub`/`email`/`name`으로 변환합니다. Naver의 PKCE 지원 여부 및 토큰 교환 방식은 실제 앱 자격증명으로 확인해야 합니다. 제공자 설정이 지원하지 않으면 Naver 버튼은 열지 말고 별도 인증 어댑터를 검토합니다.
    로그인 검증이 끝나면 Vercel 환경변수 `NAVER_OAUTH_ENABLED=true`를 설정하고 다시 배포합니다. 그전에는 Naver 버튼이 비활성화됩니다. Google 버튼은 Supabase의 제공자 활성화 상태를 자동으로 따릅니다.
