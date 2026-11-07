@@ -207,8 +207,8 @@ async function refreshWorkspace(generation) {
   user = current;
   $('#recovery-panel').hidden = !isRecovery;
   $('#auth-panel').hidden = Boolean(user) || isRecovery;
-  $('#workspace').hidden = !user || isRecovery;
   if (!user || isRecovery) {
+    $('#workspace').hidden = true;
     $('#submission-operations-link').hidden = true;
     return;
   }
@@ -242,6 +242,11 @@ async function refreshWorkspace(generation) {
     return;
   }
   await Promise.all([loadMyPapers(), loadReviews()]);
+  // Do not accept input until the initial profile response has populated fields.
+  // A late load must also never reopen the workspace after signout/account change.
+  if (generation === workspaceGeneration && user?.id === current.id) {
+    $('#workspace').hidden = false;
+  }
 }
 
 function paperCard(paper, action, label) {

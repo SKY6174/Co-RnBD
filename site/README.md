@@ -16,6 +16,25 @@ npm run dev
 
 ## 현재 범위
 
+로그인 후 실제 저장 흐름은 별도 일회성 로컬 Supabase에서 검사합니다. 운영 `.env`나 원격 링크를
+복사하지 않고, 합성 계정 5개와 합성 원고·PDF·신청·납부 내역만 생성합니다. Docker와 CLI 3.0.0이 필요합니다.
+출력 폴더는 새 경로를 사용하고 Git에 올리지 않습니다. 다음 명령은 저장소 루트 기준입니다.
+
+```sh
+npm --prefix site ci
+npm --prefix site run build
+python3 scripts/prepare-lifecycle-env.py --output /tmp/co-rnbd-e2e-my-run
+uv run --with playwright playwright install chromium
+uv run --with playwright --with pymupdf --with pypdf python scripts/verify-authenticated-lifecycle.py --environment /tmp/co-rnbd-e2e-my-run
+```
+
+실제 Auth·RLS·Storage와 브라우저에서 프로필, 초안/PDF, 투고, 2인 심사, 수정·재투고·최종본 확인,
+참가 신청·확정·체크인, 발급기관·납부 저장, 문서 3종 발급·인쇄·취소를 검사합니다.
+결과는 출력 폴더의 `results.json`과 화면·합성 PDF에서 확인합니다. `.env.local-status.json`은 테스트용
+관리자 키가 포함된 비공개 파일이므로 공유하지 않습니다. 종료 시 준비 스크립트가 출력한 해당
+workdir의 `stop` 명령으로 **이번 테스트 프로젝트만** 중지합니다. `stop --all`은 사용하지 않습니다.
+메일은 로컬 메일함만 사용하며 Google/Naver 실제 OAuth와 외부 결제·메일 발송은 포함하지 않습니다.
+
 전체 페이지 읽기 전용 호환성 검사(Python Playwright, Chromium·WebKit): 저장소 루트에서 실행합니다.
 페이지 목록은 `site/lib/pages.ts`에서 읽으며 1440px·390px, 기존 HTML/clean URL, API·공개 DB 조회,
 익명 접근 차단, 자산 일치, 메뉴·탭 키보드 동작을 검사합니다. 운영 계정으로 로그인하거나 신청·원고·메일을 생성하지 않습니다.
