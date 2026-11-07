@@ -1,0 +1,28 @@
+# 분야별 편집위원 심사 — 설계 대조 및 검증
+
+2026-11-07. [설계](../02-design/features/field-editor-review.design.md), [PR #61](https://github.com/SKY6174/Co-RnBD/pull/61).
+
+| 요구사항 | 구현·검증 |
+| --- | --- |
+| 분야별 심사위원·AE 구성 | `review_committee` RLS, 위원장 명부 폼, 인증 계정 연결·활성 해제. 브라우저 저장 검증 통과 |
+| Chief editor의 심사 요청 | 현재 제출본에 활성 분야 심사위원 2인 배정. 일반 회원·AE의 배정 변경 차단 검증 통과 |
+| Accept / 수정 후 채택 / Reject + 의견 | 세 추천을 실제 계정과 브라우저에서 저장. 임시저장과 제출 구분 유지 |
+| AE 검토·저자 통보 | 두 심사 완료, 분야·현재 회차·비저자 조건을 private 판정 경계에서 재검증. 두 분야 AE 판정 통과 |
+| 저자 심사의견 열람 | 공개 판정 이후 현재 제출본의 추천·의견만 반환. 판정 전·타인 열람 차단 및 reviewer_id/email 비포함 검증 |
+| 수정본·재심 | 수정 요청 → 새 PDF·재투고 → 새 심사 2건 → 채택 통과. 과거 2건의 심사도 보존 |
+| 접근 권한·동시 변경 | 임의 원고 수정·운영 설정·다른 분야 판정·미완료 예외 우회·공동저자 AE·역할 회수·오래된 snapshot 차단 통과 |
+| 반응형 UI | 1440px/390px 위원 명부와 AE 상세 화면의 overflow 없음. 생성 PNG 직접 확인 |
+
+격리 로컬 Supabase의 실제 Auth/Postgres/Storage와 Chromium에서 **7개 검증 묶음 PASS**.
+`/tmp/co-rnbd-field-editor-test-20261107/editorial-results.json` 및 `committee-*.png`, `editor-accepted-*.png`에 결과를 보존했다.
+운영 자격증명·실제 논문·외부 메일은 사용하지 않았다. 새 migration 전체 적용과 롤백 전용 SQL도 로컬에서 검증했다.
+
+검증 중 수정본 저장 규칙 회귀를 발견해 기존 최신 guard를 보존하도록 수정했다. 원고 비동기 로딩 전 폼이
+노출되어 너무 빠른 제출이 무시될 수 있던 경로는 데이터 로딩 완료 후 폼을 표시하도록 수정했다.
+
+정적 검증: TypeScript, Next.js production build, legacy JS syntax, HTML ID 중복, diff check, CLI 호환성 모두 PASS.
+PR quality gate SUCCESS. Preview `co-rnbd-o0wvoatyb-ucsky6174.vercel.app` READY, HTML·JS·config HTTP 200 확인.
+Preview config가 운영 Supabase를 사용하므로 Preview 쓰기 검증은 하지 않았다.
+
+최종 운영 DB·마이그레이션·계정 명부·롤백 검증 및 production 배포 결과는 PR #61의 최종 검증 설명에서 확인한다.
+자동 메일·Google/Naver 실로그인은 이번 기능의 검증 범위에 포함하지 않는다.
