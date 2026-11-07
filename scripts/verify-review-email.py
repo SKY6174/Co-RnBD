@@ -66,7 +66,7 @@ class Collector(BaseHTTPRequestHandler):
                     RECEIPTS[key] = {'id': str(uuid.uuid4()), 'body': body}
                 REQUESTS.append(key)
                 # Emulate acceptance with a lost acknowledgment, then idempotent recovery.
-                family = 3 if '논문 투고 알림' in body['subject'] or '재제출 알림' in body['subject'] else 2 if '심사의견 제출 알림' in body['subject'] else 1
+                family = 4 if '접수 확인' in body['subject'] else 3 if '논문 투고 알림' in body['subject'] or '재제출 알림' in body['subject'] else 2 if '심사의견 제출 알림' in body['subject'] else 1
                 fail = family not in LOST_RESPONSES and '[테스트]' not in body['subject']
                 if fail:
                     LOST_RESPONSES.add(family)
@@ -122,7 +122,7 @@ try:
         time.sleep(.2)
     else:
         raise RuntimeError('Local mail API not ready')
-    sql("update app_private.review_email_config set paper_submitted_enabled=true,review_submitted_enabled=true,review_submitted_chair_ids=array(select id from auth.users where email='chief@example.test');")
+    sql("update app_private.review_email_config set author_receipt_enabled=true,paper_submitted_enabled=true,review_submitted_enabled=true,review_submitted_chair_ids=array(select id from auth.users where email='chief@example.test');")
     assert hook({})[0] == 400
     assert hook({'note': 'x' * 33000})[0] == 413
     event = {'version': 1, 'eventId': str(uuid.uuid4()), 'paperId': str(uuid.uuid4()), 'kind': 'decision', 'recipient': 'chief@example.test', 'recipientName': '합성 위원장', 'paperTitle': '합성 원고 <script>alert(1)</script>', 'conferenceTitle': 'Co-R&BD Conference 2026', 'editionYear': 2026, 'track': 'master_eng', 'decision': 'revision', 'note': '<img src=x onerror=alert(1)> 수정해 주세요.', 'test': True}
@@ -145,7 +145,16 @@ try:
         assert hook({**v3, 'note': 'PRIVATE ABSTRACT'})[0] == 400
         assert hook(v3)[0] == 200
         assert '&lt;script&gt;' in RECEIPTS['co-rnbd-review/' + v3['eventId']]['body']['html']
-    record('v1-v2-v3-hook-auth-input-limits-header-injection-HTML-escaping-provider-idempotency')
+    for kind in ['author_submission_receipt', 'author_resubmission_receipt']:
+        v4 = {**v3, 'version': 4, 'eventId': str(uuid.uuid4()), 'kind': kind, 'submissionEventId': str(uuid.uuid4())}
+        assert hook({**v4, 'version': 3})[0] == 400
+        assert hook({**v4, 'submissionEventId': 'bad'})[0] == 400
+        assert hook({**v4, 'note': 'PRIVATE REVIEW'})[0] == 400
+        assert hook(v4)[0] == 200
+        b = RECEIPTS['co-rnbd-review/' + v4['eventId']]['body']
+        assert '2026-11-08 00:00:00 KST' in b['text'] and '&lt;script&gt;' in b['html']
+        assert 'https://co-rnbd.org/submission.html' in b['text']
+    record('v1-v2-v3-v4-hook-auth-input-limits-header-injection-HTML-escaping-provider-idempotency')
     assert child.wait(timeout=240) == 0, 'Editorial browser workflow failed'
     for _ in range(20):
         if sql("select count(*) from app_private.review_email_outbox where status in ('queued','sending','retry')") == '0':
@@ -155,13 +164,13 @@ try:
     worker.join(timeout=5)
     assert not ERRORS, ERRORS
     rows = json.loads(sql("select json_agg(json_build_object('kind',kind,'status',status,'recipient',recipient_email,'attempts',attempts,'id',id,'review_id',review_id,'track',payload->>'track')) from app_private.review_email_outbox"))
-    assert len(rows) == 27, rows
+    assert len(rows) == 30, rows
     assert all(r['status'] == 'sent' for r in rows), rows
     assert sum(r['kind'] == 'reviewer_assignment' for r in rows) == 6
     assert {r['recipient'] for r in rows if r['kind'] == 'reviewer_assignment'} == {'reviewer1@example.test', 'reviewer2@example.test'}
     assert {r['recipient'] for r in rows if r['kind'] == 'decision'} == {'author@example.test'}
-    assert sum(r['attempts'] > 1 for r in rows) == 3 and LOST_RESPONSES == {1, 2, 3}
-    assert len(RECEIPTS) == 31 and len(REQUESTS) == 35
+    assert sum(r['attempts'] > 1 for r in rows) == 4 and LOST_RESPONSES == {1, 2, 3, 4}
+    assert len(RECEIPTS) == 36 and len(REQUESTS) == 41
     assert all('reviewer1' not in r['body']['text'] and 'reviewer2' not in r['body']['text'] for r in RECEIPTS.values() if r['body']['to'] == ['author@example.test'])
     submitted = [r for r in rows if r['kind'] == 'review_submitted']
     assert len(submitted) == 12
@@ -186,7 +195,14 @@ try:
                 b = RECEIPTS['co-rnbd-review/' + r['id']]['body']
                 assert 'https://co-rnbd.org/chair.html' in b['text'] and not b.get('attachments')
                 assert ('수정본 재제출 알림' if kind == 'paper_resubmitted' else '신규 논문 투고 알림') in b['subject']
-    record('twenty-seven-workflow-events-paper-and-review-recipients-all-version-idempotent-retries')
+    author_receipts = [r for r in rows if r['kind'] in ['author_submission_receipt', 'author_resubmission_receipt']]
+    assert len(author_receipts) == 3 and sum(r['kind'] == 'author_resubmission_receipt' for r in author_receipts) == 1
+    assert {r['recipient'] for r in author_receipts} == {'author@example.test'}
+    for r in author_receipts:
+        b = RECEIPTS['co-rnbd-review/' + r['id']]['body']
+        assert '접수 확인' in b['subject'] and '접수 시각:' in b['text'] and ' KST' in b['text']
+        assert 'https://co-rnbd.org/submission.html' in b['text']
+    record('thirty-workflow-events-owner-editor-review-notices-and-all-version-idempotent-retries')
     chief = sql("select id from auth.users where email='chief@example.test'")
     author = sql("select id from auth.users where email='author@example.test'")
     pid = sql("select id from public.papers where track='master_eng'")
@@ -233,6 +249,9 @@ try:
     sql((ROOT / 'scripts/verify-paper-submitted.sql').read_text())
     assert sql('select count(*) from app_private.review_email_outbox') == count_before
     record('initial-revision-draft-failure-replay-pause-role-snapshot-rollback-checks')
+    sql((ROOT / 'scripts/verify-author-receipt.sql').read_text())
+    assert sql('select count(*) from app_private.review_email_outbox') == count_before
+    record('owner-not-contact-coauthors-historical-proof-flags-email-ownership-rollback-checks')
     record('all-mail-left-local-db-only-and-no-live-provider-credentials')
     (OUT / 'email-results.json').write_text(json.dumps({'status': 'PASS', 'checks': CHECKS, 'events': rows, 'provider_receipts': len(RECEIPTS), 'requests': len(REQUESTS)}, ensure_ascii=False, indent=2))
 finally:

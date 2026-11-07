@@ -39,7 +39,7 @@ begin
   assert (select count(*) from app_private.review_email_outbox where paper_id=fixture and kind='paper_submitted')=2,'Event replay duplicated receipt';
   perform set_config('request.jwt.claim.sub',chief_id::text,true);
   update public.papers set abstract=abstract||' saved' where id=fixture;
-  assert (select count(*) from app_private.review_email_outbox where paper_id=fixture)=2,'Metadata save generated receipt';
+  assert (select count(*) from app_private.review_email_outbox where paper_id=fixture and kind='paper_submitted')=2,'Metadata save generated receipt';
 
   -- A newly eligible address would receive a replay if the disabled flag were ignored.
   insert into public.review_committee(edition_year,track,committee_role,display_name,email) values(2026,'master_eng','associate_editor','Extra AE fixture','outsider@example.test');
@@ -73,7 +73,7 @@ begin
   perform app_private.process_review_email_queue();
   assert (select status='queued' from app_private.review_email_outbox where id=qid),'Paused paper mail dispatched';
   perform set_config('request.jwt.claim.sub',chief_id::text,true);
-  assert not(select bool_or(enabled) from public.review_email_status(fixture)),'Status RPC misreported paused paper mail';
+  assert not(select bool_or(enabled) from public.review_email_status(fixture) where kind in ('paper_submitted','paper_resubmitted')),'Status RPC misreported paused paper mail';
   update app_private.review_email_config set paper_submitted_enabled=true;
   update public.review_committee set active=false where email='reviewer1@example.test' and track='master_eng' and committee_role='associate_editor';
   perform app_private.process_review_email_queue();
