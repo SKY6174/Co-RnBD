@@ -214,3 +214,18 @@ uv run --with playwright --with pymupdf python scripts/verify-review-email.py --
 기본 `paper_submitted_enabled=false`입니다. migration → v3 지원 production 배포 → 기존 위원장 수신자
 확인 후 이 flag만 true로 켭니다. 중지/롤백은 이 flag를 false로 한 뒤 이전 배포를 복원합니다.
 새 두 kind 대기열을 보존하며 기존 배정·판정·심사의견 제출 알림은 계속 처리합니다.
+
+
+## 투고자 접수 확인 메일
+
+`20261107160147_author_receipt_notifications.sql`은 신규 투고·수정본 재제출이 완료되면 원고 소유자의
+인증된 로그인 이메일로 각각 접수 확인을 보냅니다. 연락 이메일·공동저자 전체에 보내지 않습니다.
+제목·접수번호·분야·해당 접수 시각(KST)·내 원고 링크를 안내하며 PDF·초록·심사 결과를 넣지 않습니다.
+
+과거의 정상 제출 이벤트를 대조하므로 이후 판정·재제출이 있어도 해당 제출본의 접수 확인은 유효합니다.
+소유권/인증 주소 변경이나 제출 증거 삭제·불일치는 취소합니다. 같은 제출본 이벤트 replay는 한 통으로
+합칩니다. 초안·임시저장·실패한 제출은 접수 확인 대상이 아닙니다. 새 trigger는 enqueue만 합니다.
+
+기본 `author_receipt_enabled=false`이며 migration → v4 서버 배포 후 true로 켭니다. 기존 편집자 알림과
+독립적이고 기존 dispatcher/cron이 처리합니다. 중지/롤백은 새 flag=false와 이전 배포 복원으로 진행하며
+큐/접수 기록을 보존합니다. 키·SMTP·운영 단계를 재설정하지 않습니다.
