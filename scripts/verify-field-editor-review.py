@@ -167,7 +167,8 @@ def flow(browser):
         page.locator('#auth-email').fill(ACTORS[role]['email'])
         page.locator('#auth-password').fill(PASSWORD)
         page.locator('#email-auth-form button[type=submit]').click()
-        expect(page.locator('#workspace')).to_be_visible()
+        # A successful auth response still needs the user/role/profile requests to finish.
+        expect(page.locator('#workspace')).to_be_visible(timeout=15000)
         TOKENS[role] = page.evaluate("JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.endsWith('-auth-token')))).access_token")
         page.locator('[data-tab=profile]').click()
         page.locator('#profile-name').fill('합성 ' + role)
