@@ -576,7 +576,13 @@ $('#email-auth-form').addEventListener('submit', async (event) => {
   const email = $('#auth-email').value.trim().toLowerCase();
   const password = $('#auth-password').value;
   try {
-    check(await client.auth.signInWithPassword({ email, password }));
+    const signedIn = check(await client.auth.signInWithPassword({ email, password }));
+    // Discard an anonymous/old-account load that was in flight during sign-in.
+    // Set the known identity before queued SIGNED_IN callbacks compare users.
+    workspaceGeneration++;
+    workspaceLoad = null;
+    user = signedIn.user;
+    $('#workspace').hidden = true;
     await loadWorkspace();
     message('로그인했습니다.');
   } catch (error) { message(error.message || '이메일 인증을 완료하지 못했습니다.', true); }

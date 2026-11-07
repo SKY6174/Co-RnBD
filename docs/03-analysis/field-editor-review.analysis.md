@@ -19,10 +19,16 @@
 
 검증 중 수정본 저장 규칙 회귀를 발견해 기존 최신 guard를 보존하도록 수정했다. 원고 비동기 로딩 전 폼이
 노출되어 너무 빠른 제출이 무시될 수 있던 경로는 데이터 로딩 완료 후 폼을 표시하도록 수정했다.
+로그인 완료 시 이전 익명/다른 계정의 진행 중인 로드를 무효화하고 새 검증 로드를 시작하도록 보완했다.
 
 정적 검증: TypeScript, Next.js production build, legacy JS syntax, HTML ID 중복, diff check, CLI 호환성 모두 PASS.
 PR quality gate SUCCESS. Preview `co-rnbd-o0wvoatyb-ucsky6174.vercel.app` READY, HTML·JS·config HTTP 200 확인.
 Preview config가 운영 Supabase를 사용하므로 Preview 쓰기 검증은 하지 않았다.
 
-최종 운영 DB·마이그레이션·계정 명부·롤백 검증 및 production 배포 결과는 PR #61의 최종 검증 설명에서 확인한다.
+운영 `20261107133453` 적용 및 지정 계정 명부 12행 연결 완료. 실제 세 계정의 권한으로
+롤백 전용 SQL 검증 PASS. 확인 당시 운영 논문·심사·PDF는 각각 0건이며 합성 기록은 남기지 않았다.
+`review_committee` RLS 활성, 신규 공개 RPC의 anon 실행 금지 확인. 테스트위원2의 빈 프로필에 승인된
+임시 소속·전문분야를 적용했다. 보안 advisory는 기존 회차 관리 함수 2건만 유지되고 신규 경고는 없다.
+[기존 advisory 안내](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable).
+최종 전체 회귀 및 production 배포 결과는 PR #61의 최종 검증 설명에서 확인한다.
 자동 메일·Google/Naver 실로그인은 이번 기능의 검증 범위에 포함하지 않는다.
