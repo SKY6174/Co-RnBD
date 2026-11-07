@@ -103,11 +103,7 @@ threading.Thread(target=collector.serve_forever, daemon=True).start()
 worker = threading.Thread(target=reconcile, daemon=True)
 child = None
 try:
-    # Apply the final edited migration transactionally to this fresh local project.
-    # prepare-lifecycle-env already applied it, so replace only the worker function.
-    migration = (ROOT / 'supabase/migrations/20261107142850_review_email_notifications.sql').read_text()
-    worker_sql = migration.split('create function app_private.process_review_email_queue()')[1].split('revoke all on function app_private.process_review_email_queue()')[0]
-    sql('create or replace function app_private.process_review_email_queue()' + worker_sql)
+    # The disposable environment has applied every repository migration.
     sql("select vault.create_secret('" + TOKEN + "','review_email_webhook_token'); update app_private.review_email_config set enabled=true,endpoint='http://host.docker.internal:8786/api/review-notifications';")
     assert sql("select count(*) from cron.job where jobname='co-rnbd-review-email' and active") == '1'
     env = {k: v for k, v in os.environ.items() if not k.startswith(('SUPABASE_', 'PG', 'S3_', 'OPENAI_', 'VERCEL'))}
@@ -125,6 +121,7 @@ try:
         time.sleep(.2)
     else:
         raise RuntimeError('Local mail API not ready')
+    sql("update app_private.review_email_config set review_submitted_enabled=true,review_submitted_chair_ids=array(select id from auth.users where email='chief@example.test');")
     assert hook({})[0] == 400
     assert hook({'note': 'x' * 33000})[0] == 413
     event = {'version': 1, 'eventId': str(uuid.uuid4()), 'paperId': str(uuid.uuid4()), 'kind': 'decision', 'recipient': 'chief@example.test', 'recipientName': '합성 위원장', 'paperTitle': '합성 원고 <script>alert(1)</script>', 'conferenceTitle': 'Co-R&BD Conference 2026', 'editionYear': 2026, 'track': 'master_eng', 'decision': 'revision', 'note': '<img src=x onerror=alert(1)> 수정해 주세요.', 'test': True}
@@ -135,7 +132,12 @@ try:
     assert '<script>' not in body['html'] and '<img src=x' not in body['html']
     assert '&lt;script&gt;' in body['html'] and '&lt;img' in body['html']
     assert '실제 원고 배정·판정·수정 요청이 아니며' in body['text']
-    record('hook-auth-input-limits-header-injection-HTML-escaping-provider-idempotency')
+    v2 = {**event, 'version': 2, 'eventId': str(uuid.uuid4()), 'kind': 'review_submitted', 'reviewId': str(uuid.uuid4()), 'reviewFingerprint': '0' * 32, 'note': ''}
+    assert hook({**v2, 'version': 1})[0] == 400
+    assert hook({**v2, 'note': 'PRIVATE REVIEW CONTENT'})[0] == 400
+    assert hook(v2)[0] == 200
+    assert '&lt;script&gt;' in RECEIPTS['co-rnbd-review/' + v2['eventId']]['body']['html']
+    record('v1-v2-hook-auth-input-limits-header-injection-HTML-escaping-provider-idempotency')
     assert child.wait(timeout=240) == 0, 'Editorial browser workflow failed'
     for _ in range(20):
         if sql("select count(*) from app_private.review_email_outbox where status in ('queued','sending','retry')") == '0':
@@ -144,16 +146,27 @@ try:
     STOP.set()
     worker.join(timeout=5)
     assert not ERRORS, ERRORS
-    rows = json.loads(sql("select json_agg(json_build_object('kind',kind,'status',status,'recipient',recipient_email,'attempts',attempts,'id',id)) from app_private.review_email_outbox"))
-    assert len(rows) == 9, rows
+    rows = json.loads(sql("select json_agg(json_build_object('kind',kind,'status',status,'recipient',recipient_email,'attempts',attempts,'id',id,'review_id',review_id,'track',payload->>'track')) from app_private.review_email_outbox"))
+    assert len(rows) == 21, rows
     assert all(r['status'] == 'sent' for r in rows), rows
     assert sum(r['kind'] == 'reviewer_assignment' for r in rows) == 6
     assert {r['recipient'] for r in rows if r['kind'] == 'reviewer_assignment'} == {'reviewer1@example.test', 'reviewer2@example.test'}
     assert {r['recipient'] for r in rows if r['kind'] == 'decision'} == {'author@example.test'}
     assert sum(r['attempts'] > 1 for r in rows) == 1 and LOST_RESPONSE
-    assert len(RECEIPTS) == 10 and len(REQUESTS) == 12
+    assert len(RECEIPTS) == 23 and len(REQUESTS) == 25
     assert all('reviewer1' not in r['body']['text'] and 'reviewer2' not in r['body']['text'] for r in RECEIPTS.values() if r['body']['to'] == ['author@example.test'])
-    record('nine-real-workflow-events-correct-recipients-rollback-free-idempotent-retry')
+    submitted = [r for r in rows if r['kind'] == 'review_submitted']
+    assert len(submitted) == 12
+    for rid in {r['review_id'] for r in submitted}:
+        notifications = [r for r in submitted if r['review_id'] == rid]
+        assert len(notifications) == 2
+        ae = 'reviewer1@example.test' if notifications[0]['track'] == 'master_eng' else 'reviewer2@example.test'
+        assert {r['recipient'] for r in notifications} == {'chief@example.test', ae}, notifications
+        for r in notifications:
+            body = RECEIPTS['co-rnbd-review/' + r['id']]['body']
+            assert '심사의견 제출 알림' in body['subject'] and 'https://co-rnbd.org/chair.html' in body['text']
+            assert '합성 심사의견:' not in body['text']
+    record('twenty-one-workflow-events-field-AE-chief-recipients-and-v1-idempotent-retry')
     chief = sql("select id from auth.users where email='chief@example.test'")
     author = sql("select id from auth.users where email='author@example.test'")
     pid = sql("select id from public.papers where track='master_eng'")
@@ -193,6 +206,10 @@ try:
     ae = sql("select id from auth.users where email='reviewer1@example.test'")
     sql("begin; update public.review_committee set active=true where committee_role='associate_editor' and track='master_eng'; set local role authenticated; select set_config('request.jwt.claim.sub','" + ae + "',true); select * from public.review_email_status('" + pid + "'); rollback;")
     record('stale-assignment-decision-address-cutoff-attempt-limit-4xx-429-lease-and-AE-status-access')
+    count_before = sql('select count(*) from app_private.review_email_outbox')
+    sql((ROOT / 'scripts/verify-review-submitted.sql').read_text())
+    assert sql('select count(*) from app_private.review_email_outbox') == count_before
+    record('draft-identical-edited-submissions-role-conflict-dedupe-and-obsolete-rollback-checks')
     record('all-mail-left-local-db-only-and-no-live-provider-credentials')
     (OUT / 'email-results.json').write_text(json.dumps({'status': 'PASS', 'checks': CHECKS, 'events': rows, 'provider_receipts': len(RECEIPTS), 'requests': len(REQUESTS)}, ensure_ascii=False, indent=2))
 finally:

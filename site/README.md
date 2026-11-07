@@ -155,7 +155,7 @@ uv run --with playwright --with pymupdf python scripts/verify-field-editor-revie
 불명확한 요청을 자동 재전송하지 않습니다. 철회/거절/새 제출본/새 판정/수신 주소 변경으로 오래된
 대기 요청은 취소합니다. 이미 서비스가 접수한 메일은 회수할 수 없습니다.
 
-수신자는 심사 배정 계정 또는 원고 소유자의 **인증된 로그인 이메일**입니다. 임의 연락 이메일이나
+배정·판정 수신자는 심사 배정 계정 또는 원고 소유자의 **인증된 로그인 이메일**입니다. 임의 연락 이메일이나
 공동저자 전체에 보내지 않습니다. PDF·서명 URL·심사위원 신원은 보내지 않습니다. 위원장과 유효한
 담당 AE만 원고 상세의 **이메일 알림 처리 상태**를 볼 수 있습니다. ‘발송 서비스 접수 완료’는 수신함
 도착 확인이 아닙니다. 실패·불확실 상태는 운영자가 provider 기록을 확인한 뒤 처리해야 합니다.
@@ -183,3 +183,19 @@ uv run --with playwright --with pymupdf python scripts/verify-field-editor-revie
 ```sh
 uv run --with playwright --with pymupdf python scripts/verify-review-email.py --environment /tmp/co-rnbd-email-new-run
 ```
+
+
+## 심사의견 제출 → AE·심사위원장 알림
+
+`20261107150629_review_submitted_notifications.sql`은 실제 최초 제출 및 제출 후 의견·추천 변경 시
+담당 분야의 유효한 AE와 알림 수신으로 지정한 심사위원장에게 개별 통보합니다. 임시저장과 같은 내용
+재저장은 제외하며 겸임 계정은 같은 이벤트에 한 통만 받습니다. 심사 본문·추천·심사위원 신원은 메일에
+넣지 않으며 `/chair.html`에서 확인합니다. 현재 회차·분야·인증·AE 이해관계와 발송 직전 권한을 검사합니다.
+
+새 알림은 기본 비활성입니다. migration → v2 메일을 지원하는 production 배포 후 관리자 권한으로
+`app_private.review_email_config.review_submitted_chair_ids`에 실제 chair 권한 계정의 UUID 목록을 넣고
+`review_submitted_enabled=true`로 켭니다. 심사위원장 권한이 있다는 이유만으로 모든 계정에 발송하지 않습니다.
+수신 계정을 바꾸면 해당 목록과 staff_roles를 함께 확인합니다. 기존 enabled 설정과 키를 재사용합니다.
+
+새 알림만 중지/롤백하려면 `review_submitted_enabled=false`로 바꾼 뒤 이전 배포를 복원합니다.
+새 kind 대기 요청은 보존·정지되며 기존 배정·판정 큐는 계속 처리합니다. 이미 접수한 메일은 회수할 수 없습니다.

@@ -136,7 +136,7 @@ function renderEmailStatus(result) {
   const states={queued:'발송 대기',sending:'발송 처리 중',retry:'자동 재시도 대기',sent:'발송 서비스 접수 완료',failed:'발송 실패 · 운영자 확인 필요',cancelled:'후속 발송 취소',uncertain:'처리 결과 불확실 · 자동 재전송 중지'};
   if(result.error){$('#chair-email-status').textContent='이메일 처리 상태를 불러오지 못했습니다. 새로고침해 주세요.';return;}
   const rows=result.data||[];
-  $('#chair-email-status').innerHTML=rows.length?'<ul class="chair-author-list">'+rows.map(row=>`<li><strong>${row.kind==='reviewer_assignment'?'심사 배정 요청':'판정·수정 요청'} · ${esc(states[row.status]||row.status)}</strong><br>${esc(row.recipient_email||'인증된 수신 주소 없음')} · ${esc(date(row.sent_at||row.created_at))}<br><small>시도 ${row.attempts}회${!row.enabled&&['queued','retry'].includes(row.status)?' · 자동 발송 설정 대기':''}${row.last_error?' · 처리 코드 '+esc(row.last_error):''}</small></li>`).join('')+'</ul>':'아직 이메일 알림 내역이 없습니다.';
+  $('#chair-email-status').innerHTML=rows.length?'<ul class="chair-author-list">'+rows.map(row=>`<li><strong>${({reviewer_assignment:'심사 배정 요청',decision:'판정·수정 요청',review_submitted:'심사의견 제출 알림'})[row.kind]||'이메일 알림'} · ${esc(states[row.status]||row.status)}</strong><br>${esc(row.recipient_email||'인증된 수신 주소 없음')} · ${esc(date(row.sent_at||row.created_at))}<br><small>시도 ${row.attempts}회${!row.enabled&&['queued','retry'].includes(row.status)?' · 자동 발송 설정 대기':''}${row.last_error?' · 처리 코드 '+esc(row.last_error):''}</small></li>`).join('')+'</ul>':'아직 이메일 알림 내역이 없습니다.';
 }
 async function openPaper(id,focus=true) {
   selectedId=id;selectedPaper=null;pendingDecision=null;
