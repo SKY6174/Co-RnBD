@@ -26,6 +26,14 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: site/package-lock.json
+      - name: Read pinned Supabase CLI version
+        id: supabase-version
+        run: echo "version=$(cat .supabase-cli-version)" >> "$GITHUB_OUTPUT"
+      - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
+        with:
+          version: ${{ steps.supabase-version.outputs.version }}
+      - name: Check Supabase CLI compatibility (offline)
+        run: python3 scripts/verify-supabase-cli.py
       - run: npm ci --include=dev --include=optional --prefer-offline --no-audit
         working-directory: site
       - run: npm audit --omit=dev --audit-level=high
