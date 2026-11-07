@@ -132,6 +132,12 @@ function eventDetail(event) {
   if(event.action==='final_checked') { const f=selected()?.paper_files.find(f=>f.id===a.file_id);return f?`최종본 v${f.version} 확인`:'최종본 확인'; }
   return `${STATUS[b.status]||b.status||''} → ${STATUS[a.status]||a.status||''}`;
 }
+function renderEmailStatus(result) {
+  const states={queued:'발송 대기',sending:'발송 처리 중',retry:'자동 재시도 대기',sent:'발송 서비스 접수 완료',failed:'발송 실패 · 운영자 확인 필요',cancelled:'후속 발송 취소',uncertain:'처리 결과 불확실 · 자동 재전송 중지'};
+  if(result.error){$('#chair-email-status').textContent='이메일 처리 상태를 불러오지 못했습니다. 새로고침해 주세요.';return;}
+  const rows=result.data||[];
+  $('#chair-email-status').innerHTML=rows.length?'<ul class="chair-author-list">'+rows.map(row=>`<li><strong>${row.kind==='reviewer_assignment'?'심사 배정 요청':'판정·수정 요청'} · ${esc(states[row.status]||row.status)}</strong><br>${esc(row.recipient_email||'인증된 수신 주소 없음')} · ${esc(date(row.sent_at||row.created_at))}<br><small>시도 ${row.attempts}회${!row.enabled&&['queued','retry'].includes(row.status)?' · 자동 발송 설정 대기':''}${row.last_error?' · 처리 코드 '+esc(row.last_error):''}</small></li>`).join('')+'</ul>':'아직 이메일 알림 내역이 없습니다.';
+}
 async function openPaper(id,focus=true) {
   selectedId=id;selectedPaper=null;pendingDecision=null;
   const request=++detailRequest;
@@ -139,11 +145,13 @@ async function openPaper(id,focus=true) {
   notice('원고와 최신 심사 의견을 불러오고 있습니다.');
   let p, events;
   try {
-    const [paperResult, history]=await Promise.all([
+    const [paperResult, history, mailResult]=await Promise.all([
       client.from('papers').select('*,paper_authors(*),reviews(*),paper_files(*),paper_final_checks(*)').eq('id',id).eq('edition_year',edition.year).neq('status','draft').not('submitted_at','is',null).single(),
       allRows(()=>client.from('paper_events').select('*').eq('paper_id',id).order('created_at',{ascending:false}).order('id')),
+      client.rpc('review_email_status',{p_id:id}),
     ]);
     p=data(paperResult);events=history;
+    renderEmailStatus(mailResult);
   } catch(error) {
     if(request!==detailRequest)return;
     selectedId=null;$('#chair-overview').hidden=false;
@@ -181,7 +189,7 @@ document.querySelectorAll('#chair-refresh,#chair-detail-refresh').forEach(button
 $('#chair-stats').addEventListener('click',event=>{const el=event.target.closest('[data-filter]');if(el){$('#chair-status-filter').value=el.dataset.filter;renderList();}});
 $('#chair-rows').addEventListener('click',event=>{const el=event.target.closest('[data-open]');if(el)run(()=>openPaper(el.dataset.open));});
 $('#chair-files').addEventListener('click',event=>{const el=event.target.closest('[data-file]');if(!el)return;run(async()=>{const file=selected()?.paper_files.find(f=>f.id===el.dataset.file);if(!file)throw Error('파일을 찾을 수 없습니다.');const link=data(await client.storage.from('paper-pdfs').createSignedUrl(file.storage_path,60));window.open(link.signedUrl,'_blank','noopener,noreferrer');});});
-$('#chair-assignment-form').addEventListener('submit',event=>{event.preventDefault();run(async()=>{data(await client.rpc('chair_assign_reviewer',{p_paper_id:selectedId,p_reviewer_id:$('#chair-reviewer').value,p_replace_review_id:$('#chair-replace').value||null,p_reason:$('#chair-replace-reason').value.trim()}));await reloadDetail();notice('심사위원 배정과 원고 상태를 저장했습니다. 처리 이력에 기록되었습니다.');});});
+$('#chair-assignment-form').addEventListener('submit',event=>{event.preventDefault();run(async()=>{data(await client.rpc('chair_assign_reviewer',{p_paper_id:selectedId,p_reviewer_id:$('#chair-reviewer').value,p_replace_review_id:$('#chair-replace').value||null,p_reason:$('#chair-replace-reason').value.trim()}));await reloadDetail();notice('심사위원 배정과 원고 상태를 저장했습니다. 이메일 알림 처리 상태를 확인해 주세요.');});});
 $('#desk-decision').addEventListener('change',()=>{$('#chair-accepted-fields').hidden=$('#desk-decision').value!=='accepted';});
 $('#desk-session').addEventListener('change',()=>{const value=$('#desk-session').value;if(value)$('#desk-presentation').value=value.startsWith('oral')?'oral':'poster';});
 $('#desk-presentation').addEventListener('change',()=>{const value=$('#desk-presentation').value,s=$('#desk-session').value;if((s.startsWith('oral')&&value!=='oral')||(s==='poster_1'&&value!=='poster'))$('#desk-session').value='';});
@@ -193,7 +201,7 @@ $('#chair-decision-form').addEventListener('submit',event=>{
   $('#chair-publish-paper').textContent=p.title;$('#chair-publish-status').textContent=STATUS[pendingDecision.p_status];$('#chair-publish-note').textContent=pendingDecision.p_note;$('#chair-publish-exception').textContent=pendingDecision.p_exception_reason?'예외 사유: '+pendingDecision.p_exception_reason:'';$('#chair-publish-dialog').showModal();
 });
 $('#chair-publish-cancel').addEventListener('click',()=>{$('#chair-publish-dialog').close();pendingDecision=null;});
-$('#chair-publish-confirm').addEventListener('click',()=>run(async()=>{if(!pendingDecision)return;data(await client.rpc('chair_publish_decision',pendingDecision));pendingDecision=null;$('#chair-publish-dialog').close();await reloadDetail();notice('판정을 확정하고 저자 포털에 공개했습니다. 이메일은 발송하지 않았습니다.');}));
+$('#chair-publish-confirm').addEventListener('click',()=>run(async()=>{if(!pendingDecision)return;data(await client.rpc('chair_publish_decision',pendingDecision));pendingDecision=null;$('#chair-publish-dialog').close();await reloadDetail();notice('판정을 확정하고 저자 포털에 공개했습니다. 이메일 알림 처리 상태를 확인해 주세요.');}));
 $('#chair-final-form').addEventListener('submit',event=>{event.preventDefault();run(async()=>{const p=selected(),file=latestFinal(p);data(await client.from('paper_final_checks').upsert({paper_id:p.id,file_id:file.id,checked_by:user.id},{onConflict:'paper_id'}).select('paper_id').single());await reloadDetail();notice(`최종본 v${file.version} 확인 완료를 기록했습니다.`);});});
 $('#committee-form').addEventListener('submit',event=>{event.preventDefault();run(async()=>{
   data(await client.from('review_committee').upsert({edition_year:edition.year,track:$('#committee-track').value,committee_role:$('#committee-role').value,display_name:$('#committee-name').value.trim(),email:$('#committee-email').value.trim().toLowerCase(),active:true},{onConflict:'edition_year,track,email,committee_role'}));
