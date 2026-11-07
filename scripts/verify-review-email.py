@@ -29,7 +29,7 @@ assert not (Path(META['local']) / 'supabase/.temp/project-ref').exists()
 TOKEN = secrets.token_urlsafe(48)
 RECEIPTS, REQUESTS, ERRORS, CHECKS = {}, [], [], []
 LOCK = threading.Lock()
-LOST_RESPONSE = False
+LOST_RESPONSES = set()
 STOP = threading.Event()
 
 
@@ -50,7 +50,7 @@ class Collector(BaseHTTPRequestHandler):
         pass
 
     def do_POST(self):
-        global LOST_RESPONSE
+        global LOST_RESPONSES
         try:
             assert self.path == '/emails'
             body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
@@ -66,9 +66,10 @@ class Collector(BaseHTTPRequestHandler):
                     RECEIPTS[key] = {'id': str(uuid.uuid4()), 'body': body}
                 REQUESTS.append(key)
                 # Emulate acceptance with a lost acknowledgment, then idempotent recovery.
-                fail = not LOST_RESPONSE and '[테스트]' not in body['subject']
+                family = 3 if '논문 투고 알림' in body['subject'] or '재제출 알림' in body['subject'] else 2 if '심사의견 제출 알림' in body['subject'] else 1
+                fail = family not in LOST_RESPONSES and '[테스트]' not in body['subject']
                 if fail:
-                    LOST_RESPONSE = True
+                    LOST_RESPONSES.add(family)
                 result = {'id': RECEIPTS[key]['id']}
             self.send_response(503 if fail else 200)
             self.send_header('Content-Type', 'application/json')
@@ -121,7 +122,7 @@ try:
         time.sleep(.2)
     else:
         raise RuntimeError('Local mail API not ready')
-    sql("update app_private.review_email_config set review_submitted_enabled=true,review_submitted_chair_ids=array(select id from auth.users where email='chief@example.test');")
+    sql("update app_private.review_email_config set paper_submitted_enabled=true,review_submitted_enabled=true,review_submitted_chair_ids=array(select id from auth.users where email='chief@example.test');")
     assert hook({})[0] == 400
     assert hook({'note': 'x' * 33000})[0] == 413
     event = {'version': 1, 'eventId': str(uuid.uuid4()), 'paperId': str(uuid.uuid4()), 'kind': 'decision', 'recipient': 'chief@example.test', 'recipientName': '합성 위원장', 'paperTitle': '합성 원고 <script>alert(1)</script>', 'conferenceTitle': 'Co-R&BD Conference 2026', 'editionYear': 2026, 'track': 'master_eng', 'decision': 'revision', 'note': '<img src=x onerror=alert(1)> 수정해 주세요.', 'test': True}
@@ -137,7 +138,14 @@ try:
     assert hook({**v2, 'note': 'PRIVATE REVIEW CONTENT'})[0] == 400
     assert hook(v2)[0] == 200
     assert '&lt;script&gt;' in RECEIPTS['co-rnbd-review/' + v2['eventId']]['body']['html']
-    record('v1-v2-hook-auth-input-limits-header-injection-HTML-escaping-provider-idempotency')
+    for kind in ['paper_submitted', 'paper_resubmitted']:
+        v3 = {**event, 'version': 3, 'eventId': str(uuid.uuid4()), 'kind': kind, 'manuscriptAt': '2026-11-08T00:00:00.000+09:00', 'note': ''}
+        assert hook({**v3, 'version': 2})[0] == 400
+        assert hook({**v3, 'manuscriptAt': 'not-a-date'})[0] == 400
+        assert hook({**v3, 'note': 'PRIVATE ABSTRACT'})[0] == 400
+        assert hook(v3)[0] == 200
+        assert '&lt;script&gt;' in RECEIPTS['co-rnbd-review/' + v3['eventId']]['body']['html']
+    record('v1-v2-v3-hook-auth-input-limits-header-injection-HTML-escaping-provider-idempotency')
     assert child.wait(timeout=240) == 0, 'Editorial browser workflow failed'
     for _ in range(20):
         if sql("select count(*) from app_private.review_email_outbox where status in ('queued','sending','retry')") == '0':
@@ -147,13 +155,13 @@ try:
     worker.join(timeout=5)
     assert not ERRORS, ERRORS
     rows = json.loads(sql("select json_agg(json_build_object('kind',kind,'status',status,'recipient',recipient_email,'attempts',attempts,'id',id,'review_id',review_id,'track',payload->>'track')) from app_private.review_email_outbox"))
-    assert len(rows) == 21, rows
+    assert len(rows) == 27, rows
     assert all(r['status'] == 'sent' for r in rows), rows
     assert sum(r['kind'] == 'reviewer_assignment' for r in rows) == 6
     assert {r['recipient'] for r in rows if r['kind'] == 'reviewer_assignment'} == {'reviewer1@example.test', 'reviewer2@example.test'}
     assert {r['recipient'] for r in rows if r['kind'] == 'decision'} == {'author@example.test'}
-    assert sum(r['attempts'] > 1 for r in rows) == 1 and LOST_RESPONSE
-    assert len(RECEIPTS) == 23 and len(REQUESTS) == 25
+    assert sum(r['attempts'] > 1 for r in rows) == 3 and LOST_RESPONSES == {1, 2, 3}
+    assert len(RECEIPTS) == 31 and len(REQUESTS) == 35
     assert all('reviewer1' not in r['body']['text'] and 'reviewer2' not in r['body']['text'] for r in RECEIPTS.values() if r['body']['to'] == ['author@example.test'])
     submitted = [r for r in rows if r['kind'] == 'review_submitted']
     assert len(submitted) == 12
@@ -166,7 +174,19 @@ try:
             body = RECEIPTS['co-rnbd-review/' + r['id']]['body']
             assert '심사의견 제출 알림' in body['subject'] and 'https://co-rnbd.org/chair.html' in body['text']
             assert '합성 심사의견:' not in body['text']
-    record('twenty-one-workflow-events-field-AE-chief-recipients-and-v1-idempotent-retry')
+    receipts = [r for r in rows if r['kind'] in ['paper_submitted', 'paper_resubmitted']]
+    assert len(receipts) == 6 and sum(r['kind'] == 'paper_resubmitted' for r in receipts) == 2
+    for kind in ['paper_submitted', 'paper_resubmitted']:
+        for track in {r['track'] for r in receipts if r['kind'] == kind}:
+            grouped = [r for r in receipts if r['kind'] == kind and r['track'] == track]
+            assert len(grouped) == 2
+            ae = 'reviewer1@example.test' if track == 'master_eng' else 'reviewer2@example.test'
+            assert {r['recipient'] for r in grouped} == {'chief@example.test', ae}
+            for r in grouped:
+                b = RECEIPTS['co-rnbd-review/' + r['id']]['body']
+                assert 'https://co-rnbd.org/chair.html' in b['text'] and not b.get('attachments')
+                assert ('수정본 재제출 알림' if kind == 'paper_resubmitted' else '신규 논문 투고 알림') in b['subject']
+    record('twenty-seven-workflow-events-paper-and-review-recipients-all-version-idempotent-retries')
     chief = sql("select id from auth.users where email='chief@example.test'")
     author = sql("select id from auth.users where email='author@example.test'")
     pid = sql("select id from public.papers where track='master_eng'")
@@ -210,6 +230,9 @@ try:
     sql((ROOT / 'scripts/verify-review-submitted.sql').read_text())
     assert sql('select count(*) from app_private.review_email_outbox') == count_before
     record('draft-identical-edited-submissions-role-conflict-dedupe-and-obsolete-rollback-checks')
+    sql((ROOT / 'scripts/verify-paper-submitted.sql').read_text())
+    assert sql('select count(*) from app_private.review_email_outbox') == count_before
+    record('initial-revision-draft-failure-replay-pause-role-snapshot-rollback-checks')
     record('all-mail-left-local-db-only-and-no-live-provider-credentials')
     (OUT / 'email-results.json').write_text(json.dumps({'status': 'PASS', 'checks': CHECKS, 'events': rows, 'provider_receipts': len(RECEIPTS), 'requests': len(REQUESTS)}, ensure_ascii=False, indent=2))
 finally:
