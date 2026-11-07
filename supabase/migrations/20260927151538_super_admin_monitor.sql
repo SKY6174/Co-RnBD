@@ -2,7 +2,9 @@
 -- super admin marker that only the database operator can assign.
 do $$
 begin
-  if (select count(*) from auth.users
+  -- Empty installations create accounts after schema setup. Keep the original
+  -- two-verified-account requirement for every already populated installation.
+  if exists (select 1 from auth.users) and (select count(*) from auth.users
       where lower(email) in ('kysong@uc.ac.kr', 'song.kyoung.young@gmail.com')
         and email_confirmed_at is not null) <> 2 then
     raise exception 'Both verified super admin accounts must exist';
