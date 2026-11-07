@@ -4,7 +4,7 @@ const $ = (selector) => document.querySelector(selector);
 const TRACKS = { master_eng:'전문기술석사 (공학 분야)',master_sci:'전문기술석사 (자연과학 분야)',industry_joint:'산학공동기술개발과제',convergence_etc:'기타 산학융합과제',applied:'전문기술석사 응용연구',industry:'산학공동기술개발과제 성과발표',convergence:'산업융합기술',education:'T-VET 정책·교육연구' };
 const STATUS = {submitted:'제출 완료',under_review:'심사 중',revision:'수정 요청',accepted:'채택',rejected:'반려'};
 const REVIEW = {assigned:'심사 대기',draft:'임시저장',submitted:'심사 제출',declined:'배정 거절'};
-const RECOMMENDATION = {accept:'채택 권고',revise:'수정 권고',reject:'반려 권고'};
+const RECOMMENDATION = {accept:'Accept · 채택 권고',revise:'Accept after revision · 수정 후 채택 권고',reject:'Reject · 반려 권고'};
 const ACTION = {paper_submitted:'원고 제출',paper_status_changed:'진행 상태 변경',review_assigned:'심사위원 배정',review_revoked:'심사 배정 철회',review_submitted:'심사 의견 제출',review_declined:'심사 배정 거절',decision_published:'판정 확정·공개',file_uploaded:'PDF 업로드',final_checked:'최종본 확인 완료'};
 const REQUIRED_REVIEWERS = 2;
 const FILTERS = [['all','전체 접수'],['unassigned','배정 필요'],['reviewing','심사 중'],['ready','판정 대기'],['revision','수정 요청'],['accepted','채택'],['rejected','반려']];
@@ -12,6 +12,7 @@ const dateFormatter = new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',dat
 const date = (value) => value ? dateFormatter.format(new Date(value))+' KST' : '—';
 const sameTime = (a,b) => Boolean(a && b) && new Date(a).getTime()===new Date(b).getTime();
 let client, user, edition, selectedId, selectedPaper, pendingDecision;
+let isChief=false, committee=[];
 let papers=[], members=[], membersById=new Map(), busy=false;
 let detailRequest=0;
 const selected = () => selectedPaper;
@@ -29,7 +30,7 @@ function notice(text,error=false) { const el=$('#chair-message');el.textContent=
 function friendly(error) {
   const text=error?.message||'처리하지 못했습니다. 다시 시도해 주세요.';
   if (/Exactly two active reviewers/.test(text)) return '현재 제출본에 심사위원 2명을 배정해야 판정할 수 있습니다. 거절·철회된 배정은 제외됩니다.';
-  const messages=[[/duplicate key|reviews_manuscript_reviewer_key/,'이미 이 제출본에 배정된 심사위원입니다.'],[/Reviewer is an author/,'저자·공동저자는 심사위원으로 배정할 수 없습니다.'],[/At most two/,'유효 심사위원은 최대 2명입니다. 기존 배정을 교체해 주세요.'],[/Incomplete reviews/,'미완료 심사에 대한 예외 판정 사유를 5자 이상 입력해 주세요.'],[/Reviews changed|Review snapshot required/,'심사 내용이 변경됐거나 화면이 오래되었습니다. 새로고침 후 최신 심사 의견을 확인해 주세요.'],[/Paper changed|Assignment changed/,'다른 작업으로 원고가 변경됐습니다. 새로고침 후 다시 확인해 주세요.'],[/latest final PDF/,'더 최신인 최종본이 있습니다. 새로고침 후 확인해 주세요.'],[/Chair permission|required.*permission|row-level security/,'이 작업에 필요한 위원장 권한을 확인해 주세요.'],[/Remove the paper from its session/,'프로그램에 편성된 원고입니다. 운영 관리에서 편성을 해제한 뒤 판정·발표 형태를 변경해 주세요.']];
+  const messages=[[/Active field reviewer membership required/,'해당 분야 명부의 활성 심사위원만 배정할 수 있습니다. 분야별 위원 구성을 확인해 주세요.'],[/Editors require two completed reviews/,'AE는 현재 제출본의 심사 2건이 모두 완료된 뒤 판정할 수 있습니다.'],[/Editors may change decision fields only/,'AE는 담당 분야 원고의 판정만 변경할 수 있습니다.'],[/duplicate key|reviews_manuscript_reviewer_key/,'이미 이 제출본에 배정된 심사위원입니다.'],[/Reviewer is an author/,'저자·공동저자는 심사위원으로 배정할 수 없습니다.'],[/At most two/,'유효 심사위원은 최대 2명입니다. 기존 배정을 교체해 주세요.'],[/Incomplete reviews/,'미완료 심사에 대한 예외 판정 사유를 5자 이상 입력해 주세요.'],[/Reviews changed|Review snapshot required/,'심사 내용이 변경됐거나 화면이 오래되었습니다. 새로고침 후 최신 심사 의견을 확인해 주세요.'],[/Paper changed|Assignment changed/,'다른 작업으로 원고가 변경됐습니다. 새로고침 후 다시 확인해 주세요.'],[/latest final PDF/,'더 최신인 최종본이 있습니다. 새로고침 후 확인해 주세요.'],[/Chair permission|required.*permission|row-level security/,'이 작업에 필요한 위원장 권한을 확인해 주세요.'],[/Remove the paper from its session/,'프로그램에 편성된 원고입니다. 운영 관리에서 편성을 해제한 뒤 판정·발표 형태를 변경해 주세요.']];
   return messages.find(([pattern])=>pattern.test(text))?.[1]||text;
 }
 async function allRows(factory) {
@@ -37,11 +38,18 @@ async function allRows(factory) {
   for(let offset=0;;offset+=300) { const part=data(await factory().range(offset,offset+299));rows.push(...part);if(part.length<300)return rows; }
 }
 async function load() {
-  const [list,profiles]=await Promise.all([
+  const [list,profiles,roster]=await Promise.all([
     allRows(()=>client.from('papers').select(OVERVIEW_COLUMNS).eq('edition_year',edition.year).neq('status','draft').not('submitted_at','is',null).order('id')),
     allRows(()=>client.from('profiles').select('user_id,full_name,email,affiliation,expertise_tracks').order('user_id')),
+    allRows(()=>client.from('review_committee').select('*').eq('edition_year',edition.year).order('track').order('display_name')),
   ]);
+  committee=roster;
+  for(const c of roster)if(c.user_id&&!profiles.some(p=>p.user_id===c.user_id))profiles.push({user_id:c.user_id,full_name:c.display_name,email:c.email,expertise_tracks:roster.filter(row=>row.user_id===c.user_id&&row.active).map(row=>row.track)});
+  renderCommittee();
   papers=list.sort((a,b)=>new Date(b.submitted_at)-new Date(a.submitted_at));members=profiles;membersById=new Map(profiles.map(p=>[p.user_id,p]));renderList();
+}
+function renderCommittee() {
+  $('#committee-list').innerHTML=committee.map(c=>`<article class="chair-review"><strong>${esc(c.display_name)}</strong><p>${esc(TRACKS[c.track])} · ${c.committee_role==='associate_editor'?'편집위원장 (AE)':'심사위원'}<br>${esc(c.email)} · ${c.active?'활성':'비활성'} · ${c.user_id?'계정 연결 완료':'계정 연결 대기'}</p>${isChief?`<button type="button" class="operations-button secondary" data-committee-toggle="${c.id}" data-chair-write>${c.active?'역할 비활성화':'역할 활성화'}</button>`:''}</article>`).join('')||'<p>등록된 분야별 위원이 없습니다.</p>';
 }
 function matches(p,status) {
   const pending=['submitted','under_review'].includes(p.status);
@@ -74,10 +82,11 @@ function reviewerOptions() {
   const authorEmails=new Set(p.paper_authors.map(a=>a.email?.trim().toLowerCase()));
   const assigned=new Set(currentReviews(p).map(r=>r.reviewer_id));
   const prior=$('#chair-reviewer').value;
-  const available=members.filter(m=>m.user_id!==p.owner_id && !authorEmails.has(m.email?.trim().toLowerCase()) && !assigned.has(m.user_id) && (!q||`${m.full_name} ${m.email} ${m.affiliation}`.toLocaleLowerCase().includes(q)));
+  const fieldCommittee=committee.filter(c=>c.committee_role==='reviewer'&&c.track===p.track);
+  const available=members.filter(m=>(!fieldCommittee.length||fieldCommittee.some(c=>c.active&&c.user_id===m.user_id))&&m.user_id!==p.owner_id && !authorEmails.has(m.email?.trim().toLowerCase()) && !assigned.has(m.user_id) && (!q||`${m.full_name} ${m.email} ${m.affiliation}`.toLocaleLowerCase().includes(q)));
   $('#chair-reviewer').innerHTML='<option value="">심사위원을 선택하세요</option>'+available.map(m=>{
     const count=papers.filter(paper=>['submitted','under_review'].includes(paper.status)).flatMap(activeReviews).filter(r=>r.reviewer_id===m.user_id && r.review_state!=='submitted').length;
-    return `<option value="${m.user_id}">${esc(m.full_name||m.email)} · ${esc(m.affiliation||'소속 미입력')} · 진행 ${count}편</option>`;
+    return `<option value="${m.user_id}">${esc(fieldCommittee.find(c=>c.user_id===m.user_id&&c.active)?.display_name||m.full_name||m.email)} · ${esc(m.affiliation||'소속 미입력')} · 진행 ${count}편</option>`;
   }).join('');
   if(available.some(m=>m.user_id===prior))$('#chair-reviewer').value=prior;
   reviewerInfo();
@@ -92,7 +101,7 @@ function renderReviews(p) {
     const state=r.revoked_at?'배정 철회':REVIEW[r.review_state];
     return `<article class="chair-review ${current&&!r.revoked_at?'':'history'}"><header><strong>${esc(memberName(r.reviewer_id))}</strong><span class="chair-badge">${current?'현재 제출본':'이전 제출본'} · ${esc(state)}</span></header><p>${esc(m?.affiliation||'')} · ${esc((m?.expertise_tracks||[]).map(t=>TRACKS[t]||t).join(', ')||'전문 분야 미입력')}</p>${r.review_state==='submitted'?`<strong>${esc(RECOMMENDATION[r.recommendation])}</strong><p class="chair-prose">${esc(r.comments)}</p><small>${esc(date(r.submitted_at))}</small>`:r.review_state==='declined'?`<p>거절 사유: ${esc(r.decline_reason)}</p>`:'<p>제출된 심사 의견이 없습니다.</p>'}${r.revoked_at?`<p>교체 사유: ${esc(r.revocation_reason)}</p>`:''}</article>`;
   }).join('')||'<p class="operations-meta">배정된 심사위원이 없습니다.</p>';
-  $('#chair-assignment-form').hidden=!['submitted','under_review'].includes(p.status);
+  $('#chair-assignment-form').hidden=!isChief||!['submitted','under_review'].includes(p.status);
   $('#chair-replace').required=panelReady(p);
   $('#chair-replace').innerHTML=`<option value=""${panelReady(p)?' disabled':''}>${panelReady(p)?'교체할 배정을 선택하세요':'추가 배정'}</option>`+currentReviews(p).filter(r=>!r.revoked_at && (!panelReady(p)||r.review_state!=='declined')).map(r=>`<option value="${r.id}">${esc(memberName(r.reviewer_id))} 배정 교체${r.review_state==='declined'?' (거절)':''}</option>`).join('');
   $('#chair-replace').value='';
@@ -103,9 +112,9 @@ function renderDecision(p) {
   $('#desk-decision').value=['accepted','rejected','revision'].includes(p.status)?p.status:'';
   $('#desk-presentation').value=p.final_presentation||'';$('#desk-session').value=p.assigned_session||'';
   $('#desk-note').value=p.decision_note||'';$('#desk-exception').value='';
-  $('#chair-exception-panel').hidden=!panelReady(p)||complete(p);$('#desk-exception').required=panelReady(p)&&!complete(p);
-  $('#chair-decision-requirement').textContent=!panelReady(p)?'판정하려면 현재 제출본의 심사위원 2명을 먼저 구성해 주세요.':complete(p)?'2명의 심사가 모두 제출되었습니다. 의견을 검토하고 판정해 주세요.':'2명의 심사 제출을 기다리고 있습니다. 완료 전 예외 판정은 저자에게 공개할 사유를 입력해야 합니다.';
-  $('#chair-decision-submit').disabled=busy||!panelReady(p);
+  $('#chair-exception-panel').hidden=!isChief||!panelReady(p)||complete(p);$('#desk-exception').required=isChief&&panelReady(p)&&!complete(p);
+  $('#chair-decision-requirement').textContent=!panelReady(p)?'판정하려면 현재 제출본의 심사위원 2명을 먼저 구성해 주세요.':complete(p)?'2명의 심사가 모두 제출되었습니다. 의견을 검토하고 판정해 주세요.':(isChief?'2명의 심사 제출을 기다리고 있습니다. 완료 전 예외 판정은 저자에게 공개할 사유를 입력해야 합니다.':'AE는 2명의 심사 제출이 완료된 뒤 저자에게 판정·수정 요청을 공개할 수 있습니다.');
+  $('#chair-decision-submit').disabled=busy||!panelReady(p)||(!isChief&&!complete(p));
   $('#chair-accepted-fields').hidden=p.status!=='accepted';
   $('#chair-decision-current').textContent=p.decision_published_at?`최근 공개 ${date(p.decision_published_at)} · ${memberName(p.decided_by)}`:'아직 공개한 판정이 없습니다.';
 }
@@ -113,7 +122,7 @@ function renderFiles(p) {
   $('#chair-files').innerHTML=[...p.paper_files].sort((a,b)=>b.version-a.version).map(f=>`<div class="chair-file"><div><strong>${f.file_stage==='final'?'최종본':'심사용 원고'} v${f.version}</strong><small>${esc(f.original_name)} · ${esc(date(f.created_at))}</small></div><button type="button" class="chair-open" data-file="${f.id}">PDF 열기 ↗</button></div>`).join('')||'<p>제출된 PDF가 없습니다.</p>';
   const final=latestFinal(p),check=finalCheck(p);
   $('#chair-final-status').textContent=p.status!=='accepted'?'채택 후 최종본을 확인할 수 있습니다.':!final?'아직 최종본이 제출되지 않았습니다.':finalConfirmed(p)?`최종본 v${final.version} 확인 완료 · ${memberName(check.checked_by)} · ${date(check.checked_at)}`:`최종본 v${final.version} 확인 대기${check?' · 이전 버전 확인 기록은 보존됩니다.':''}`;
-  $('#chair-final-form').hidden=p.status!=='accepted'||!final||finalConfirmed(p);$('#chair-final-confirm').checked=false;
+  $('#chair-final-form').hidden=!isChief||p.status!=='accepted'||!final||finalConfirmed(p);$('#chair-final-confirm').checked=false;
 }
 function eventDetail(event) {
   const a=event.after_data||{}, b=event.before_data||{};
@@ -157,7 +166,7 @@ async function openPaper(id,focus=true) {
 async function run(action) {
   if(busy)return;busy=true;document.querySelectorAll('[data-chair-write],#chair-refresh,#chair-detail-refresh').forEach(b=>b.disabled=true);
   try {await action();}catch(error){if ($('#chair-publish-dialog').open) $('#chair-publish-dialog').close();notice(friendly(error),true);$('#chair-message').scrollIntoView({block:'center',behavior:'smooth'});}
-  finally {busy=false;document.querySelectorAll('[data-chair-write],#chair-refresh,#chair-detail-refresh').forEach(b=>b.disabled=false);$('#chair-decision-submit').disabled=!panelReady(selected());}
+  finally {busy=false;document.querySelectorAll('[data-chair-write],#chair-refresh,#chair-detail-refresh').forEach(b=>b.disabled=false);$('#chair-decision-submit').disabled=!panelReady(selected())||(!isChief&&!complete(selected()));}
 }
 async function reloadDetail() {await load();if(selectedId)await openPaper(selectedId,false);}
 $('#chair-login').addEventListener('click',()=>{try { sessionStorage.setItem('co_rnbd_return_to','chair'); } catch { /* Fixed login query is the fallback. */ }});
@@ -178,13 +187,22 @@ $('#desk-session').addEventListener('change',()=>{const value=$('#desk-session')
 $('#desk-presentation').addEventListener('change',()=>{const value=$('#desk-presentation').value,s=$('#desk-session').value;if((s.startsWith('oral')&&value!=='oral')||(s==='poster_1'&&value!=='poster'))$('#desk-session').value='';});
 $('#chair-decision-form').addEventListener('submit',event=>{
   event.preventDefault();if(busy)return;const p=selected(),accepted=$('#desk-decision').value==='accepted';
+  if(!isChief&&!complete(p)){notice('AE는 심사 2건이 모두 완료된 뒤 판정할 수 있습니다.',true);return;}
   if(!panelReady(p)){notice('현재 제출본에 심사위원 2명을 배정해야 판정할 수 있습니다.',true);return;}
-  pendingDecision={p_paper_id:p.id,p_status:$('#desk-decision').value,p_note:$('#desk-note').value.trim(),p_presentation:accepted?$('#desk-presentation').value||null:null,p_session:accepted?$('#desk-session').value||null:null,p_exception_reason:complete(p)?'':$('#desk-exception').value.trim(),p_expected_updated_at:p.updated_at,p_expected_reviews:currentReviews(p).slice().sort((a,b)=>a.id.localeCompare(b.id))};
+  pendingDecision={p_paper_id:p.id,p_status:$('#desk-decision').value,p_note:$('#desk-note').value.trim(),p_presentation:accepted?$('#desk-presentation').value||null:null,p_session:accepted?$('#desk-session').value||null:null,p_exception_reason:!isChief||complete(p)?'':$('#desk-exception').value.trim(),p_expected_updated_at:p.updated_at,p_expected_reviews:currentReviews(p).slice().sort((a,b)=>a.id.localeCompare(b.id))};
   $('#chair-publish-paper').textContent=p.title;$('#chair-publish-status').textContent=STATUS[pendingDecision.p_status];$('#chair-publish-note').textContent=pendingDecision.p_note;$('#chair-publish-exception').textContent=pendingDecision.p_exception_reason?'예외 사유: '+pendingDecision.p_exception_reason:'';$('#chair-publish-dialog').showModal();
 });
 $('#chair-publish-cancel').addEventListener('click',()=>{$('#chair-publish-dialog').close();pendingDecision=null;});
 $('#chair-publish-confirm').addEventListener('click',()=>run(async()=>{if(!pendingDecision)return;data(await client.rpc('chair_publish_decision',pendingDecision));pendingDecision=null;$('#chair-publish-dialog').close();await reloadDetail();notice('판정을 확정하고 저자 포털에 공개했습니다. 이메일은 발송하지 않았습니다.');}));
 $('#chair-final-form').addEventListener('submit',event=>{event.preventDefault();run(async()=>{const p=selected(),file=latestFinal(p);data(await client.from('paper_final_checks').upsert({paper_id:p.id,file_id:file.id,checked_by:user.id},{onConflict:'paper_id'}).select('paper_id').single());await reloadDetail();notice(`최종본 v${file.version} 확인 완료를 기록했습니다.`);});});
+$('#committee-form').addEventListener('submit',event=>{event.preventDefault();run(async()=>{
+  data(await client.from('review_committee').upsert({edition_year:edition.year,track:$('#committee-track').value,committee_role:$('#committee-role').value,display_name:$('#committee-name').value.trim(),email:$('#committee-email').value.trim().toLowerCase(),active:true},{onConflict:'edition_year,track,email,committee_role'}));
+  await load();notice('분야별 위원 구성을 저장했습니다.');
+});});
+$('#committee-list').addEventListener('click',event=>{const el=event.target.closest('[data-committee-toggle]');if(!el)return;run(async()=>{
+  const c=committee.find(c=>c.id===el.dataset.committeeToggle);if(!c)return;
+  data(await client.from('review_committee').update({active:!c.active}).eq('id',c.id).select('id').single());await load();notice('위원 역할 상태를 변경했습니다.');
+});});
 async function start() {
   try {
     client=await conferenceClient();const auth=await client.auth.getUser();
@@ -192,12 +210,19 @@ async function start() {
     user=auth.data?.user;
     if(!user){$('#chair-access').hidden=false;notice('위원장 계정으로 로그인해 주세요.');return;}
     const role=data(await client.from('staff_roles').select('role,is_super_admin').eq('user_id',user.id).maybeSingle());
-    if(role?.role!=='chair'){$('#chair-access').hidden=false;$('#chair-access-text').textContent='현재 계정에는 위원장 권한이 없습니다. 투고·심사 화면에서 계정을 확인해 주세요.';$('#chair-login').textContent='계정 확인';notice('위원장 계정만 원고 심사 관리를 이용할 수 있습니다.',true);return;}
+    isChief=role?.role==='chair';
+    edition=await currentEdition(client);
+    committee=data(await client.from('review_committee').select('*').eq('edition_year',edition.year));
+    const isEditor=committee.some(c=>c.active&&c.committee_role==='associate_editor'&&c.email===user.email?.toLowerCase());
+    if(!isChief&&!isEditor){$('#chair-access').hidden=false;$('#chair-access-text').textContent='현재 계정에는 위원장 권한이 없습니다. 투고·심사 화면에서 계정을 확인해 주세요.';$('#chair-login').textContent='계정 확인';notice('심사위원장 또는 담당 분야 AE 계정만 이용할 수 있습니다.',true);return;}
     client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'||(event==='SIGNED_IN'&&session?.user?.id!==user.id)){papers=[];members=[];membersById.clear();$('#chair-workspace').hidden=true;location.reload();}});
-    edition=await currentEdition(client);document.title=`원고 심사 관리 | ${edition.title}`;$('#chair-edition').textContent=`CO-R&BD ${edition.year} / CHAIR DESK`;
-    $('#chair-monitor').hidden=!role.is_super_admin;
+    document.title=`원고 심사 관리 | ${edition.title}`;$('#chair-edition').textContent=`CO-R&BD ${edition.year} / CHAIR DESK`;
+    $('#chair-monitor').hidden=!role?.is_super_admin;
+    document.querySelectorAll('[data-chief-only]').forEach(el=>el.hidden=!isChief);
+    $('#chair-edition').textContent=`CO-R&BD ${edition.year} / ${isChief?'CHIEF EDITOR':'ASSOCIATE EDITOR'}`;
+    $('#committee-track').innerHTML=Object.entries(TRACKS).map(([key,label])=>`<option value="${key}">${label}</option>`).join('');
     $('#chair-track-filter').innerHTML='<option value="all">전체 분야</option>'+Object.entries(TRACKS).map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
-    await load();$('#chair-workspace').hidden=false;notice('현재 회차의 접수 원고를 불러왔습니다. 원고를 선택해 배정·판정을 진행하세요.');
+    await load();$('#chair-workspace').hidden=false;notice('현재 회차의 접수 원고를 불러왔습니다. 원고를 선택해 담당 분야의 심사 진행·판정을 확인하세요.');
   }catch(error){notice(friendly(error),true);}
 }
 start();
