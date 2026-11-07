@@ -10,7 +10,7 @@
 | AE 검토·저자 통보 | 두 심사 완료, 분야·현재 회차·비저자 조건을 private 판정 경계에서 재검증. 두 분야 AE 판정 통과 |
 | 저자 심사의견 열람 | 공개 판정 이후 현재 제출본의 추천·의견만 반환. 판정 전·타인 열람 차단 및 reviewer_id/email 비포함 검증 |
 | 수정본·재심 | 수정 요청 → 새 PDF·재투고 → 새 심사 2건 → 채택 통과. 과거 2건의 심사도 보존 |
-| 접근 권한·동시 변경 | 임의 원고 수정·운영 설정·다른 분야 판정·미완료 예외 우회·공동저자 AE·역할 회수·오래된 snapshot 차단 통과 |
+| 접근 권한·동시 변경 | 임의 원고 수정·운영 설정·다른 분야 판정·미완료 예외 우회·공동저자 AE·이해관계 거절 겸임 AE·역할 회수·오래된 snapshot 차단 통과 |
 | 반응형 UI | 1440px/390px 위원 명부와 AE 상세 화면의 overflow 없음. 생성 PNG 직접 확인 |
 
 격리 로컬 Supabase의 실제 Auth/Postgres/Storage와 Chromium에서 **7개 검증 묶음 PASS**.
@@ -32,3 +32,13 @@ Preview config가 운영 Supabase를 사용하므로 Preview 쓰기 검증은 �
 [기존 advisory 안내](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable).
 최종 전체 회귀 및 production 배포 결과는 PR #61의 최종 검증 설명에서 확인한다.
 자동 메일·Google/Naver 실로그인은 이번 기능의 검증 범위에 포함하지 않는다.
+
+
+기존 전체 생명주기 회귀(`verify-authenticated-lifecycle.py`) **9개 검증 묶음 PASS**:
+계정 5개의 로그인·프로필, PDF/초안/저자, 2인 심사, 수정본·재심·채택·최종본 확인,
+참가 신청·확정·체크인, 발급기관·납부·문서 3종·A4 인쇄, 소유권·중복·취소·로그아웃.
+브라우저 예외와 운영 대상 요청은 0건이다. 이 결과는 `results.json`에 보존했다.
+
+추가 migration `20261107140511`은 심사위원과 AE를 겸하는 계정이 이해관계를 이유로 거절한 원고를
+AE 역할로 다시 열거나 판정하지 못하게 한다. 제출본 교체와 배정 철회로도 거절 이력이 지워지지 않는다.
+로컬 및 운영 롤백 검증은 해당 원고 열람·판정 차단까지 포함한다.

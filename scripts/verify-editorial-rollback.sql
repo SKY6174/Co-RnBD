@@ -70,5 +70,21 @@ begin
  select count(*) into n from public.author_review_feedback((select paper_id from editorial_fixture));
  if n<>2 then raise exception 'Author must receive two published reviews'; end if;
 end $$;
+-- A dual-role editor cannot bypass their own declared review conflict.
+update public.papers set status='under_review' where id=(select paper_id from editorial_fixture);
+select set_config('request.jwt.claim.sub',(select reviewer1::text from editorial_fixture),true);
+update public.reviews set review_state='declined',decline_reason='롤백 테스트: 공동 과제 이해관계로 심사를 거절합니다.'
+ where paper_id=(select paper_id from editorial_fixture) and reviewer_id=auth.uid();
+do $$ begin
+ if exists(select 1 from public.papers where id=(select paper_id from editorial_fixture)) then
+   raise exception 'A conflicted dual-role editor can still read the paper';
+ end if;
+ begin
+   perform public.chair_publish_decision((select paper_id from editorial_fixture),'accepted','이해관계 우회 검증',null,null,'',null,'[]'::jsonb);
+   raise exception 'A conflicted dual-role editor can still publish';
+ exception when raise_exception then
+   if sqlerrm<>'Chair permission required' then raise; end if;
+ end;
+end $$;
 rollback;
-select 'PASS: chief assignment, two real reviewer roles, AE field boundary, decision publication, author feedback; all synthetic data rolled back' as verification;
+select 'PASS: chief assignment, two real reviewer roles, AE field boundary, decision publication, author feedback, dual-role declared conflict; all synthetic data rolled back' as verification;
