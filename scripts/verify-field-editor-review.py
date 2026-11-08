@@ -219,6 +219,11 @@ def flow(browser):
     denied('reviewer1', 'PATCH', '/rest/v1/conference_settings?edition_year=eq.2026', {'reviews_open': False})
     denied('reviewer1', 'POST', '/rest/v1/rpc/chair_assign_reviewer', {'p_paper_id': pid, 'p_reviewer_id': ACTORS['outsider']['id']})
     assign(pid)
+    # Reviewer access must not turn a different-field AE desk into an editorial desk.
+    assert ok('reviewer2', 'GET', f'/rest/v1/papers?id=eq.{pid}')
+    fresh(PAGES['reviewer2'], '/chair.html')
+    expect(PAGES['reviewer2'].locator(f'[data-open="{pid}"]')).to_have_count(0)
+    expect(PAGES['reviewer2'].locator('#chair-track-filter option[value=master_eng]')).to_have_count(0)
     denied('reviewer1', 'POST', '/rest/v1/rpc/chair_publish_decision', snapshot(pid))
     denied('reviewer1', 'POST', '/rest/v1/rpc/chair_publish_decision', {**snapshot(pid), 'p_exception_reason': '위조 예외 판정 사유'})
     assert ok('author', 'POST', '/rest/v1/rpc/author_review_feedback', {'p_id': pid}) == []
@@ -229,6 +234,7 @@ def flow(browser):
     review('reviewer1', pid, 'revise')
     stale = snapshot(pid)
     review('reviewer2', pid, 'accept')
+    denied('reviewer2', 'POST', '/rest/v1/rpc/chair_publish_decision', snapshot(pid))
     denied('reviewer1', 'POST', '/rest/v1/rpc/chair_publish_decision', stale)
     assert ok('author', 'POST', '/rest/v1/rpc/author_review_feedback', {'p_id': pid}) == []
     publish('reviewer1', pid, 'revision')
@@ -308,10 +314,17 @@ def flow(browser):
         assert chief.evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Chair overview overflow'
         chief.screenshot(path=str(OUT / f'chair-overview-{width}.png'), full_page=True)
     record('smart-summary-search-empty-reset-field-counts-tab-keyboard-progress-focus-mobile')
+    ok('chief', 'PATCH', f'/rest/v1/papers?id=eq.{pid}', {'owner_id': ACTORS['reviewer1']['id']})
+    fresh(PAGES['reviewer1'], '/chair.html')
+    expect(PAGES['reviewer1'].locator(f'[data-open="{pid}"]')).to_have_count(0)
+    ok('chief', 'PATCH', f'/rest/v1/papers?id=eq.{pid}', {'owner_id': ACTORS['author']['id']})
     # A field editor whose email is a coauthor has no editorial privilege.
     sql = "insert into public.paper_authors(paper_id,sort_order,full_name,affiliation,email) values ('" + rejected + "',2,'합성 AE 공동저자','합성 기관','" + ACTORS['reviewer2']['email'] + "');"
     subprocess.run(['docker', 'exec', '-i', 'supabase_db_' + META['project'], 'psql', '-U', 'postgres', '-v', 'ON_ERROR_STOP=1', '-q'], input=sql, text=True, check=True)
     denied('reviewer2', 'POST', '/rest/v1/rpc/chair_publish_decision', snapshot(rejected, 'accepted'))
+    fresh(PAGES['reviewer2'], '/chair.html')
+    expect(PAGES['reviewer2'].locator(f'[data-open="{rejected}"]')).to_have_count(0)
+    record('dual-role-editor-field-owner-coauthor-scope-with-reviewer-access-preserved')
     roster = ok('chief', 'GET', '/rest/v1/review_committee?committee_role=eq.associate_editor&track=eq.master_eng')[0]
     ok('chief', 'PATCH', '/rest/v1/review_committee?id=eq.' + roster['id'], {'active': False})
     denied('reviewer1', 'POST', '/rest/v1/rpc/chair_publish_decision', snapshot(pid))
