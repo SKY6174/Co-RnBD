@@ -302,3 +302,74 @@
 @media (prefers-reduced-motion: reduce) {
   .portal-main .portal-button, .portal-main .portal-card, .portal-main .paper-card, .portal-intro #submission-cfp-link { transition: none; }
 }
+
+/* Task-oriented paper workspace, shared with the existing conference palette. */
+.portal-intro { justify-content:space-between; gap:42px; min-height:290px; }
+.portal-intro-copy { max-width:660px; }
+.portal-intro .portal-intro-description { color:#d0e4db; font-size:16px; line-height:1.8; margin:0 0 24px; }
+.portal-journey { position:relative; flex:0 0 270px; margin:0; padding:0; list-style:none; display:grid; gap:0; }
+.portal-journey li { position:relative; padding:15px 0 15px 28px; border-left:1px solid #6f9990; }
+.portal-journey li::before { content:""; position:absolute; left:-5px; top:28px; width:9px; height:9px; background:#d6f26d; border:3px solid #174a40; border-radius:50%; box-sizing:content-box; }
+.portal-journey span, .portal-journey strong, .portal-journey small { display:block; }
+.portal-journey span { color:#c2dfbe; font-size:10px; font-weight:800; letter-spacing:.1em; }
+.portal-journey strong { color:#fff; font-size:20px; margin:5px 0; }
+.portal-journey small { color:#c7dcd4; font-size:12px; }
+.portal-main .phase-overview { margin:20px 0 28px; }
+.workspace-overview { margin:0 0 28px; border:1px solid #d5e3d8; border-radius:22px; background:#fff; overflow:hidden; box-shadow:0 14px 36px #123c2e08; }
+.workspace-next { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:26px 30px; background:linear-gradient(110deg,#eaf3e4,#f6f9f2); }
+.workspace-next h3 { margin:6px 0 9px; font-size:23px; letter-spacing:-.03em; }
+.workspace-next p { margin:0; max-width:680px; color:#3e6050; font-size:14px; line-height:1.8; }
+.workspace-next .portal-button { flex-shrink:0; }
+.workspace-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
+.workspace-metrics button { position:relative; text-align:left; border:0; border-right:1px solid #e1e9e1; background:#fff; color:#425f50; padding:21px 30px; font:inherit; cursor:pointer; min-height:100px; }
+.workspace-metrics button:last-child { border-right:0; }
+.workspace-metrics button:hover { background:#f6f9f3; }
+.workspace-metrics button:disabled { cursor:default; }
+.workspace-metrics button > span:first-child { font-size:13px; font-weight:700; }
+.workspace-metrics strong { display:block; color:#173c31; font-size:32px; font-weight:700; font-variant-numeric:tabular-nums; }
+.workspace-metrics strong small { font-size:12px; font-weight:500; margin-left:6px; color:#506b5e; }
+.workspace-metrics .metric-arrow { position:absolute; right:28px; top:25px; color:#547d4d; }
+.workspace-metrics button:disabled .metric-arrow { display:none; }
+.workspace-filters { display:grid; grid-template-columns:minmax(0,1fr) 190px auto; align-items:end; gap:16px; padding:18px 20px; background:#edf3eb; border:1px solid #dbe6d7; border-radius:14px; }
+.workspace-filters label { display:grid; gap:7px; color:#315240; font-size:12px; font-weight:800; }
+.workspace-filters input, .workspace-filters select { width:100%; min-width:0; min-height:44px; padding:10px 12px; border:1px solid #bacdbd; border-radius:9px; background:#fff; color:#193e30; font:inherit; font-size:14px; }
+.workspace-filters .text-action { min-height:44px; padding:10px; }
+.workspace-count { color:#536d5d; font-size:12px; min-height:19px; margin:15px 2px; }
+.paper-card { border-top:3px solid #b6ceaf; padding:24px; }
+.paper-card:has(.status-revision) { border-top-color:#cc9b3a; }
+.paper-card:has(.status-accepted) { border-top-color:#3d8a5c; }
+.paper-card p { overflow-wrap:anywhere; }
+.paper-card h3 { font-size:20px; letter-spacing:-.025em; overflow-wrap:anywhere; }
+.paper-card .paper-next { padding:13px 0 18px; margin:0; color:#385a48; font-size:13px; }
+.paper-steps { list-style:none; display:flex; gap:5px; padding:0; margin:4px 0 0; }
+.paper-steps li { flex:1; padding-top:9px; border-top:3px solid #e0e8de; color:#687c6f; font-size:11px; }
+.paper-steps .done { border-color:#6d925d; color:#3f6145; }
+.paper-steps .current { border-color:#21756b; color:#15544a; font-weight:800; }
+.review-state-tag { align-self:start; border:1px solid #c7dbd3; border-radius:7px; color:#245e50; background:#eef6f2; padding:6px 9px; font-size:12px; font-weight:800; }
+.paper-card .card-action { min-height:44px; display:flex; align-items:center; justify-content:space-between; margin-top:auto; font-size:14px; }
+.portal-main :focus-visible { outline:3px solid #167b7d; outline-offset:3px; }
+.portal-main .portal-tabs button, .portal-main .text-action { min-height:44px; }
+@media(max-width:1000px) { .portal-journey { flex-basis:210px; }.portal-intro { gap:26px; } }
+@media(max-width:760px) {
+  .portal-intro { display:block; }.portal-journey { grid-template-columns:repeat(3,minmax(0,1fr)); margin-top:26px; gap:10px; }.portal-journey li { padding:12px 0 0; border-left:0; border-top:1px solid #6f9990; }.portal-journey li::before { left:0; top:-5px; width:5px; height:5px; border-width:2px; }.portal-journey span { font-size:8px; letter-spacing:0; }.portal-journey strong { font-size:15px; }.portal-journey small { font-size:11px; line-height:1.6; }
+  .workspace-next { align-items:flex-start; flex-direction:column; padding:22px; }.workspace-metrics button { padding:17px 14px; min-height:90px; }.workspace-metrics strong { font-size:27px; }.workspace-metrics .metric-arrow { right:12px; top:20px; }.workspace-metrics button > span:first-child { font-size:12px; }
+  .workspace-filters { grid-template-columns:1fr; gap:12px; padding:16px; }.workspace-filters .text-action { justify-self:end; }.paper-card { padding:22px; }
+}
+@media(prefers-reduced-motion:reduce) { .portal-main *, .portal-main *::before, .portal-main *::after { scroll-behavior:auto!important; transition:none!important; }.portal-main .paper-card:hover, .portal-main .portal-button:hover, .portal-main .chair-quick-link:hover, .portal-main .workflow-grid .portal-card:hover { transform:none; } }
+/* Returning members reach their work before the public introduction. */
+.portal-main.has-workspace { padding-top:34px; }
+.has-workspace .portal-intro { min-height:0; padding:26px 34px; }
+.has-workspace .portal-intro .section-index { margin-bottom:12px; font-size:10px; }
+.has-workspace .portal-intro h1 { font-size:clamp(28px,3.5vw,42px); margin:0 0 14px; }
+.has-workspace .portal-intro-description, .has-workspace .portal-journey { display:none; }
+.has-workspace .portal-intro #submission-cfp-link { padding:7px 12px; }
+.has-workspace .workspace-top { margin:12px 0 20px; padding-top:10px; }
+.has-workspace .workspace-top h2 { font-size:clamp(24px,3vw,32px); }
+@media(max-width:760px) { .portal-main.has-workspace { padding-top:24px; }.has-workspace .portal-intro { padding:23px; }.has-workspace .workspace-top { flex-direction:row; align-items:center; }.has-workspace .workspace-top h2 { font-size:24px; }.has-workspace .workspace-top p { overflow-wrap:anywhere; }.has-workspace .workspace-top > div { min-width:0; }.has-workspace .workspace-top .portal-button { flex-shrink:0; } }
+/* Contrast verified with axe in both Chromium and WebKit. */
+.portal-main .auth-divider { color:#52685a; }
+.portal-main .guide-footnote-block span { color:#3c6427; }
+.portal-main .paper-id { color:#536d60; }
+.workspace-filters input, .workspace-filters select { border-color:#738a78; }
+.paper-steps li { color:#52675a; }
+@media(forced-colors:active) { .portal-main .paper-steps .current { border-color:Highlight; }.workspace-metrics button, .portal-tabs button.active { border:1px solid ButtonText; } }

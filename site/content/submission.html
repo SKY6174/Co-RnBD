@@ -8,10 +8,12 @@
     </header>
     <main id="main" class="portal-main">
       <div class="shell">
-        <div class="portal-intro"><div class="portal-intro-copy"><p id="submission-edition-label" class="section-index">T-VET CO-R&amp;BD / PAPER PORTAL</p><h1>논문·현장사례 <em>투고</em></h1><p><a id="submission-cfp-link" href="./cfp.html">모집공고 보기</a></p></div></div>
+        <div class="portal-intro"><div class="portal-intro-copy"><p id="submission-edition-label" class="section-index">T-VET CO-R&amp;BD / PAPER PORTAL</p><h1>논문·현장사례 <em>투고</em></h1><p class="portal-intro-description">연구의 시작부터 심사와 판정까지,<br>하나의 작업 공간에서 연결하세요.</p><p><a id="submission-cfp-link" href="./cfp.html">모집공고 보기</a></p></div><ol class="portal-journey" role="list" aria-label="원고 심사 절차"><li><span>01 / AUTHOR</span><strong>논문 투고</strong><small>원고 등록 · 접수 확인</small></li><li><span>02 / REVIEWER</span><strong>2인 심사</strong><small>분야별 검토 · 심사의견</small></li><li><span>03 / ASSOCIATE EDITOR</span><strong>검토와 판정</strong><small>저자 통보 · 수정본 제출</small></li></ol></div>
         <section class="conference-context" data-conference-context aria-label="학술대회 정보" hidden></section>
         <div id="notice" class="portal-notice" role="status">시스템 연결 중입니다…</div>
         <div id="message" class="portal-message" role="status" aria-live="polite" hidden></div>
+
+        <div id="phase-overview" class="phase-overview" aria-label="투고 운영 단계"></div>
 
         <section id="auth-panel" class="portal-card auth-card" aria-labelledby="auth-title" hidden>
           <div><span class="portal-kicker">START HERE</span><h2 id="auth-title">계정으로 시작하기</h2><p id="auth-description">이메일로 가입하거나 로그인해 원고를 관리하세요. 심사위원에게는 배정된 원고가 추가로 표시됩니다.</p></div>
@@ -53,13 +55,14 @@
 
         <div id="workspace" hidden>
           <div class="workspace-top"><div><span class="portal-kicker">MY WORKSPACE</span><h2 id="welcome">내 작업 공간</h2><p id="account-email"></p></div><button id="sign-out" type="button" class="portal-button secondary">로그아웃</button></div>
-          <div class="portal-tabs" role="tablist" aria-label="작업 영역"><button type="button" class="active" data-tab="author" role="tab" aria-selected="true">내 투고</button><button type="button" data-tab="reviewer" role="tab" aria-selected="false" hidden>심사 배정</button><button type="button" data-tab="profile" role="tab" aria-selected="false">내 정보</button></div>
+          <section id="workspace-overview" class="workspace-overview" aria-labelledby="workspace-overview-title"><div class="workspace-next"><div><span class="portal-kicker">UP NEXT</span><h3 id="workspace-overview-title">나의 다음 할 일</h3><p id="workspace-next-text"></p></div><button id="workspace-next-action" class="portal-button" type="button">확인하기</button></div><div id="workspace-metrics" class="workspace-metrics"></div></section>
+          <div class="portal-tabs" role="tablist" aria-label="작업 영역"><button type="button" class="active" id="workspace-tab-author" data-tab="author" role="tab" aria-controls="tab-author" tabindex="0" aria-selected="true">내 투고</button><button type="button" id="workspace-tab-reviewer" data-tab="reviewer" role="tab" aria-controls="tab-reviewer" tabindex="-1" aria-selected="false" hidden>심사 배정</button><button type="button" id="workspace-tab-profile" data-tab="profile" role="tab" aria-controls="tab-profile" tabindex="-1" aria-selected="false">내 정보</button></div>
 
           <div id="submission-chair-links" class="chair-quick-links" hidden><a class="chair-quick-link" href="./chair.html"><span>CHAIR DESK</span><strong>원고 심사·편집위원장 업무 →</strong></a></div>
 
-          <section id="tab-author" class="tab-panel" role="tabpanel" aria-label="내 투고">
+          <section id="tab-author" class="tab-panel" role="tabpanel" aria-labelledby="workspace-tab-author" aria-label="내 투고">
             <div class="section-head"><div><span class="portal-kicker">AUTHOR DESK</span><h2>내 원고</h2></div><button id="new-paper" type="button" class="portal-button">새 원고 작성</button></div>
-            <div id="my-papers" class="paper-grid"></div>
+            <div class="workspace-filters"><label for="author-search">내 원고 검색<input id="author-search" type="search" placeholder="제목 또는 접수번호" aria-controls="my-papers" /></label><label for="author-filter">진행 상태<select id="author-filter" aria-controls="my-papers"><option value="all">전체 원고</option><option value="draft">작성 중</option><option value="revision">수정 요청</option><option value="submitted">제출 완료</option><option value="under_review">심사 중</option><option value="accepted">채택</option><option value="rejected">반려</option></select></label><button type="button" class="text-action" data-reset-list="author">필터 초기화</button></div><p id="author-count" class="workspace-count" role="status"></p><div id="my-papers" class="paper-grid"></div>
             <section id="author-review-feedback" class="portal-card" hidden aria-live="polite"></section>
             <form id="paper-form" class="portal-card portal-form" hidden>
               <div class="form-heading"><div><span class="portal-kicker">SUBMISSION</span><h3 id="paper-form-title">새 원고</h3></div><button type="button" id="cancel-paper" class="text-action">닫기</button></div>
@@ -87,8 +90,8 @@
             </form>
           </section>
 
-          <section id="tab-reviewer" class="tab-panel" role="tabpanel" aria-label="심사 배정" hidden>
-            <div class="section-head"><div><span class="portal-kicker">REVIEWER DESK</span><h2>배정된 원고</h2></div></div><div id="review-list" class="paper-grid"></div>
+          <section id="tab-reviewer" class="tab-panel" role="tabpanel" aria-labelledby="workspace-tab-reviewer" aria-label="심사 배정" hidden>
+            <div class="section-head"><div><span class="portal-kicker">REVIEWER DESK</span><h2>배정된 원고</h2></div></div><div class="workspace-filters"><label for="reviewer-search">배정 원고 검색<input id="reviewer-search" type="search" placeholder="제목 또는 접수번호" aria-controls="review-list" /></label><label for="reviewer-filter">내 심사 상태<select id="reviewer-filter" aria-controls="review-list"><option value="all">전체 배정</option><option value="pending">심사 작성 대기</option><option value="submitted">심사 제출 완료</option><option value="declined">배정 거절</option></select></label><button type="button" class="text-action" data-reset-list="reviewer">필터 초기화</button></div><p id="reviewer-count" class="workspace-count" role="status"></p><div id="review-list" class="paper-grid"></div>
             <form id="review-form" class="portal-card portal-form" hidden>
               <div class="form-heading"><h3 id="review-title">심사 입력</h3><button type="button" id="cancel-review" class="text-action">닫기</button></div>
               <input type="hidden" id="review-id" /><p id="review-paper-summary"></p><div id="review-authors" class="muted-list"></div><p id="review-state-notice" class="field-help"></p>
@@ -100,7 +103,7 @@
             </form>
           </section>
 
-          <section id="tab-profile" class="tab-panel" role="tabpanel" aria-label="내 정보" hidden>
+          <section id="tab-profile" class="tab-panel" role="tabpanel" aria-labelledby="workspace-tab-profile" aria-label="내 정보" hidden>
             <div class="section-head"><div><span class="portal-kicker">PROFILE</span><h2>내 정보</h2></div></div>
             <form id="profile-form" class="portal-card portal-form">
               <div class="form-hint-blocks">
@@ -129,7 +132,6 @@
           </section>
         </div>
 
-        <div id="phase-overview" class="phase-overview" aria-label="투고 운영 단계"></div>
         <section class="workflow-guide" aria-labelledby="workflow-title">
           <div class="section-head"><div><span class="portal-kicker">SUBMISSION GUIDE</span><h2 id="workflow-title">투고부터 심사까지</h2></div><a class="guide-link" href="./cfp.html">모집 분야·분량·가안 일정 보기 ↗</a></div>
           <div class="workflow-grid">
