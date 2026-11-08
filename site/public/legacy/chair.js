@@ -7,7 +7,7 @@ const REVIEW = {assigned:'심사 대기',draft:'임시저장',submitted:'심사 
 const RECOMMENDATION = {accept:'Accept · 채택 권고',revise:'Accept after revision · 수정 후 채택 권고',reject:'Reject · 반려 권고'};
 const ACTION = {paper_submitted:'원고 제출',paper_status_changed:'진행 상태 변경',review_assigned:'심사위원 배정',review_revoked:'심사 배정 철회',review_submitted:'심사 의견 제출',review_declined:'심사 배정 거절',decision_published:'판정 확정·공개',file_uploaded:'PDF 업로드',final_checked:'최종본 확인 완료'};
 const REQUIRED_REVIEWERS = 2;
-const FILTERS = [['all','전체 접수'],['unassigned','배정 필요'],['reviewing','심사 중'],['ready','판정 대기'],['revision','수정 요청'],['accepted','채택'],['rejected','반려']];
+const FILTERS = [['all','전체 접수'],['unassigned','배정 필요'],['reviewing','심사 중'],['ready','판정 대기'],['revision','수정 요청'],['accepted','채택'],['rejected','반려'],['final_pending','최종본 확인 대기']];
 const dateFormatter = new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',dateStyle:'short',timeStyle:'short'});
 const date = (value) => value ? dateFormatter.format(new Date(value))+' KST' : '—';
 const sameTime = (a,b) => Boolean(a && b) && new Date(a).getTime()===new Date(b).getTime();
@@ -15,6 +15,7 @@ let client, user, edition, selectedId, selectedPaper, pendingDecision;
 let isChief=false, committee=[];
 let papers=[], members=[], membersById=new Map(), busy=false;
 let detailRequest=0;
+let priorityFilter='all', countTimer;
 const selected = () => selectedPaper;
 const OVERVIEW_COLUMNS = 'id,title,track,status,submitted_at,contact_name,final_presentation,assigned_session,paper_authors(full_name,affiliation,sort_order),reviews(reviewer_id,review_state,revoked_at,manuscript_submitted_at),paper_files(id,version,file_stage),paper_final_checks(file_id)';
 const currentReviews = (p) => (p.reviews||[]).filter(r=>sameTime(r.manuscript_submitted_at,p.submitted_at));
@@ -62,18 +63,24 @@ function matches(p,status) {
 }
 function renderList() {
   const filter=$('#chair-status-filter').value, track=$('#chair-track-filter').value, search=$('#chair-search').value.trim().toLocaleLowerCase();
-  $('#chair-stats').innerHTML=FILTERS.map(([key,label])=>`<button class="chair-stat" type="button" data-filter="${key}" aria-pressed="${filter===key}"><span>${label}</span><strong>${papers.filter(p=>matches(p,key)).length}</strong></button>`).join('');
+  const scoped=papers.filter(p=>track==='all'||p.track===track);
+  if(!$('#chair-stats').children.length)$('#chair-stats').innerHTML=FILTERS.map(([key,label])=>`<button class="chair-stat" type="button" data-filter="${key}" aria-pressed="false"><span>${label}</span><strong>0</strong><small>원고 보기 <span aria-hidden="true">↗</span></small></button>`).join('');
+  for(const [key] of FILTERS){const button=$(`[data-filter="${key}"]`);button.setAttribute('aria-pressed',String(filter===key));button.querySelector('strong').textContent=scoped.filter(p=>matches(p,key)).length;}
+  const unassigned=scoped.filter(p=>matches(p,'unassigned')).length, ready=scoped.filter(p=>matches(p,'ready')).length, reviewing=scoped.filter(p=>matches(p,'reviewing')).length, finals=scoped.filter(p=>matches(p,'final_pending')).length;
+  priorityFilter=isChief&&unassigned?'unassigned':ready?'ready':isChief&&finals?'final_pending':reviewing?'reviewing':unassigned?'unassigned':'all';
+  $('#chair-priority-text').textContent=priorityFilter==='unassigned'?(isChief?`${unassigned}편에 심사위원 배정이 필요합니다. 현재 제출본마다 2명을 구성해 주세요.`:`${unassigned}편이 심사위원 배정을 기다리고 있습니다. 심사위원장 배정 후 심사가 진행됩니다.`):priorityFilter==='ready'?`${ready}편의 2인 심사가 완료되었습니다. 의견을 검토하고 판정해 주세요.`:priorityFilter==='final_pending'?`${finals}편의 최신 최종 PDF가 확인을 기다리고 있습니다.`:priorityFilter==='reviewing'?`${reviewing}편의 심사가 진행 중입니다. 현재 제출본의 의견 제출 현황을 확인하세요.`:scoped.length?'공개된 판정과 원고 진행 상태를 확인하세요.':'접수된 원고가 아직 없습니다. 제출이 완료되면 이곳에서 업무를 시작할 수 있습니다.';
+  $('#chair-priority-action').textContent=(FILTERS.find(([key])=>key===priorityFilter)?.[1]||'전체 원고')+' 보기 →';
   const accepted=papers.filter(p=>p.status==='accepted');
   const sessionCounts=['oral_1','oral_2','oral_3','poster_1'].map(key=>`${key.replace('oral_','Oral ').replace('poster_','Poster ')}: ${accepted.filter(p=>p.assigned_session===key).length}편`);
   $('#chair-program-stats').innerHTML=`<p class="chair-prose">구두 채택 ${accepted.filter(p=>p.final_presentation==='oral').length}편 / 최소 20편 목표 · 포스터 채택 ${accepted.filter(p=>p.final_presentation==='poster').length}편 / 최소 30편 목표<br>${sessionCounts.join(' · ')}</p><ul class="chair-author-list">${Object.entries(TRACKS).filter(([key])=>papers.some(p=>p.track===key)).map(([key,label])=>`<li>${label} · 접수 ${papers.filter(p=>p.track===key).length}편 / 채택 ${accepted.filter(p=>p.track===key).length}편</li>`).join('')}</ul>`;
   const list=papers.filter(p=>matches(p,filter) && (track==='all'||p.track===track) && (!search || [p.id,p.title,...p.paper_authors.flatMap(a=>[a.full_name,a.affiliation])].join(' ').toLocaleLowerCase().includes(search)));
-  $('#chair-count').textContent=`${list.length}편 표시 · 전체 접수 ${papers.length}편 · 작성 중인 초안 제외`;
+  clearTimeout(countTimer);countTimer=setTimeout(()=>{$('#chair-count').textContent=`${list.length}편 표시 · 전체 접수 ${papers.length}편 · 작성 중인 초안 제외`;},180);
   $('#chair-empty').hidden=list.length>0;$('#chair-table').hidden=list.length===0;
   $('#chair-empty').textContent=papers.length?'검색 조건에 맞는 원고가 없습니다. 검색어 또는 필터를 변경해 주세요.':'접수된 원고가 없습니다. 저자가 제출을 완료하면 여기에 표시됩니다.';
   $('#chair-rows').innerHTML=list.map(p=>{
     const authors=[...p.paper_authors].sort((a,b)=>a.sort_order-b.sort_order), reviews=activeReviews(p), done=reviews.filter(r=>r.review_state==='submitted').length;
     const final=p.status==='accepted'?(latestFinal(p)?finalConfirmed(p)?'최종본 확인 완료':'최종본 확인 대기':'최종본 미제출'):'';
-    return `<tr><td data-label="원고"><small>${esc(p.id.slice(0,8).toUpperCase())} · ${esc(TRACKS[p.track]||p.track)}</small><strong>${esc(p.title)}</strong></td><td data-label="대표저자 / 제출">${esc(authors[0]?.full_name||p.contact_name)}<small>${esc(authors[0]?.affiliation||'')}</small><small>${esc(date(p.submitted_at))}</small></td><td data-label="심사위원 / 진행">${reviews.length?reviews.map(r=>esc(memberName(r.reviewer_id))).join('<br>'):'미배정'}<small>배정 ${reviews.length}/${REQUIRED_REVIEWERS}명 · 심사 제출 ${done}/${REQUIRED_REVIEWERS}명${complete(p)?' · 판정 가능':!panelReady(p)?' · 추가 배정 필요':''}</small></td><td data-label="판정 / 최종본">${badge(p.status)}<small>${final}</small></td><td><button class="chair-open" type="button" data-open="${p.id}" aria-label="${esc(p.title)} 관리">관리 →</button></td></tr>`;
+    return `<tr><td data-label="원고"><small>${esc(p.id.slice(0,8).toUpperCase())} · ${esc(TRACKS[p.track]||p.track)}</small><strong>${esc(p.title)}</strong></td><td data-label="대표저자 / 제출">${esc(authors[0]?.full_name||p.contact_name)}<small>${esc(authors[0]?.affiliation||'')}</small><small>${esc(date(p.submitted_at))}</small></td><td data-label="심사위원 / 진행">${reviews.length?reviews.map(r=>esc(memberName(r.reviewer_id))).join('<br>'):'미배정'}<progress class="review-progress" value="${done}" max="${REQUIRED_REVIEWERS}" aria-label="${esc(p.title)} 심사 제출 ${done}/${REQUIRED_REVIEWERS}명"></progress><small>배정 ${reviews.length}/${REQUIRED_REVIEWERS}명 · 심사 제출 ${done}/${REQUIRED_REVIEWERS}명${['submitted','under_review'].includes(p.status)?complete(p)?' · 판정 가능':!panelReady(p)?' · 추가 배정 필요':'':' · 판정 공개 완료'}</small></td><td data-label="판정 / 최종본">${badge(p.status)}<small>${final}</small></td><td><button class="chair-open" type="button" data-open="${p.id}" aria-label="${esc(p.title)} 관리">관리 →</button></td></tr>`;
   }).join('');
 }
 function reviewerOptions() {
@@ -136,7 +143,9 @@ function renderEmailStatus(result) {
   const states={queued:'발송 대기',sending:'발송 처리 중',retry:'자동 재시도 대기',sent:'발송 서비스 접수 완료',failed:'발송 실패 · 운영자 확인 필요',cancelled:'후속 발송 취소',uncertain:'처리 결과 불확실 · 자동 재전송 중지'};
   if(result.error){$('#chair-email-status').textContent='이메일 처리 상태를 불러오지 못했습니다. 새로고침해 주세요.';return;}
   const rows=result.data||[];
-  $('#chair-email-status').innerHTML=rows.length?'<ul class="chair-author-list">'+rows.map(row=>`<li><strong>${({reviewer_assignment:'심사 배정 요청',decision:'판정·수정 요청',review_submitted:'심사의견 제출 알림',paper_submitted:'신규 논문 투고 알림',paper_resubmitted:'수정본 재제출 알림',author_submission_receipt:'저자 신규 투고 접수 확인',author_resubmission_receipt:'저자 수정본 접수 확인'})[row.kind]||'이메일 알림'} · ${esc(states[row.status]||row.status)}</strong><br>${esc(row.recipient_email||'인증된 수신 주소 없음')} · ${esc(date(row.sent_at||row.created_at))}<br><small>시도 ${row.attempts}회${!row.enabled&&['queued','retry'].includes(row.status)?' · 자동 발송 설정 대기':''}${row.last_error?' · 처리 코드 '+esc(row.last_error):''}</small></li>`).join('')+'</ul>':'아직 이메일 알림 내역이 없습니다.';
+  const attention=rows.filter(row=>['failed','uncertain','retry'].includes(row.status)).length;
+  const item=row=>`<li><strong>${({reviewer_assignment:'심사 배정 요청',decision:'판정·수정 요청',review_submitted:'심사의견 제출 알림',paper_submitted:'신규 논문 투고 알림',paper_resubmitted:'수정본 재제출 알림',author_submission_receipt:'저자 신규 투고 접수 확인',author_resubmission_receipt:'저자 수정본 접수 확인'})[row.kind]||'이메일 알림'} · ${esc(states[row.status]||row.status)}</strong><br>${esc(row.recipient_email||'인증된 수신 주소 없음')} · ${esc(date(row.sent_at||row.created_at))}<br><small>시도 ${row.attempts}회${!row.enabled&&['queued','retry'].includes(row.status)?' · 자동 발송 설정 대기':''}${row.last_error?' · 처리 코드 '+esc(row.last_error):''}</small></li>`;
+  $('#chair-email-status').innerHTML=rows.length?`<p class="operations-meta">최근 기록 ${Math.min(3,rows.length)}건 · 조회된 전체 ${rows.length}건${attention ? ` · 확인 필요 ${attention}건` : ''}</p><ul class="chair-author-list chair-mail-list">${rows.slice(0,3).map(item).join('')}</ul>${rows.length>3?`<details class="chair-mail-history"${attention ? ' open' : ''}><summary>이전 알림 ${rows.length-3}건 펼치기</summary><ul class="chair-author-list chair-mail-list">${rows.slice(3).map(item).join('')}</ul></details>`:''}`:'아직 이메일 알림 내역이 없습니다.';
 }
 async function openPaper(id,focus=true) {
   selectedId=id;selectedPaper=null;pendingDecision=null;
@@ -163,6 +172,7 @@ async function openPaper(id,focus=true) {
   $('#chair-overview').hidden=true;$('#chair-detail').hidden=false;
   $('#chair-paper-number').textContent=`${p.id.slice(0,8).toUpperCase()} / ${TRACKS[p.track]||p.track}`;
   $('#chair-paper-title').textContent=p.title;$('#chair-paper-badges').innerHTML=badge(p.status)+`<span class="chair-badge">제출 ${esc(date(p.submitted_at))}</span>`;
+  $('#chair-next-step').textContent=p.status==='revision'?'다음 단계 · 저자의 수정본 재제출 대기. 재제출 후 새 심사 배정으로 이어집니다.':p.status==='accepted'?'다음 단계 · 채택 원고의 최종본 제출·발표 편성을 확인하세요.':p.status==='rejected'?'판정 공개 완료 · 저자에게 판정과 심사의견이 공개되었습니다.':complete(p)?'다음 단계 · 2인의 심사의견을 검토하고 판정·수정 요청을 공개하세요.':!panelReady(p)?(isChief?'다음 단계 · 현재 제출본에 심사위원 2명을 배정하세요.':'다음 단계 · 심사위원장 배정과 2인의 심사 완료를 기다리고 있습니다.'):'다음 단계 · 2인의 심사 제출 대기. 최신 의견을 불러와 진행 상태를 확인하세요.';
   $('#chair-paper-abstract').textContent=p.abstract;
   $('#chair-paper-authors').innerHTML='<ol class="chair-author-list">'+[...p.paper_authors].sort((a,b)=>a.sort_order-b.sort_order).map(a=>`<li><strong>${esc(a.full_name)}</strong> · ${esc(a.affiliation)}<br><span>${esc(a.email)}${a.note?' · '+esc(a.note):''}</span></li>`).join('')+'</ol>';
   $('#chair-contact').textContent=`연락 담당자: ${p.contact_name} · ${p.contact_email}`;
@@ -184,7 +194,9 @@ $('#chair-track-filter').addEventListener('change',renderList);
 $('#chair-reviewer-search').addEventListener('input',reviewerOptions);
 $('#chair-reviewer').addEventListener('change',reviewerInfo);
 $('#chair-replace').addEventListener('change',()=>{const replacing=Boolean($('#chair-replace').value);$('#chair-replace-reason-label').hidden=!replacing;$('#chair-replace-reason').required=replacing;});
-$('#chair-back').addEventListener('click',()=>{selectedId=null;selectedPaper=null;detailRequest++;$('#chair-detail').hidden=true;$('#chair-overview').hidden=false;$('#chair-search').focus();});
+$('#chair-back').addEventListener('click',()=>{const previous=selectedId;selectedId=null;selectedPaper=null;detailRequest++;$('#chair-detail').hidden=true;$('#chair-overview').hidden=false;($(`[data-open="${previous}"]`)||$('#chair-search')).focus();});
+$('#chair-reset-filters').addEventListener('click',()=>{$('#chair-search').value='';$('#chair-status-filter').value='all';$('#chair-track-filter').value='all';renderList();$('#chair-search').focus();});
+$('#chair-priority-action').addEventListener('click',()=>{$('#chair-search').value='';$('#chair-status-filter').value=priorityFilter;renderList();$('#chair-search').focus();});
 document.querySelectorAll('#chair-refresh,#chair-detail-refresh').forEach(button=>button.addEventListener('click',()=>run(async()=>{await reloadDetail();notice('최신 원고와 심사 의견을 불러왔습니다.');})));
 $('#chair-stats').addEventListener('click',event=>{const el=event.target.closest('[data-filter]');if(el){$('#chair-status-filter').value=el.dataset.filter;renderList();}});
 $('#chair-rows').addEventListener('click',event=>{const el=event.target.closest('[data-open]');if(el)run(()=>openPaper(el.dataset.open));});

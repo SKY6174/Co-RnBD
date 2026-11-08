@@ -102,7 +102,19 @@ def assign(pid):
 def review(role, pid, recommendation):
     page = PAGES[role]
     fresh(page)
-    page.locator('[data-tab=reviewer]').click()
+    page.locator('[data-workspace-list=reviewer]').click()
+    expect(page.locator('#reviewer-filter')).to_have_value('pending')
+    page.locator('#reviewer-search').fill('NO MATCH SYNTHETIC FILTER')
+    expect(page.locator('#review-list')).to_contain_text('검색 조건에 맞는 원고가 없습니다')
+    page.locator('[data-reset-list=reviewer]').click()
+    page.locator('#reviewer-filter').select_option('pending')
+    expect(page.locator(f'[data-action=review][data-id="{pid}"]')).to_be_visible()
+    if not (OUT / 'reviewer-workspace-390.png').exists():
+        for width in [1440, 390]:
+            page.set_viewport_size({'width': width, 'height': 1000})
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Reviewer overflow'
+            page.screenshot(path=str(OUT / f'reviewer-workspace-{width}.png'), full_page=True)
+        page.set_viewport_size({'width': 1440, 'height': 1000})
     page.locator(f'[data-action=review][data-id="{pid}"]').click()
     page.locator('#review-comments').fill('합성 심사의견: 연구 결과와 검증 방법을 확인했습니다. ' + recommendation)
     page.locator('#review-recommendation').select_option(recommendation)
@@ -225,6 +237,10 @@ def flow(browser):
     assert ok('outsider', 'POST', '/rest/v1/rpc/author_review_feedback', {'p_id': pid}) == []
     author = PAGES['author']
     fresh(author)
+    expect(author.locator('#workspace-next-text')).to_contain_text('수정 요청 원고 1편')
+    author.locator('[data-workspace-filter=revision]').click()
+    expect(author.locator('#author-filter')).to_have_value('revision')
+    expect(author.locator('#my-papers .paper-steps [aria-current=step]')).to_have_text('판정')
     author.locator(f'[data-action=author][data-id="{pid}"]').click()
     expect(author.locator('#author-review-feedback')).to_contain_text('합성 심사의견')
     author.locator('#paper-file').set_input_files(str(OUT / 'synthetic.pdf'))
@@ -250,6 +266,48 @@ def flow(browser):
     review('reviewer2', rejected, 'reject')
     publish('reviewer2', rejected, 'rejected')
     record('second-field-AE-and-reject-path')
+    # Smart summaries, real filters, preserved keyboard focus, and truthful progress.
+    fresh(author)
+    expect(author.locator('[data-workspace-filter=all] strong')).to_contain_text('2')
+    author.locator('[data-tab=author]').focus()
+    author.keyboard.press('ArrowRight')
+    expect(author.locator('[data-tab=profile]')).to_be_focused()
+    expect(author.locator('#tab-profile')).to_be_visible()
+    author.keyboard.press('Home')
+    expect(author.locator('[data-tab=author]')).to_be_focused()
+    expect(author.locator('[data-tab=profile]')).to_have_attribute('tabindex', '-1')
+    author.locator('#author-search').fill(pid[:8])
+    expect(author.locator('#my-papers .paper-card')).to_have_count(1)
+    author.locator('#author-filter').select_option('rejected')
+    expect(author.locator('#my-papers')).to_contain_text('검색 조건에 맞는 원고가 없습니다')
+    author.locator('[data-reset-list=author]').click()
+    expect(author.locator('#my-papers .paper-card')).to_have_count(2)
+    expect(author.locator('#author-search')).to_be_focused()
+    for width in [1440, 390]:
+        author.set_viewport_size({'width': width, 'height': 1000})
+        assert author.evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Author overflow'
+        author.screenshot(path=str(OUT / f'author-workspace-{width}.png'), full_page=True)
+    author.set_viewport_size({'width': 1440, 'height': 1000})
+    fresh(chief, '/chair.html')
+    chief.locator('#chair-track-filter').select_option('master_eng')
+    expect(chief.locator('[data-filter=all] strong')).to_have_text('1')
+    chief.locator('#chair-search').fill('NO MATCH SYNTHETIC FILTER')
+    expect(chief.locator('#chair-empty')).to_be_visible()
+    chief.locator('#chair-reset-filters').click()
+    expect(chief.locator('#chair-rows tr')).to_have_count(2)
+    chief.locator('[data-filter=accepted]').click()
+    expect(chief.locator('[data-filter=accepted]')).to_be_focused()
+    expect(chief.locator('#chair-rows progress')).to_have_attribute('value','2')
+    chief.locator(f'[data-open="{pid}"]').click()
+    expect(chief.locator('#chair-next-step')).to_contain_text('채택 원고')
+    chief.locator('#chair-back').click()
+    expect(chief.locator(f'[data-open="{pid}"]')).to_be_focused()
+    chief.locator('#chair-reset-filters').click()
+    for width in [1440, 390]:
+        chief.set_viewport_size({'width': width, 'height': 1000})
+        assert chief.evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Chair overview overflow'
+        chief.screenshot(path=str(OUT / f'chair-overview-{width}.png'), full_page=True)
+    record('smart-summary-search-empty-reset-field-counts-tab-keyboard-progress-focus-mobile')
     # A field editor whose email is a coauthor has no editorial privilege.
     sql = "insert into public.paper_authors(paper_id,sort_order,full_name,affiliation,email) values ('" + rejected + "',2,'합성 AE 공동저자','합성 기관','" + ACTORS['reviewer2']['email'] + "');"
     subprocess.run(['docker', 'exec', '-i', 'supabase_db_' + META['project'], 'psql', '-U', 'postgres', '-v', 'ON_ERROR_STOP=1', '-q'], input=sql, text=True, check=True)

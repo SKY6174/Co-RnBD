@@ -229,3 +229,25 @@ uv run --with playwright --with pymupdf python scripts/verify-review-email.py --
 기본 `author_receipt_enabled=false`이며 migration → v4 서버 배포 후 true로 켭니다. 기존 편집자 알림과
 독립적이고 기존 dispatcher/cron이 처리합니다. 중지/롤백은 새 flag=false와 이전 배포 복원으로 진행하며
 큐/접수 기록을 보존합니다. 키·SMTP·운영 단계를 재설정하지 않습니다.
+
+## 투고·심사 작업 공간
+
+로그인 작업 공간은 내 원고·수정 요청·남은 심사를 요약하고, 현재 프로필/원고/심사 단계에 맞는 다음 작업을
+안내합니다. 내 원고와 심사 배정은 제목·접수번호 검색, 상태 필터와 초기화를 지원합니다. 탭은 좌우 화살표와
+Home/End 키로 이동합니다. 필터를 바꿔도 열려 있는 양식의 입력을 지우지 않습니다.
+
+편집 화면은 선택한 분야의 배정/심사/판정/최종본 상태를 집계합니다. 원고의 현재 제출본에 해당하는 유효 심사
+2건만 진행률에 반영하며, AE의 배정·최종본 확인 권한을 추가하지 않습니다. 상세 빠른 이동과 이메일 이력
+접기를 제공하고, 확인이 필요한 발송 기록이 있으면 이력을 펼칩니다. 자동 발송 규칙/키/DB 권한은 유지합니다.
+
+위 `verify-review-email.py`를 마친 **같은 격리 환경**에서 후속 UI 접근성 검사를 실행합니다.
+이 검사는 해당 합성 `example.test` 계정 3개의 비밀번호를 일회성 값으로 바꾸며 운영 계정에는 접근하지 않습니다.
+axe-core 4.14.0의 SHA-256을 검사하고 Chromium/WebKit의 WCAG A/AA·반응형·읽기 상태를 검증합니다.
+
+```sh
+curl --fail --silent --show-error https://cdn.jsdelivr.net/npm/axe-core@4.14.0/axe.min.js -o /tmp/co-rnbd-axe-4.14.0.min.js
+uv run --with playwright python scripts/verify-review-workspace.py --environment /tmp/co-rnbd-email-new-run --axe-script /tmp/co-rnbd-axe-4.14.0.min.js
+```
+
+결과는 `accessibility-results.json`과 `polished-*.png`에 기록합니다. 자동 검사 외 실제 보조기술 사용자 검수는
+별도이며, 위 검사는 격리 환경의 로그인/투고/심사 생명주기 검증을 대체하지 않습니다.

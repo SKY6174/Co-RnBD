@@ -48,3 +48,47 @@
 @media(max-width:640px) { .chair-main { padding-block:28px 64px; }.chair-card { padding:20px 16px; border-radius:16px; }.chair-stats { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }.chair-stat { padding:12px; }.chair-stat strong { font-size:26px; }.chair-filters { grid-template-columns:1fr; }.chair-section-head { gap:12px; flex-wrap:wrap; }.chair-table, .chair-table tbody, .chair-table tr, .chair-table td { display:block; width:100%; }.chair-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }.chair-table tr { border:1px solid #dce6df; border-radius:12px; padding:14px; margin-bottom:16px; }.chair-table td { border:0; padding:8px 0; }.chair-table td::before { content:attr(data-label); display:block; font-size:11px; font-weight:700; color:#69816f; margin-bottom:4px; }.chair-table td:last-child button { width:100%; }.chair-file { align-items:flex-start; flex-direction:column; }.chair-review header { flex-direction:column; }.chair-heading .operations-button { font-size:14px; }.chair-dialog { padding:22px; } }
 
 .chair-main .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }
+
+/* Editorial workbench: a clear priority queue above the manuscript detail. */
+.chair-main { --desk-line:#d9e5dc; }
+.chair-heading { position:relative; overflow:hidden; padding:38px 40px; border-radius:24px; background:radial-gradient(ellipse at 95% 10%,#22665a 0,transparent 60%),#102f29; color:#fff; box-shadow:0 18px 45px #123a2c12; }
+.chair-heading h1 { font-size:clamp(30px,3.5vw,44px); }
+.chair-heading .section-index { color:#c5e4b1; }
+.chair-heading p:not(.section-index) { color:#d0e3d8; font-size:14px; }
+.chair-heading-accent { display:block; margin-top:10px; color:#d6ed9e; font-size:17px; font-weight:500; letter-spacing:0; }
+.chair-heading .operations-button.secondary { background:#ffffff12; border-color:#7b9e8e; color:#fff; flex-shrink:0; }
+.chair-priority { display:flex; align-items:center; justify-content:space-between; gap:26px; margin:24px 0 18px; padding:26px 30px; border:1px solid #d0e0cc; border-radius:18px; background:linear-gradient(110deg,#e9f2de,#f4f8ef); }
+.chair-priority h2 { margin:6px 0 10px; font-size:25px; letter-spacing:-.035em; }
+.chair-priority p { margin:0; color:#3f604d; font-size:14px; line-height:1.8; }
+.chair-priority .operations-button { flex-shrink:0; }
+.chair-stats { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:18px 0 26px; }
+.chair-stat { position:relative; border-color:var(--desk-line); padding:19px 22px; border-radius:15px; box-shadow:0 5px 18px #173c3005; font-size:13px; transition:background .15s,border-color .15s; }
+.chair-stat strong { font-size:34px; font-variant-numeric:tabular-nums; }
+.chair-stat small { display:flex; justify-content:space-between; margin-top:6px; color:#506e5b; font-size:11px; }
+.chair-stat[aria-pressed="true"] small { color:#d3e6d6; }
+.chair-stat:hover { border-color:#628a6a; }
+.chair-filter-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin:20px 0 0; font-size:13px; color:#4a6655; }
+.chair-reset { min-height:44px; padding:10px 0 10px 15px; background:transparent; border:0; color:#2e6551; text-decoration:underline; text-underline-offset:4px; font:inherit; font-weight:700; cursor:pointer; }
+.chair-filters { padding:16px; border:1px solid var(--desk-line); border-radius:12px; background:#f4f7f0; margin-top:8px; }
+.chair-table tbody tr:hover { background:#f7faf4; }
+.review-progress { display:block; width:100%; max-width:180px; height:7px; margin:10px 0 6px; border:0; border-radius:20px; background:#e1e9dc; accent-color:#35806c; }
+.review-progress::-webkit-progress-bar { background:#e1e9dc; border-radius:20px; }.review-progress::-webkit-progress-value { background:#35806c; border-radius:20px; }.review-progress::-moz-progress-bar { background:#35806c; border-radius:20px; }
+.chair-detail-heading { padding:26px 28px; border:1px solid var(--desk-line); border-radius:18px; background:linear-gradient(120deg,#edf4e7,#fbfcf8); }
+.chair-next-step { color:#315c49; font-size:14px; line-height:1.8; margin:18px 0 0; padding-top:15px; border-top:1px solid #d3e1cf; }
+.chair-detail-nav { display:flex; flex-wrap:wrap; gap:8px; margin:-10px 0 25px; }
+.chair-detail-nav a { display:inline-flex; align-items:center; min-height:44px; padding:10px 16px; color:#285b49; background:#fff; border:1px solid var(--desk-line); border-radius:30px; font-size:13px; font-weight:700; text-decoration:none; }
+.chair-detail-nav a:hover { border-color:#6f997a; background:#f2f7ee; }
+.chair-detail-grid > * { min-width:0; }
+.chair-main section[id] { scroll-margin-top:100px; }
+.chair-mail-list li { margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid #e0e8dd; }
+.chair-mail-history summary { cursor:pointer; min-height:44px; padding:12px 0; color:#285d49; font-size:14px; font-weight:700; }
+.chair-main button, .chair-main .operations-button { min-height:44px; }
+@media(min-width:1001px) { .chair-side-column { position:sticky; top:100px; } }
+@media(max-width:760px) { .chair-heading { padding:28px 24px; gap:16px; }.chair-priority { align-items:flex-start; flex-direction:column; padding:22px; }.chair-stats { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }.chair-stat { padding:16px; }.chair-stat strong { font-size:29px; }.chair-detail-heading { padding:22px 18px; }.chair-detail-nav { gap:6px; }.chair-detail-nav a { padding:10px 12px; font-size:12px; }.chair-filters { padding:14px; } }
+@media(prefers-reduced-motion:reduce) { .chair-main *, .chair-main *::before, .chair-main *::after { scroll-behavior:auto!important; transition:none!important; } }
+.chair-main .operations-kicker { color:#3e6527; }
+.chair-table small, .chair-author-list span, .chair-timeline time { color:#536b5e; }
+.chair-main .chair-filters input, .chair-main .chair-filters select { border-color:#738a78; }
+.chair-stat { border-color:#7d927c; }
+.review-progress { border:1px solid #738a78; }
+@media(forced-colors:active) { .chair-stat[aria-pressed="true"] { outline:2px solid Highlight; outline-offset:-4px; }.review-progress { border-color:CanvasText; } }
