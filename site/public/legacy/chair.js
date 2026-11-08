@@ -17,7 +17,12 @@ let papers=[], members=[], membersById=new Map(), busy=false;
 let detailRequest=0;
 let priorityFilter='all', countTimer;
 const selected = () => selectedPaper;
-const OVERVIEW_COLUMNS = 'id,title,track,status,submitted_at,contact_name,final_presentation,assigned_session,paper_authors(full_name,affiliation,sort_order),reviews(reviewer_id,review_state,revoked_at,manuscript_submitted_at),paper_files(id,version,file_stage),paper_final_checks(file_id)';
+const OVERVIEW_COLUMNS = 'id,owner_id,title,track,status,submitted_at,contact_name,final_presentation,assigned_session,paper_authors(full_name,affiliation,email,sort_order),reviews(reviewer_id,review_state,revoked_at,manuscript_submitted_at),paper_files(id,version,file_stage),paper_final_checks(file_id)';
+const editorTracks = () => new Set(committee.filter(c=>c.active && c.committee_role==='associate_editor' && c.email===user.email?.toLowerCase()).map(c=>c.track));
+// General RLS also grants author/reviewer reads; the editorial desk has its own scope.
+const editorialPaper = p => isChief || (editorTracks().has(p.track) && p.owner_id!==user.id
+  && !(p.paper_authors||[]).some(a=>a.email?.trim().toLowerCase()===user.email?.toLowerCase())
+  && !(p.reviews||[]).some(r=>r.reviewer_id===user.id && r.review_state==='declined'));
 const currentReviews = (p) => (p.reviews||[]).filter(r=>sameTime(r.manuscript_submitted_at,p.submitted_at));
 const activeReviews = (p) => currentReviews(p).filter(r=>!r.revoked_at && r.review_state!=='declined');
 const panelReady = (p) => Boolean(p) && activeReviews(p).length===REQUIRED_REVIEWERS;
@@ -39,15 +44,20 @@ async function allRows(factory) {
   for(let offset=0;;offset+=300) { const part=data(await factory().range(offset,offset+299));rows.push(...part);if(part.length<300)return rows; }
 }
 async function load() {
-  const [list,profiles,roster]=await Promise.all([
-    allRows(()=>client.from('papers').select(OVERVIEW_COLUMNS).eq('edition_year',edition.year).neq('status','draft').not('submitted_at','is',null).order('id')),
+  committee=await allRows(()=>client.from('review_committee').select('*').eq('edition_year',edition.year).order('track').order('display_name'));
+  const tracks=editorTracks();
+  if(!isChief&&!tracks.size){papers=[];selectedId=null;selectedPaper=null;$('#chair-workspace').hidden=true;$('#chair-access').hidden=false;throw Error('활성 분야별 편집위원장 권한을 확인해 주세요.');}
+  const priorTrack=$('#chair-track-filter').value;
+  $('#chair-track-filter').innerHTML='<option value="all">전체 분야</option>'+Object.entries(TRACKS).filter(([key])=>isChief||tracks.has(key)).map(([key,label])=>`<option value="${key}">${label}</option>`).join('');
+  $('#chair-track-filter').value=isChief||tracks.has(priorTrack)?priorTrack:'all';
+  const [list,profiles]=await Promise.all([
+    allRows(()=>{const query=client.from('papers').select(OVERVIEW_COLUMNS).eq('edition_year',edition.year).neq('status','draft').not('submitted_at','is',null).order('id');return isChief?query:query.in('track',[...tracks]).neq('owner_id',user.id);}),
     allRows(()=>client.from('profiles').select('user_id,full_name,email,affiliation,expertise_tracks').order('user_id')),
-    allRows(()=>client.from('review_committee').select('*').eq('edition_year',edition.year).order('track').order('display_name')),
   ]);
-  committee=roster;
+  const roster=committee;
   for(const c of roster)if(c.user_id&&!profiles.some(p=>p.user_id===c.user_id))profiles.push({user_id:c.user_id,full_name:c.display_name,email:c.email,expertise_tracks:roster.filter(row=>row.user_id===c.user_id&&row.active).map(row=>row.track)});
   renderCommittee();
-  papers=list.sort((a,b)=>new Date(b.submitted_at)-new Date(a.submitted_at));members=profiles;membersById=new Map(profiles.map(p=>[p.user_id,p]));renderList();
+  papers=list.filter(editorialPaper).sort((a,b)=>new Date(b.submitted_at)-new Date(a.submitted_at));members=profiles;membersById=new Map(profiles.map(p=>[p.user_id,p]));renderList();
 }
 function renderCommittee() {
   $('#committee-list').innerHTML=committee.map(c=>`<article class="chair-review"><strong>${esc(c.display_name)}</strong><p>${esc(TRACKS[c.track])} · ${c.committee_role==='associate_editor'?'편집위원장 (AE)':'심사위원'}<br>${esc(c.email)} · ${c.active?'활성':'비활성'} · ${c.user_id?'계정 연결 완료':'계정 연결 대기'}</p>${isChief?`<button type="button" class="operations-button secondary" data-committee-toggle="${c.id}" data-chair-write>${c.active?'역할 비활성화':'역할 활성화'}</button>`:''}</article>`).join('')||'<p>등록된 분야별 위원이 없습니다.</p>';
@@ -160,6 +170,7 @@ async function openPaper(id,focus=true) {
       client.rpc('review_email_status',{p_id:id}),
     ]);
     p=data(paperResult);events=history;
+    if(!editorialPaper(p))throw Error('담당 분야의 이해관계가 없는 원고만 편집 화면에서 처리할 수 있습니다. 개인 심사 배정은 내 투고·심사에서 확인해 주세요.');
     renderEmailStatus(mailResult);
   } catch(error) {
     if(request!==detailRequest)return;

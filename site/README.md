@@ -251,3 +251,25 @@ uv run --with playwright python scripts/verify-review-workspace.py --environment
 
 결과는 `accessibility-results.json`과 `polished-*.png`에 기록합니다. 자동 검사 외 실제 보조기술 사용자 검수는
 별도이며, 위 검사는 격리 환경의 로그인/투고/심사 생명주기 검증을 대체하지 않습니다.
+
+## 지정 계정 운영 생명주기 검증
+
+AE 겸임 계정의 편집 목록은 활성 담당 분야만 조회하고, 본인 소유·공동저자·이해관계 거절 원고를 제외합니다.
+개인 심사 배정은 투고·심사 화면에서 그대로 확인합니다. DB의 판정 권한 검사를 대체하지 않습니다.
+
+`scripts/verify-live-editorial.py`는 운영자가 특정 계정·수신자·테스트 원고로 **명시적으로 요청한 운영 검증**용이며
+일반 CI에서 실행하지 않습니다. 비공개 JSON은 `chief`, `reviewer1`, `reviewer2` 이메일을 지정합니다.
+기존 관리자 CLI 연결로 해당 인증 계정의 일회성 로그인을 준비하고, 이후 실제 화면에서만 제출·배정·심사·판정합니다.
+비밀번호·회원 역할·운영 단계는 변경하지 않습니다. 원고 제목과 PDF에는 E2E TEST가 표시됩니다.
+
+`--allow-production-test` 동의 인자와 Git 작업 폴더 밖의 비공개 출력 경로가 필수입니다. 다음 명령은 실제 원고
+1건과 정상 workflow 알림 20건을 생성하므로 격리 검증 대신 일상적으로 실행하지 않습니다.
+
+```sh
+uv run --with playwright --with pymupdf --with certifi python scripts/verify-live-editorial.py --accounts /private/path/accounts.json --output /private/path/e2e-run --allow-production-test
+```
+
+중단 시 같은 출력 경로/`--phase`로 재개하며 완료 단계를 반복하지 않습니다. 수정 배포 뒤 `--phase audit`는 같은
+원고의 AE 범위·판정 거절·두 심사위원의 PDF 두 버전 다운로드·저자 최종 의견을 확인합니다. `--phase close`로
+테스트 세션만 만료하고 임시 인증 파일을 제거합니다. 본문/세션/수신 주소가 있는 결과와 PNG는 커밋하지 않으며,
+메일은 provider ID와 실제 Delivered 기록을 별도로 대조합니다. 테스트 원고·심사·발송 이력은 보존합니다.
