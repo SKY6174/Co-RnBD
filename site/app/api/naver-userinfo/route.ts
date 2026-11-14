@@ -7,7 +7,6 @@ type NaverProfile = {
     email?: string;
     name?: string;
     nickname?: string;
-    profile_image?: string;
   };
 };
 
@@ -39,7 +38,6 @@ export async function GET(request: Request) {
       id: String(user.id),
       email: user.email || undefined,
       name: user.name || user.nickname || undefined,
-      picture: user.profile_image || undefined,
     }, { headers });
   } catch {
     return Response.json({ error: "Naver profile request failed" }, { status: 502, headers });

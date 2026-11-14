@@ -44,7 +44,7 @@ def buildPdf(output, fontDir, background):
     c = canvas.Canvas(str(output), pagesize=A4, pageCompression=1)
     c.setTitle("T-VET Co-R&BD Conference 2026 | Call for Papers & Cases")
     c.setAuthor("T-VET Co-R&BD Conference")
-    c.setSubject("2027. 1. 20.-21. | 울산과학대학교 동부캠퍼스 | CFP 초안")
+    c.setSubject("2027. 1. 20.-21. | 울산과학대학교 동부캠퍼스 | 논문·현장사례 모집")
 
     def text(value, x, y, size=9.4, font="Regular", color=INK):
         c.setFillColor(color)
@@ -129,10 +129,10 @@ def buildPdf(output, fontDir, background):
 
     y = heading("메인 트랙", "MAIN TRACKS", left, y - 20)
     tracks = [
-        ("전문기술석사 응용연구", "학위 프로젝트와 현장 문제 해결 연구·실험·검증·적용 성과"),
-        ("산학공동기술개발과제 성과발표", "기업 애로기술 공동개발, 현장 실증 결과와 후속 사업화 사례"),
-        ("산업융합기술", "AI·자동화·모빌리티·조선·에너지·환경·보건 융합기술과 현장 적용사례"),
-        ("T-VET 정책·교육연구", "전문기술석사·고등직업교육 정책·제도, 교육과정 운영, 성과평가·산학협력 사례"),
+        ("전문기술석사 (공학 분야)", "공학 계열 학위 프로젝트·현장 애로기술 응용연구와 실증 성과"),
+        ("전문기술석사 (자연과학 분야)", "자연과학·바이오·환경·보건·식품 계열 학위 연구와 실증 성과"),
+        ("산학공동기술개발과제", "대학·기업 공동 기술개발, 현장 실증과 후속 사업화 사례"),
+        ("기타 산학융합과제", "AI·DX 산업융합 연구와 T-VET 교육·운영·산학협력 사례"),
     ]
     for index, (title, detail) in enumerate(tracks, 1):
         text(f"{index:02}", left, y - 10, size=9.5, font="Bold", color=BLUE)
@@ -210,7 +210,7 @@ def buildPdf(output, fontDir, background):
         x = slotX + (slotWidth - width) / 2
         c.drawImage(logo, x, 70 - (ih - visibleCenter) * scale,
                     width=width, height=ih * scale, mask="auto")
-    text("공고 전 검토본 · 논문 투고 일정 가안", MARGIN, 22, size=7.5, color=MUTED)
+    text("논문 투고 일정 가안 · 마감 시간 KST 기준", MARGIN, 22, size=7.5, color=MUTED)
     text("T-VET Co-R&BD Conference 2026", W - MARGIN - 151, 22, size=7.5, color=MUTED)
     c.showPage()
     c.save()
