@@ -96,11 +96,12 @@ function renderList() {
 function reviewerOptions() {
   const p=selected();if(!p)return;
   const q=$('#chair-reviewer-search').value.trim().toLocaleLowerCase();
-  const authorEmails=new Set(p.paper_authors.map(a=>a.email?.trim().toLowerCase()));
+  const authorEmails=new Set([...p.paper_authors.map(a=>a.email?.trim().toLowerCase()),p.contact_email?.trim().toLowerCase()].filter(Boolean));
   const assigned=new Set(currentReviews(p).map(r=>r.reviewer_id));
+  const declaredConflict=new Set((p.reviews||[]).filter(r=>r.review_state==='declined').map(r=>r.reviewer_id));
   const prior=$('#chair-reviewer').value;
   const fieldCommittee=committee.filter(c=>c.committee_role==='reviewer'&&c.track===p.track);
-  const available=members.filter(m=>(!fieldCommittee.length||fieldCommittee.some(c=>c.active&&c.user_id===m.user_id))&&m.user_id!==p.owner_id && !authorEmails.has(m.email?.trim().toLowerCase()) && !assigned.has(m.user_id) && (!q||`${m.full_name} ${m.email} ${m.affiliation}`.toLocaleLowerCase().includes(q)));
+  const available=members.filter(m=>(!fieldCommittee.length||fieldCommittee.some(c=>c.active&&c.user_id===m.user_id))&&m.user_id!==p.owner_id && !authorEmails.has(m.email?.trim().toLowerCase()) && !assigned.has(m.user_id) && !declaredConflict.has(m.user_id) && (!q||`${m.full_name} ${m.email} ${m.affiliation}`.toLocaleLowerCase().includes(q)));
   $('#chair-reviewer').innerHTML='<option value="">심사위원을 선택하세요</option>'+available.map(m=>{
     const count=papers.filter(paper=>['submitted','under_review'].includes(paper.status)).flatMap(activeReviews).filter(r=>r.reviewer_id===m.user_id && r.review_state!=='submitted').length;
     return `<option value="${m.user_id}">${esc(fieldCommittee.find(c=>c.user_id===m.user_id&&c.active)?.display_name||m.full_name||m.email)} · ${esc(m.affiliation||'소속 미입력')} · 진행 ${count}편</option>`;
