@@ -34,7 +34,7 @@
 
 | 일정 | 날짜·시간 | 상태 |
 |---|---|---|
-| 투고 시작 | 2026년 11월 16일 | 가안 |
+| 투고 시작 | 2026년 11월 30일 | 가안 |
 | **일반 참가신청 마감** | **2027년 1월 5일(화) 18:00 KST** | **확정** |
 | 원고 마감 | 2026년 12월 21일 18:00 KST | 가안 |
 | 채택·수정 요청 통보 | 2027년 1월 4일 | 가안 |
@@ -70,7 +70,7 @@ The conference invites applied research and practice cases from professional tec
 
 **Submission types:** a 2–4-page extended abstract for research; a 2-page report for a collaborative R&D or education practice case; or a 1-page summary for a work-in-progress poster or demonstration. Submit a PDF in Korean or English. At least one author must be affiliated with a college or be a collaborator in that college's joint project. Authors may indicate a preferred presentation format; the program committee will make the final assignment after review.
 
-**Confirmed conference dates and campus:** January 20–21, 2027, Eastern Campus, Ulsan College, Ulsan, Republic of Korea. **General attendee application deadline:** January 5, 2027, 18:00 KST. Presenters register separately after acceptance. Proposed paper dates: submissions open November 16; deadline December 21, 18:00 KST; notification January 4, 2027; final submission and presenter registration January 12, 2027, 18:00 KST. Paper dates, room details, and presenter registration procedures require confirmation before publication.
+**Confirmed conference dates and campus:** January 20–21, 2027, Eastern Campus, Ulsan College, Ulsan, Republic of Korea. **General attendee application deadline:** January 5, 2027, 18:00 KST. Presenters register separately after acceptance. Proposed paper dates: submissions open November 30; deadline December 21, 18:00 KST; notification January 4, 2027; final submission and presenter registration January 12, 2027, 18:00 KST. Paper dates, room details, and presenter registration procedures require confirmation before publication.
 
 At least one author of each accepted contribution must register and present onsite. Final contributions approved for release may be included in the conference proceedings.
 
