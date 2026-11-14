@@ -60,6 +60,7 @@ let isChair = false;
 let submissionsOpen = false;
 let reviewsOpen = false;
 let finalUploadsOpen = false;
+let revisionsOpen = true;
 let settings;
 let edition;
 let myPapers = [];
@@ -140,17 +141,19 @@ function phaseCard(title, configured, deadline) {
 
 async function loadSettings() {
   settings = check(await client.from('conference_settings')
-    .select('submissions_open,submission_deadline,reviews_open,review_deadline,final_uploads_open,final_deadline,notice')
+    .select('submissions_open,submission_deadline,revision_deadline,reviews_open,review_deadline,final_uploads_open,final_deadline,notice')
     .eq('edition_year', edition.year).single());
   submissionsOpen = settings.submissions_open && beforeDeadline(settings.submission_deadline);
   reviewsOpen = settings.reviews_open && beforeDeadline(settings.review_deadline);
   finalUploadsOpen = settings.final_uploads_open && beforeDeadline(settings.final_deadline);
+  revisionsOpen = beforeDeadline(settings.revision_deadline);
   const publicNotice = settings.notice?.trim() || (submissionsOpen ? '투고 접수 중입니다.' : '투고 접수 준비 중입니다.');
   $('#notice').textContent = settings.submissions_open && !submissionsOpen
     ? `투고 접수 기간이 종료되었습니다. ${publicNotice}`
     : publicNotice;
   $('#submission-pilot-status').textContent = `원고 접수가 ${submissionsOpen ? '열려 있습니다.' : '닫혀 있습니다.'}`;
   $('#phase-overview').innerHTML = phaseCard('원고 접수', settings.submissions_open, settings.submission_deadline)
+    + phaseCard('수정본 재제출', true, settings.revision_deadline)
     + phaseCard('심사 입력', settings.reviews_open, settings.review_deadline)
     + phaseCard('최종본 제출', settings.final_uploads_open, settings.final_deadline);
   $('#new-paper').disabled = !submissionsOpen;
@@ -264,7 +267,7 @@ function paperCard(paper, action, label) {
   const detail = paper.status === 'declined' ? '원고 열람 권한이 종료됐습니다.' : `${TRACKS[paper.track] || '분야 미지정'} · ${submitted}${sessionLabel}`;
   const review = action === 'review' ? reviewRows.find(r => r.paper_id === paper.id) : null;
   const step = ({draft:0,submitted:1,under_review:2,revision:3,accepted:3,rejected:3})[paper.status] ?? 0;
-  const next = review ? `내 심사 · ${REVIEW_STATES[review.review_state] || '확인 필요'}` : ({draft:submissionsOpen?'PDF와 저자 정보를 확인하고 제출해 주세요.':'초안을 보관하고 투고 접수 기간을 확인해 주세요.',submitted:'접수가 완료되었습니다. 심사 배정을 기다려 주세요.',under_review:'심사가 진행 중입니다. 판정이 공개되면 알려드립니다.',revision:submissionsOpen?'같은 원고에 새 PDF를 올려 수정본을 제출해 주세요.':'수정 요청을 확인하고 재제출 접수 기간을 확인해 주세요.',accepted:finalUploadsOpen?'채택되었습니다. 최종본 제출 상태를 확인해 주세요.':'채택되었습니다. 최종본 제출 일정은 포털에서 확인해 주세요.',rejected:'공개된 판정 사유와 심사의견을 확인해 주세요.'})[paper.status] || '';
+  const next = review ? `내 심사 · ${REVIEW_STATES[review.review_state] || '확인 필요'}` : ({draft:submissionsOpen?'PDF와 저자 정보를 확인하고 제출해 주세요.':'초안을 보관하고 투고 접수 기간을 확인해 주세요.',submitted:'접수가 완료되었습니다. 심사 배정을 기다려 주세요.',under_review:'심사가 진행 중입니다. 판정이 공개되면 알려드립니다.',revision:revisionsOpen?'같은 원고에 새 PDF를 올려 수정본을 제출해 주세요.':'수정본 재제출 기한이 지났습니다. 위원장에게 문의해 주세요.',accepted:finalUploadsOpen?'채택되었습니다. 최종본 제출 상태를 확인해 주세요.':'채택되었습니다. 최종본 제출 일정은 포털에서 확인해 주세요.',rejected:'공개된 판정 사유와 심사의견을 확인해 주세요.'})[paper.status] || '';
   const journey = review ? `<span class="review-state-tag">${esc(REVIEW_STATES[review.review_state] || '')}</span>` : `<ol class="paper-steps" role="list" aria-label="원고 진행 단계">${['작성','접수','심사','판정'].map((text,index) => `<li class="${index < step ? 'done' : index === step ? 'current' : ''}"${index === step ? ' aria-current="step"' : ''}>${text}</li>`).join('')}</ol>`;
   return `<article class="paper-card"><div class="paper-card-top"><span class="status status-${esc(paper.status)}">${STATUSES[paper.status] || esc(paper.status)}</span><span class="paper-id">${esc(paper.id.slice(0, 8).toUpperCase())}</span></div><h3>${esc(paper.title)}</h3><p>${esc(detail)}</p>${journey}<p class="paper-next">${esc(next)}</p><button type="button" class="card-action" data-action="${action}" data-id="${esc(paper.id)}" aria-label="${esc(label + ' · ' + paper.title)}">${label} <span aria-hidden="true">↗</span></button></article>`;
 }
@@ -287,7 +290,7 @@ function renderWorkspaceOverview() {
     text = '제출 전에 이름·소속기관을 저장해 주세요. 심사위원은 전문 분야도 필요합니다.';
     label = '내 정보 완성하기'; nextWorkspaceAction = () => {showTab('profile'); $('#profile-name').focus();};
   } else if (revisions.length) {
-    text = submissionsOpen ? `수정 요청 원고 ${revisions.length}편이 있습니다. 판정 사유를 확인하고 같은 원고에 수정본을 제출하세요.` : `수정 요청 원고 ${revisions.length}편이 있습니다. 요청 내용과 현재 접수 단계를 확인하세요.`;
+    text = revisionsOpen ? `수정 요청 원고 ${revisions.length}편이 있습니다. 판정 사유를 확인하고 같은 원고에 수정본을 제출하세요${settings.revision_deadline ? ` (마감 ${formatKst(settings.revision_deadline)})` : ''}.` : `수정 요청 원고 ${revisions.length}편이 있습니다. 수정본 재제출 기한이 지났습니다. 위원장에게 문의하세요.`;
     label = '수정 요청 확인'; nextWorkspaceAction = () => goToList('author','revision');
   } else if (pending.length) {
     text = reviewsOpen ? `작성할 심사가 ${pending.length}편 있습니다. 이해관계를 확인하고 의견을 제출하세요.` : `작성 대기 심사는 ${pending.length}편이며 현재 심사 입력이 닫혀 있습니다. 운영 단계를 확인하세요.`;
@@ -485,7 +488,8 @@ async function openAuthor(paperId = '') {
   }
   $('#paper-form').querySelectorAll('input:not([type="hidden"]),select,textarea,button[type="submit"],[data-remove-author],#add-author').forEach((field) => { field.disabled = !editable; });
   renumberAuthorRows();
-  if (editable && !submissionsOpen && myPapers.find((paper) => paper.id === paperId)?.status !== 'revision') {
+  const isRevision = myPapers.find((paper) => paper.id === paperId)?.status === 'revision';
+  if (editable && (isRevision ? !revisionsOpen : !submissionsOpen)) {
     $('#paper-form').querySelector('[data-save="submitted"]').disabled = true;
   }
   $('#paper-form').hidden = false;
