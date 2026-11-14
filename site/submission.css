@@ -8,7 +8,7 @@
 .portal-intro p:last-child { margin: 0; color: #53645b; font-size: 17px; }
 .portal-intro a { color: #286046; font-weight: 800; text-underline-offset: 3px; }
 .portal-notice { border-left: 4px solid #76a443; background: #eaf0dd; padding: 17px 20px; margin-bottom: 22px; font-size: 14px; font-weight: 700; }
-.phase-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 44px 0 24px; }
+.phase-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 44px 0 24px; }
 .phase-overview article { border: 1px solid #dce4d7; border-radius: 10px; background: #fff; padding: 15px 17px; }
 .phase-overview strong { display: block; margin-bottom: 5px; font-size: 13px; }
 .phase-overview span { color: #53645b; font-size: 12px; line-height: 1.55; }
