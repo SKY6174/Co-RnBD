@@ -149,9 +149,7 @@ async function loadSettings() {
   $('#notice').textContent = settings.submissions_open && !submissionsOpen
     ? `투고 접수 기간이 종료되었습니다. ${publicNotice}`
     : publicNotice;
-  $('#submission-pilot-status').textContent = edition.year === 2026
-    ? `투고 시스템 시범 운영 · 현재 원고 접수가 ${submissionsOpen ? '열려 있습니다.' : '닫혀 있습니다.'}`
-    : `원고 접수가 ${submissionsOpen ? '열려 있습니다.' : '닫혀 있습니다.'}`;
+  $('#submission-pilot-status').textContent = `원고 접수가 ${submissionsOpen ? '열려 있습니다.' : '닫혀 있습니다.'}`;
   $('#phase-overview').innerHTML = phaseCard('원고 접수', settings.submissions_open, settings.submission_deadline)
     + phaseCard('심사 입력', settings.reviews_open, settings.review_deadline)
     + phaseCard('최종본 제출', settings.final_uploads_open, settings.final_deadline);
