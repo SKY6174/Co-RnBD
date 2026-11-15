@@ -149,12 +149,55 @@ service_role은 보관 테이블과 함수에 접근할 수 없으며, 관리자
 보관 종료일이 지난 기록은 pg_cron 작업 `co-rnbd-financial-retention`이 매일 03:30(KST)에 삭제합니다
 (`app_private.purge_expired_financial_records()`). 세무 조사 등으로 열람이 필요하면 관리자가 SQL Editor에서 조회합니다.
 
-이 절차는 참가 신청 데이터만 다룹니다. 계정·프로필, 원고·심사 기록, Storage의 PDF, 이메일 발송 기록,
-Supabase 백업의 파기는 별도 절차가 필요합니다. 이 절차를 마친 뒤에는 회원 프로필을 지워도 납부·증빙
-외래키 때문에 실패하지 않습니다. 격리 검증(롤백 전용, 합성 `@example.test` 계정만 사용):
+이 절차를 마치면 회원 프로필을 지워도 납부·증빙 외래키 때문에 실패하지 않습니다. 같은 회차의 나머지 개인정보는 다음 절의
+"행사 후 회차 개인정보 파기"로 처리합니다. 이 절차의 격리 검증(롤백 전용, 합성 `@example.test` 계정만 사용):
 
 ```sh
 docker exec -i <로컬 일회성 DB 컨테이너> psql -U postgres -d postgres -v ON_ERROR_STOP=1 -q < scripts/verify-financial-retention.sql
+```
+
+### 행사 후 회차 개인정보 파기 (원고·심사·계정·PDF)
+
+`20261115180000_post_event_purge.sql`은 참가 신청 파기 **이후** 같은 회차의 나머지 개인정보를 파기합니다.
+2026-11-15 운영자 결정에 따라 다음은 보관합니다.
+
+- 자료집 공개에 동의한 채택 원고: 제목·분야·저자 이름·소속·최종 PDF 경로를 계정과 분리된
+  `app_private.proceedings_archive`에 옮기고 최종 PDF 파일은 남깁니다. 이메일은 보관하지 않습니다.
+- `staff_roles`가 있는 운영자 계정
+- 공개(`is_published`)된 연사·세션
+
+나머지(모든 원고 행·저자·파일 기록·심사·이력·최종본 확인·공개 동의, 이메일 발송 대기열, 분야 위원 명부, 좌장·발표 운영
+기록, 비공개 연사·세션)는 한 트랜잭션에서 삭제합니다. 그다음 운영자가 아닌 계정 중 **행사 종료 다음 날(KST) 이후 가입·로그인
+기록이 없고** 다른 회차 참가 신청이 없는 계정을 삭제합니다. 다른 회차 자료가 남은 계정은 건너뜁니다.
+
+1. 행사 종료 후 참가 신청 파기(위 절차)를 먼저 마칩니다. 남아 있으면 이 함수가 거부합니다.
+2. 미리보기로 건수를 확인합니다. 동의 없이 채택된 원고 수(`accepted_without_consent`)를 보고, 저자에게 확인할 원고가 있으면 이때 처리합니다.
+
+   ```sql
+   select app_private.preview_edition_purge(2026);
+   ```
+
+3. 실행합니다. 실패하면 아무것도 바뀌지 않습니다.
+
+   ```sql
+   select app_private.purge_edition_personal_data(2026, 'PURGE EDITION 2026');
+   ```
+
+4. Storage의 PDF를 지웁니다(SQL로는 Storage 객체를 지울 수 없습니다). 저장소 루트에서 실행하며, 기본은 목록만 보여 주는
+   dry-run이고 `--apply` 후 `DELETE <n> FILES`를 입력해야 삭제합니다. 원고 행도 자료집 보관 기록도 없는 PDF만 대상입니다.
+
+   ```sh
+   python3 scripts/purge-paper-pdfs.py
+   python3 scripts/purge-paper-pdfs.py --apply
+   ```
+
+5. 결과 건수와 실행 일시를 운영 기록에 남깁니다. Supabase 백업과 Resend 발송 기록은 각 서비스의 보관 기간이 지나면 삭제됩니다.
+
+자료집 보관 원고는 관리자가 SQL Editor에서 `app_private.proceedings_archive`로 조회하고 PDF는 Storage에서 내려받습니다.
+저자가 삭제를 요청하면 해당 행을 지우고 같은 스크립트로 PDF를 지웁니다. 격리 검증(롤백 전용):
+
+```sh
+docker exec -i <로컬 일회성 DB 컨테이너> psql -U postgres -d postgres -v ON_ERROR_STOP=1 -q < scripts/verify-edition-purge.sql
 ```
 
 ## 분야별 편집위원장(AE) 심사
