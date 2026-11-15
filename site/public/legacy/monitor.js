@@ -2,7 +2,7 @@ import { conferenceClient, currentEdition, escapeHtml, requireData } from './con
 
 const $ = (selector) => document.querySelector(selector);
 const REGISTRATION_STATES = { applied: '확인 대기', confirmed: '참가 확정', cancelled: '취소됨' };
-const PAPER_STATES = { draft: '초안', submitted: '접수', under_review: '심사 중', revision: '수정 요청', accepted: '채택', rejected: '반려' };
+const PAPER_STATES = { draft: '초안', submitted: '접수', under_review: '심사 중', revision: '수정 요청', accepted: '채택', rejected: '반려', withdrawn: '철회' };
 const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타' };
 const TRACKS = {
   master_eng: '전문기술석사 (공학 분야)',
@@ -119,6 +119,7 @@ function renderPapers() {
     stat('구두 채택 (목표 20+)', `${acceptedOral}/20`),
     stat('포스터 채택 (목표 30+)', `${acceptedPoster}/30`),
     stat('반려', count('rejected')),
+    stat('철회', count('withdrawn')),
   ].join('');
   $('#monitor-paper-count').textContent = `${visible.length}건 표시 / 전체 ${papers.length}건`;
   $('#monitor-paper-list').innerHTML = visible.length ? visible.map((row) => `<article class="operations-item">
