@@ -142,8 +142,8 @@ function phaseCard(title, configured, deadline) {
   return `<article><strong>${title}</strong><span class="${open ? 'phase-open' : 'phase-closed'}">${status}</span><br><span>${esc(formatKst(deadline))}</span></article>`;
 }
 
-async function loadSettings() {
-  settings = check(await client.from('conference_settings')
+async function loadSettings(initialSettings) {
+  settings = initialSettings ?? check(await client.from('conference_settings')
     .select('submissions_open,submission_deadline,revision_deadline,reviews_open,review_deadline,re_review_deadline,final_uploads_open,final_deadline,notice')
     .eq('edition_year', edition.year).single());
   submissionsOpen = settings.submissions_open && beforeDeadline(settings.submission_deadline);
@@ -855,7 +855,9 @@ async function start() {
     });
     const [, editionResult] = await Promise.all([
       loadAuthAvailability(config),
-      client.from('conference_editions').select('year,title,status,start_date,end_date,venue').eq('status', 'current').single(),
+      client.from('conference_editions')
+        .select('year,title,status,start_date,end_date,venue,conference_settings(submissions_open,submission_deadline,revision_deadline,reviews_open,review_deadline,re_review_deadline,final_uploads_open,final_deadline,notice)')
+        .eq('status', 'current').single(),
     ]);
     edition = check(editionResult);
     renderConferenceContext(edition);
@@ -881,7 +883,7 @@ async function start() {
       history.replaceState(null, '', `${location.pathname}${location.search}`);
     }
     // 학회 운영 설정(loadSettings)과 사용자 워크스페이스(loadWorkspace)를 병렬(Promise.all)로 동시에 로드
-    await Promise.all([loadSettings(), loadWorkspace()]);
+    await Promise.all([loadSettings(edition.conference_settings), loadWorkspace()]);
     workspaceReady = true;
     if (emailLink?.type === 'email' && !emailLinkError && !user) {
       showAuthMode('login');
