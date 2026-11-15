@@ -1,5 +1,5 @@
 import { conferenceClient, escapeHtml as esc, requireData } from './conference-client.js';
-import { REGISTRATION_COLUMNS, BILLING, STATES, cards, one, money, date, issue, friendly } from './member-documents.js';
+import { REGISTRATION_COLUMNS, BILLING, STATES, cards, one, money, date, issue, friendly, registrationNo, depositorName } from './member-documents.js';
 const $=s=>document.querySelector(s);
 let client,user,generation=0;
 function notice(text,error=false){$('#member-message').textContent=text;$('#member-message').classList.toggle('error',error);}
@@ -23,7 +23,7 @@ async function load(){
  $('#member-login').hidden=true;$('#member-workspace').hidden=false;$('#member-admin').hidden=role?.role!=='chair';
  $('#member-history').innerHTML=rows.length?rows.map(row=>{
   const edition=one(row.conference_editions),bill=one(row.registration_billing);
-  return `<section class="operations-card" data-registration-id="${row.id}"><div class="document-section-head"><div><span class="operations-kicker">${row.edition_year} EDITION</span><h2>${esc(edition?.title||`Co-R&BD ${row.edition_year}`)}</h2></div><span class="document-status">${STATES[row.status]}</span></div><p class="document-summary">${esc(row.attendance_days.map(date).join(' · '))} · ${row.checked_in_at?'체크인 완료':'체크인 전'}</p><p class="document-summary">등록비 ${bill?money(bill.amount):'미설정'} · ${bill?BILLING[bill.status]:'납부 안내 준비 중'}</p>${cards(row,issuers.find(i=>i.edition_year===row.edition_year))}</section>`;
+  return `<section class="operations-card" data-registration-id="${row.id}"><div class="document-section-head"><div><span class="operations-kicker">${row.edition_year} EDITION</span><h2>${esc(edition?.title||`Co-R&BD ${row.edition_year}`)}</h2></div><span class="document-status">${STATES[row.status]}</span></div><p class="document-summary">${esc(row.attendance_days.map(date).join(' · '))} · ${row.checked_in_at?'체크인 완료':'체크인 전'}</p><p class="document-summary">등록비 ${bill?money(bill.amount):'미설정'} · ${bill?BILLING[bill.status]:'납부 안내 준비 중'}</p><p class="document-summary">등록번호 ${registrationNo(row.id)}${row.status!=='cancelled'&&(!bill||bill.status==='unpaid')?` · 계좌이체 입금자명 <strong>${esc(depositorName(profile.full_name,row.id))}</strong>`:''}</p>${cards(row,issuers.find(i=>i.edition_year===row.edition_year))}</section>`;
  }).join(''):'<div class="operations-empty"><h2>참가 신청 내역이 없습니다.</h2><p>일반 참가 신청을 완료하면 이곳에서 내역과 증빙을 관리할 수 있습니다.</p><a class="operations-button" href="./registration.html">참가 신청하기</a></div>';
  notice('참가확인증은 체크인, 영수증은 실제 납부 확인 후 발급됩니다.');
 }
