@@ -14,6 +14,7 @@ const LEGACY_SLUGS = [
   "chair",
   "session-chair",
   "monitor",
+  "staff",
   "privacy",
   "terms",
   "cmt-reference",
