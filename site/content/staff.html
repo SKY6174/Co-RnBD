@@ -1,0 +1,26 @@
+<a class="skip-link" href="#main">본문으로 바로가기</a>
+<header class="site-header operations-header"><div class="shell header-inner">
+  <a class="brand" href="./index.html" aria-label="T-VET Co-R&BD 홈"><span class="brand-logo"><img src="./assets/t-vet-co-rbd-conference-logo.png" alt="T-VET Co-R&BD" width="2920" height="706" /></span></a>
+  <nav class="operations-header-nav" aria-label="주 메뉴"><a href="./index.html">행사 안내</a><a href="./submission.html">로그인·내 정보</a><a href="./staff.html" aria-current="page">운영진 명단</a></nav>
+</div></header>
+<main id="main" class="operations-main"><div class="shell">
+  <div class="operations-intro"><p id="staff-edition-label" class="section-index">T-VET CO-R&amp;BD / ORGANIZING COMMITTEE</p><h1>운영진 명단 조회</h1><p>조직위원장·학술위원장·사무국이 등록자, 논문 제출자, 심사위원, 좌장 명단을 확인하는 화면입니다. 조회만 할 수 있으며 변경은 위원장 화면에서 합니다.</p></div>
+  <div id="staff-message" class="operations-note" role="status" aria-live="polite">권한을 확인하는 중입니다.</div>
+  <div id="staff-workspace" hidden>
+    <div class="operations-hint-block"><span>PRIVACY</span><strong>개인정보 열람 안내</strong><p>명단을 열 때마다 열람자·명단·건수·시각이 기록됩니다. 행사 운영 목적으로만 사용하고, 화면을 캡처하거나 외부로 전달하지 마세요. 원고 PDF, 심사의견, 심사위원별 배정 원고는 이 화면에 표시하지 않습니다.</p></div>
+    <p id="staff-access" class="operations-meta"></p>
+    <div class="operations-actions" role="tablist" aria-label="명단 종류">
+      <button type="button" class="operations-button secondary" role="tab" aria-selected="false" aria-controls="staff-panel" data-list="registrations">등록자</button>
+      <button type="button" class="operations-button secondary" role="tab" aria-selected="false" aria-controls="staff-panel" data-list="submissions">논문 제출자</button>
+      <button type="button" class="operations-button secondary" role="tab" aria-selected="false" aria-controls="staff-panel" data-list="reviewers">심사위원</button>
+      <button type="button" class="operations-button secondary" role="tab" aria-selected="false" aria-controls="staff-panel" data-list="session_chairs">좌장</button>
+    </div>
+    <section id="staff-panel" class="operations-card full" role="tabpanel" aria-labelledby="staff-list-title" hidden>
+      <h2 id="staff-list-title"></h2>
+      <div id="staff-summary" class="operations-hint-block" aria-live="polite" hidden></div>
+      <div class="monitor-filters"><label>검색 <input id="staff-search" type="search" placeholder="이름, 소속, 이메일, 제목" /></label></div>
+      <p id="staff-count" class="operations-meta" aria-live="polite"></p>
+      <div class="legal-table-wrap"><table class="legal-table legal-table-wide"><thead id="staff-head"></thead><tbody id="staff-body"></tbody></table></div>
+    </section>
+  </div>
+</div></main>

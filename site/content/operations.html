@@ -32,6 +32,19 @@
           <form id="create-edition-form" class="operations-actions"><label>새 학회 연도 <input id="new-edition-year" type="number" min="2027" max="2100" required placeholder="예: 2027" /></label><button type="submit" class="operations-button">연도 추가</button></form>
           <div id="edition-list" class="operations-list" aria-live="polite"></div>
         </section>
+        <section id="staff-management" class="operations-card full" aria-labelledby="staff-management-title">
+          <span class="operations-kicker">ORGANIZING COMMITTEE ACCESS</span>
+          <h2 id="staff-management-title">운영진 명단 조회 권한</h2>
+          <p>조직위원장·학술위원장·사무국에게 등록자·논문 제출자·심사위원·좌장 명단 <strong>조회</strong> 권한을 줍니다. 상대가 먼저 가입하고 이메일 인증을 마쳐야 합니다. 권한은 만료일에 자동으로 끝나며(기본: 행사 종료 30일 후), 위원장 권한은 주지 않습니다. 운영진은 <a href="./staff.html">운영진 명단</a> 화면을 씁니다.</p>
+          <form id="staff-grant-form" class="operations-form-grid">
+            <label>계정 이메일 <input id="staff-email" type="email" required autocomplete="off" /></label>
+            <label>역할 <select id="staff-role" required><option value="organizing_chair">조직위원장</option><option value="program_chair">학술위원장</option><option value="secretariat">사무국</option></select></label>
+            <label>만료 (선택·KST) <input id="staff-expires" type="datetime-local" /></label>
+            <div class="operations-actions wide"><button type="submit" class="operations-button">권한 부여</button></div>
+          </form>
+          <div id="staff-list" class="operations-list" aria-live="polite"></div>
+          <details><summary>최근 명단 열람 기록</summary><div id="staff-log" class="operations-list"></div></details>
+        </section>
         <section id="registration-management" class="operations-card full" aria-labelledby="registration-management-title">
           <span class="operations-kicker">ATTENDANCE CONTROL</span>
           <h2 id="registration-management-title">참가 신청</h2><p><a class="operations-button secondary" href="./document-admin.html">등록비·증빙 발급 관리 →</a></p>
