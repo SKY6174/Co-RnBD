@@ -58,7 +58,10 @@ let user;
 let profile;
 let isChair = false;
 let submissionsOpen = false;
-let reviewsOpen = false;
+let reReviewIds = new Set();
+// Reviews of a resubmitted manuscript use the re-review deadline when the chair set one.
+const reviewDeadlineFor = (row) => reReviewIds.has(row?.id) && settings.re_review_deadline ? settings.re_review_deadline : settings.review_deadline;
+const reviewOpenFor = (row) => settings.reviews_open && beforeDeadline(reviewDeadlineFor(row));
 let finalUploadsOpen = false;
 let revisionsOpen = true;
 let settings;
@@ -141,10 +144,9 @@ function phaseCard(title, configured, deadline) {
 
 async function loadSettings() {
   settings = check(await client.from('conference_settings')
-    .select('submissions_open,submission_deadline,revision_deadline,reviews_open,review_deadline,final_uploads_open,final_deadline,notice')
+    .select('submissions_open,submission_deadline,revision_deadline,reviews_open,review_deadline,re_review_deadline,final_uploads_open,final_deadline,notice')
     .eq('edition_year', edition.year).single());
   submissionsOpen = settings.submissions_open && beforeDeadline(settings.submission_deadline);
-  reviewsOpen = settings.reviews_open && beforeDeadline(settings.review_deadline);
   finalUploadsOpen = settings.final_uploads_open && beforeDeadline(settings.final_deadline);
   revisionsOpen = beforeDeadline(settings.revision_deadline);
   const publicNotice = settings.notice?.trim() || (submissionsOpen ? '투고 접수 중입니다.' : '투고 접수 준비 중입니다.');
@@ -155,6 +157,7 @@ async function loadSettings() {
   $('#phase-overview').innerHTML = phaseCard('원고 접수', settings.submissions_open, settings.submission_deadline)
     + phaseCard('수정본 재제출', true, settings.revision_deadline)
     + phaseCard('심사 입력', settings.reviews_open, settings.review_deadline)
+    + (settings.re_review_deadline ? phaseCard('재심사 (수정본)', settings.reviews_open, settings.re_review_deadline) : '')
     + phaseCard('최종본 제출', settings.final_uploads_open, settings.final_deadline);
   $('#new-paper').disabled = !submissionsOpen;
   if (user && profile) renderWorkspaceOverview();
@@ -293,7 +296,7 @@ function renderWorkspaceOverview() {
     text = revisionsOpen ? `수정 요청 원고 ${revisions.length}편이 있습니다. 판정 사유를 확인하고 같은 원고에 수정본을 제출하세요${settings.revision_deadline ? ` (마감 ${formatKst(settings.revision_deadline)})` : ''}.` : `수정 요청 원고 ${revisions.length}편이 있습니다. 수정본 재제출 기한이 지났습니다. 위원장에게 문의하세요.`;
     label = '수정 요청 확인'; nextWorkspaceAction = () => goToList('author','revision');
   } else if (pending.length) {
-    text = reviewsOpen ? `작성할 심사가 ${pending.length}편 있습니다. 이해관계를 확인하고 의견을 제출하세요.` : `작성 대기 심사는 ${pending.length}편이며 현재 심사 입력이 닫혀 있습니다. 운영 단계를 확인하세요.`;
+    text = pending.some(reviewOpenFor) ? `작성할 심사가 ${pending.length}편 있습니다. 이해관계를 확인하고 의견을 제출하세요.` : `작성 대기 심사는 ${pending.length}편이며 현재 심사 입력이 닫혀 있습니다. 운영 단계를 확인하세요.`;
     label = '심사 배정 확인'; nextWorkspaceAction = () => goToList('reviewer','pending');
   } else if (drafts.length) {
     text = `작성 중인 초안이 ${drafts.length}편 있습니다. 초안 저장만으로는 접수되지 않습니다.`;
@@ -318,7 +321,7 @@ function renderPaperLists(name) {
   target.innerHTML = rows.map(row => {
     if (name === 'author') return paperCard(row,'author',['draft','revision'].includes(row.status) ? '수정·제출' : '원고 보기');
     const paper = row.papers || {id:row.paper_id,title:'배정 거절 내역',status:'declined'};
-    const closed = !reviewsOpen || !['submitted','under_review'].includes(paper.status);
+    const closed = !reviewOpenFor(row) || !['submitted','under_review'].includes(paper.status);
     return paperCard(paper,'review',row.review_state === 'declined' ? '거절 사유 확인' : closed ? '심사 기록 확인' : row.review_state === 'submitted' ? '심사 확인·수정' : '심사 입력');
   }).join('') || `<p class="empty-state">${all.length ? '검색 조건에 맞는 원고가 없습니다. 검색어 또는 필터를 변경해 주세요.' : name === 'author' ? '아직 작성한 원고가 없습니다. 접수가 시작되면 새 원고를 작성할 수 있습니다.' : '배정된 원고가 없습니다.'}</p>`;
   clearTimeout(countTimers[name]);
@@ -338,6 +341,9 @@ async function loadReviews() {
   const generation = workspaceGeneration, userId = user.id;
   const result = await client.from('reviews').select('id,paper_id,review_state,recommendation,comments,conflict_confirmed,submitted_at,decline_reason,manuscript_submitted_at,revoked_at,papers(id,title,abstract,track,status,owner_id,submitted_at,edition_year)').eq('reviewer_id', userId).order('assigned_at', { ascending: false });
   if (generation !== workspaceGeneration || user?.id !== userId) return;
+  const reReview = await client.rpc('my_re_review_ids');
+  if (generation !== workspaceGeneration || user?.id !== userId) return;
+  reReviewIds = new Set((check(reReview) || []).map((row) => typeof row === 'string' ? row : row.my_re_review_ids));
   reviewRows = check(result)
     .filter((review) => review.papers?.edition_year === edition.year && !review.revoked_at
       && new Date(review.manuscript_submitted_at).getTime() === new Date(review.papers.submitted_at).getTime());
@@ -554,7 +560,7 @@ async function openReview(paperId) {
   if (!review) return;
   const declined = review.review_state === 'declined';
   const assigned = !declined && review.papers?.status === 'under_review';
-  const editable = assigned && reviewsOpen;
+  const editable = assigned && reviewOpenFor(review);
   $('#review-id').value = review.id;
   $('#review-title').textContent = review.papers?.title || '배정 거절 내역';
   $('#review-paper-summary').textContent = review.papers?.abstract || '거절한 원고는 더 이상 열람할 수 없습니다.';
@@ -567,7 +573,7 @@ async function openReview(paperId) {
   $('#review-state-notice').textContent = declined
     ? `배정 거절 사유: ${review.decline_reason}`
     : editable ? `현재 상태: ${REVIEW_STATES[review.review_state] || '심사 대기'}. 임시저장한 의견은 판정에 반영되지 않습니다.`
-      : assigned ? `심사 입력 단계가 닫혀 있습니다. ${formatKst(settings.review_deadline)}.`
+      : assigned ? `심사 입력 단계가 닫혀 있습니다. ${formatKst(reviewDeadlineFor(review))}.`
         : `현재 상태: ${REVIEW_STATES[review.review_state] || '심사 대기'}. 위원장 판정 후에는 수정할 수 없습니다.`;
   $('#review-form').querySelectorAll('#review-conflict,#review-recommendation,#review-comments,[data-review-action]').forEach((field) => { field.disabled = !editable; });
   $('[data-review-action="draft"]').disabled = !editable || review.review_state === 'submitted';
