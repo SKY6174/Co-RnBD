@@ -1,7 +1,7 @@
 import { conferenceClient, currentEdition, editionDateRange, escapeHtml, kstTime, requireData } from './conference-client.js';
 
 const $ = (selector) => document.querySelector(selector);
-const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타' };
+const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타', presenter: '논문·사례 발표자' };
 const STATES = { applied: '확인 대기', confirmed: '참가 확정', cancelled: '취소됨' };
 let client;
 let speakers = [];

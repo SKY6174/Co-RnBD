@@ -3,7 +3,7 @@ import { conferenceClient, currentEdition, escapeHtml, requireData } from './con
 const $ = (selector) => document.querySelector(selector);
 const REGISTRATION_STATES = { applied: '확인 대기', confirmed: '참가 확정', cancelled: '취소됨' };
 const PAPER_STATES = { draft: '초안', submitted: '접수', under_review: '심사 중', revision: '수정 요청', accepted: '채택', rejected: '반려', withdrawn: '철회' };
-const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타' };
+const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타', presenter: '논문·사례 발표자' };
 const TRACKS = {
   master_eng: '전문기술석사 (공학 분야)',
   master_sci: '전문기술석사 (자연과학 분야)',
