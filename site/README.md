@@ -267,6 +267,16 @@ uv run --with playwright --with pymupdf python scripts/verify-review-email.py --
 ```
 
 
+### 사무국 답장 주소 (Zoho)
+
+사무국 대표 메일함은 `office@co-rnbd.org`이며, 업무 메일함은 Zoho에서 운영하고 자동 발송은 기존 Resend를 사용합니다.
+답장 주소를 지원하는 API를 먼저 배포하고, Zoho의 MX·SPF·DKIM 및 대표 메일함 송수신을 확인한 뒤
+`20261115165917_office_reply_to.sql`을 적용합니다. 새 알림의 비공개 payload에 `replyTo`를 기록하고
+API가 Resend `reply_to`로 전달합니다. 기존 대기 알림은 이전 본문과 중복 방지 키를 유지합니다.
+롤백은 먼저 `snapshot_review_email_reply_to` 트리거를 제거하고, `replyTo`가 있는 미완료 알림이
+소진될 때까지 호환 API를 유지합니다. 기존 알림 행을 수정하거나 재생하지 않습니다.
+Zoho의 상담·답장 기록과 Resend 자동 발송 기록은 별도로 관리하며, 인증 SMTP 설정도 유지합니다.
+
 ## 심사의견 제출 → AE·심사위원장 알림
 
 `20261107150629_review_submitted_notifications.sql`은 실제 최초 제출 및 제출 후 의견·추천 변경 시
