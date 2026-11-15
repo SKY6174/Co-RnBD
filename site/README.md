@@ -312,6 +312,17 @@ uv run --with playwright --with pymupdf python scripts/verify-review-email.py --
 독립적이고 기존 dispatcher/cron이 처리합니다. 중지/롤백은 새 flag=false와 이전 배포 복원으로 진행하며
 큐/접수 기록을 보존합니다. 키·SMTP·운영 단계를 재설정하지 않습니다.
 
+### 참가 신청 안내 메일 (v5)
+
+참가 신청 접수(신청·재신청), 위원장 확정, 취소(본인·위원장) 때 신청자의 인증된 로그인 이메일로 한 통씩
+보냅니다. 참가 구분·날짜·등록번호·입금자명과 참가 신청 페이지 링크만 담고, 등록비·계좌·환불 기준은
+페이지를 안내합니다. 발송 시점에 신청이 이미 다른 상태로 바뀌었으면 그 메일은 취소합니다. 구분·날짜만
+바꾸는 수정은 메일을 보내지 않습니다.
+
+기본 `registration_enabled=false`이며 꺼져 있는 동안에는 큐에 쌓지도 않습니다. migration → v5 서버 배포
+후 `update app_private.review_email_config set registration_enabled = true;`로 켭니다. 중지는 false로
+되돌리면 되고, 이미 쌓인 참가 신청 메일은 발송을 보류합니다. 검증: `scripts/verify-registration-emails.sql`.
+
 ## 투고·심사 작업 공간
 
 로그인 작업 공간은 내 원고·수정 요청·남은 심사를 요약하고, 현재 프로필/원고/심사 단계에 맞는 다음 작업을

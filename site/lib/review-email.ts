@@ -6,10 +6,16 @@ const PORTAL = 'https://co-rnbd.org/submission.html';
 const DECISIONS: Record<string, string> = { accepted: 'Accept · 채택', revision: '수정 후 채택 검토 · 수정본 요청', rejected: 'Reject · 반려' };
 const TRACKS: Record<string, string> = { master_eng: '전문기술석사 공학', master_sci: '전문기술석사 자연과학', industry_joint: '산학공동기술개발과제', convergence_etc: '기타 산학융합과제', applied: '전문기술석사 응용연구', industry: '산학공동기술개발', convergence: '산업융합기술', education: 'T-VET 정책·교육연구' };
 
+type RegistrationKind = 'registration_received' | 'registration_confirmed' | 'registration_cancelled';
+const REGISTRATION_KINDS: Record<RegistrationKind, string> = { registration_received: 'applied', registration_confirmed: 'confirmed', registration_cancelled: 'cancelled' };
+const CATEGORIES: Record<string, string> = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타', presenter: '논문·사례 발표자' };
+const REGISTRATION_PAGE = 'https://co-rnbd.org/registration.html';
+
 type MailEvent = {
-  version: 1 | 2 | 3 | 4; eventId: string; kind: 'reviewer_assignment' | 'decision' | 'review_submitted' | 'paper_submitted' | 'paper_resubmitted' | 'author_submission_receipt' | 'author_resubmission_receipt';
+  version: 1 | 2 | 3 | 4 | 5; eventId: string; kind: 'reviewer_assignment' | 'decision' | 'review_submitted' | 'paper_submitted' | 'paper_resubmitted' | 'author_submission_receipt' | 'author_resubmission_receipt' | RegistrationKind;
   recipient: string; recipientName: string; paperId: string; paperTitle: string;
   conferenceTitle: string; editionYear: number; track: string;
+  registrationId?: string; registrationStatus?: string; category?: string; attendanceDays?: string[];
   submissionEventId?: string; manuscriptAt?: string; reviewId?: string; reviewFingerprint?: string; decision?: string | null; note: string; exceptionReason?: string; test?: boolean;
 };
 
@@ -27,6 +33,7 @@ function text(value: unknown, max: number, min = 0): value is string {
 export function parseMailEvent(value: unknown): MailEvent | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const e = value as Record<string, unknown>;
+  if (Object.hasOwn(REGISTRATION_KINDS, String(e.kind))) return parseRegistrationEvent(e);
   const paperSubmission = e.kind === 'paper_submitted' || e.kind === 'paper_resubmitted';
   const authorReceipt = e.kind === 'author_submission_receipt' || e.kind === 'author_resubmission_receipt';
   if (e.version !== (authorReceipt ? 4 : paperSubmission ? 3 : e.kind === 'review_submitted' ? 2 : 1) || !text(e.eventId, 36, 36) || !UUID.test(e.eventId)
@@ -52,6 +59,7 @@ const esc = (v: string) => v.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt
 
 // Keep version 1 rendering stable across retries; a future format uses a new version.
 export function renderMail(e: MailEvent) {
+  if (Object.hasOwn(REGISTRATION_KINDS, e.kind)) return renderRegistration(e);
   if (e.kind === 'author_submission_receipt' || e.kind === 'author_resubmission_receipt') return renderAuthorReceipt(e);
   if (e.kind === 'review_submitted') return renderReviewSubmitted(e);
   if (e.kind === 'paper_submitted' || e.kind === 'paper_resubmitted') return renderPaperSubmitted(e);
@@ -136,4 +144,54 @@ function renderAuthorReceipt(e: MailEvent) {
   return { subject, text: lines.join('\n\n'), html: '<!doctype html><html lang="ko"><head><meta charset="UTF-8"></head><body><main style="font-family:Arial,sans-serif;max-width:640px;margin:auto;line-height:1.7;color:#14382e">'
     + `<h1 style="font-size:22px">${heading}</h1>` + lines.map(line => `<p style="white-space:pre-wrap">${esc(line)}</p>`).join('')
     + `<p><a href="${PORTAL}">내 원고 확인하기</a></p></main></body></html>` };
+}
+
+// v5 registration notices: no paper fields; the registration must still be in the mailed state at send time.
+function parseRegistrationEvent(e: Record<string, unknown>): MailEvent | null {
+  const kind = e.kind as RegistrationKind;
+  const days = e.attendanceDays;
+  if (e.version !== 5 || !text(e.eventId, 36, 36) || !UUID.test(e.eventId)
+    || !text(e.registrationId, 36, 36) || !UUID.test(e.registrationId)
+    || e.registrationStatus !== REGISTRATION_KINDS[kind]
+    || !text(e.category, 20, 1) || !Object.hasOwn(CATEGORIES, e.category)
+    || !Array.isArray(days) || days.length < 1 || days.length > 2 || !days.every(d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d))
+    || !text(e.recipient, 254, 3) || !EMAIL.test(e.recipient) || !text(e.recipientName, 120, 1)
+    || !text(e.conferenceTitle, 250, 1)
+    || !Number.isInteger(e.editionYear) || Number(e.editionYear) < 2020 || Number(e.editionYear) > 2200
+    || e.note !== '' || (e.test !== undefined && typeof e.test !== 'boolean')) return null;
+  return e as unknown as MailEvent;
+}
+
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+function dayLabel(value: string) {
+  const [y, m, d] = value.split('-').map(Number);
+  return `${m}월 ${d}일 (${WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]})`;
+}
+
+export function registrationCodes(id: string, name: string) {
+  const number = id.slice(0, 8).toUpperCase();
+  return { number, depositor: name.replace(/\s+/g, '') + number.slice(0, 4) };
+}
+
+function renderRegistration(e: MailEvent) {
+  const kind = e.kind as RegistrationKind;
+  const heading = kind === 'registration_received' ? '참가 신청 접수 확인' : kind === 'registration_confirmed' ? '참가 확정 안내' : '참가 신청 취소 안내';
+  const subject = `${e.test ? '[테스트] ' : ''}[Co-R&BD ${e.editionYear}] ${heading}`;
+  const codes = registrationCodes(e.registrationId!, e.recipientName);
+  const summary = `참가 구분: ${CATEGORIES[e.category!]}\n참가 날짜: ${e.attendanceDays!.map(dayLabel).join(' · ')}\n등록번호: ${codes.number}`;
+  const body = kind === 'registration_received'
+    ? ['참가 신청이 접수되었습니다. 위원장이 확인한 뒤 참가가 확정되며, 확정되면 다시 알려 드립니다.', summary,
+      `계좌이체 입금자명: ${codes.depositor}`, '등록비, 입금 계좌와 환불 기준은 참가 신청 페이지에서 확인해 주세요.']
+    : kind === 'registration_confirmed'
+      ? ['참가가 확정되었습니다. 행사 당일 등록 데스크에서 이름을 확인합니다.', summary,
+        `계좌이체 입금자명: ${codes.depositor}`, '등록비를 아직 납부하지 않았다면 참가 신청 페이지의 안내에 따라 납부해 주세요. 납부가 확인되면 마이페이지에서 영수증을 발급받을 수 있습니다.']
+      : ['참가 신청이 취소되었습니다.', summary,
+        '등록비를 이미 납부했다면 환불 기준과 절차는 이용약관(https://co-rnbd.org/terms.html#registration)을 확인해 주세요.',
+        '신청 기간 안에는 참가 신청 페이지에서 다시 신청할 수 있습니다.'];
+  const lines = [e.test ? '이 메일은 참가 신청 알림 연결 확인용 테스트입니다. 실제 참가 신청·확정·취소가 아니며 조치하지 않으셔도 됩니다.' : '',
+    `${e.recipientName}님,`, e.conferenceTitle, ...body,
+    `참가 신청 페이지: ${REGISTRATION_PAGE}`, '이 메일은 참가 신청 계정의 인증된 이메일로 보냅니다. 이 주소는 자동 발송용입니다.'].filter(Boolean);
+  return { subject, text: lines.join('\n\n'), html: '<!doctype html><html lang="ko"><head><meta charset="UTF-8"></head><body><main style="font-family:Arial,sans-serif;max-width:640px;margin:auto;line-height:1.7;color:#14382e">'
+    + `<h1 style="font-size:22px">${heading}</h1>` + lines.map(line => `<p style="white-space:pre-wrap">${esc(line)}</p>`).join('')
+    + `<p><a href="${REGISTRATION_PAGE}">참가 신청 페이지 열기</a></p></main></body></html>` };
 }
