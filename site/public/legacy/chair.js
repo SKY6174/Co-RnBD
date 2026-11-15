@@ -2,12 +2,12 @@ import { conferenceClient, currentEdition, escapeHtml as esc, requireData as dat
 
 const $ = (selector) => document.querySelector(selector);
 const TRACKS = { master_eng:'전문기술석사 (공학 분야)',master_sci:'전문기술석사 (자연과학 분야)',industry_joint:'산학공동기술개발과제',convergence_etc:'기타 산학융합과제',applied:'전문기술석사 응용연구',industry:'산학공동기술개발과제 성과발표',convergence:'산업융합기술',education:'T-VET 정책·교육연구' };
-const STATUS = {submitted:'제출 완료',under_review:'심사 중',revision:'수정 요청',accepted:'채택',rejected:'반려'};
+const STATUS = {submitted:'제출 완료',under_review:'심사 중',revision:'수정 요청',accepted:'채택',rejected:'반려',withdrawn:'철회'};
 const REVIEW = {assigned:'심사 대기',draft:'임시저장',submitted:'심사 제출',declined:'배정 거절'};
 const RECOMMENDATION = {accept:'Accept · 채택 권고',revise:'Accept after revision · 수정 후 채택 권고',reject:'Reject · 반려 권고'};
 const ACTION = {paper_submitted:'원고 제출',paper_status_changed:'진행 상태 변경',review_assigned:'심사위원 배정',review_revoked:'심사 배정 철회',review_submitted:'심사 의견 제출',review_declined:'심사 배정 거절',decision_published:'판정 확정·공개',file_uploaded:'PDF 업로드',final_checked:'최종본 확인 완료'};
 const REQUIRED_REVIEWERS = 2;
-const FILTERS = [['all','전체 접수'],['unassigned','배정 필요'],['reviewing','심사 중'],['ready','판정 대기'],['revision','수정 요청'],['accepted','채택'],['rejected','반려'],['final_pending','최종본 확인 대기']];
+const FILTERS = [['all','전체 접수'],['unassigned','배정 필요'],['reviewing','심사 중'],['ready','판정 대기'],['revision','수정 요청'],['accepted','채택'],['rejected','반려'],['withdrawn','철회'],['final_pending','최종본 확인 대기']];
 const dateFormatter = new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',dateStyle:'short',timeStyle:'short'});
 const date = (value) => value ? dateFormatter.format(new Date(value))+' KST' : '—';
 const sameTime = (a,b) => Boolean(a && b) && new Date(a).getTime()===new Date(b).getTime();
@@ -185,7 +185,7 @@ async function openPaper(id,focus=true) {
   $('#chair-overview').hidden=true;$('#chair-detail').hidden=false;
   $('#chair-paper-number').textContent=`${p.id.slice(0,8).toUpperCase()} / ${TRACKS[p.track]||p.track}`;
   $('#chair-paper-title').textContent=p.title;$('#chair-paper-badges').innerHTML=badge(p.status)+`<span class="chair-badge">제출 ${esc(date(p.submitted_at))}</span>`;
-  $('#chair-next-step').textContent=p.status==='revision'?'다음 단계 · 저자의 수정본 재제출 대기. 재제출 후 새 심사 배정으로 이어집니다.':p.status==='accepted'?'다음 단계 · 채택 원고의 최종본 제출·발표 편성을 확인하세요.':p.status==='rejected'?'판정 공개 완료 · 저자에게 판정과 심사의견이 공개되었습니다.':complete(p)?'다음 단계 · 2인의 심사의견을 검토하고 판정·수정 요청을 공개하세요.':!panelReady(p)?(isChief?'다음 단계 · 현재 제출본에 심사위원 2명을 배정하세요.':'다음 단계 · 심사위원장 배정과 2인의 심사 완료를 기다리고 있습니다.'):'다음 단계 · 2인의 심사 제출 대기. 최신 의견을 불러와 진행 상태를 확인하세요.';
+  $('#chair-next-step').textContent=p.status==='withdrawn'?`저자가 투고를 철회했습니다 · ${date(p.withdrawn_at)}${p.withdrawal_reason?' · 사유: '+p.withdrawal_reason:''}. 심사가 중단되었으며 위원장만 상태를 바꿀 수 있습니다.`:p.status==='revision'?'다음 단계 · 저자의 수정본 재제출 대기. 재제출 후 새 심사 배정으로 이어집니다.':p.status==='accepted'?'다음 단계 · 채택 원고의 최종본 제출·발표 편성을 확인하세요.':p.status==='rejected'?'판정 공개 완료 · 저자에게 판정과 심사의견이 공개되었습니다.':complete(p)?'다음 단계 · 2인의 심사의견을 검토하고 판정·수정 요청을 공개하세요.':!panelReady(p)?(isChief?'다음 단계 · 현재 제출본에 심사위원 2명을 배정하세요.':'다음 단계 · 심사위원장 배정과 2인의 심사 완료를 기다리고 있습니다.'):'다음 단계 · 2인의 심사 제출 대기. 최신 의견을 불러와 진행 상태를 확인하세요.';
   $('#chair-paper-abstract').textContent=p.abstract;
   $('#chair-paper-authors').innerHTML='<ol class="chair-author-list">'+[...p.paper_authors].sort((a,b)=>a.sort_order-b.sort_order).map(a=>`<li><strong>${esc(a.full_name)}</strong> · ${esc(a.affiliation)}<br><span>${esc(a.email)}${a.note?' · '+esc(a.note):''}</span></li>`).join('')+'</ol>';
   $('#chair-contact').textContent=`연락 담당자: ${p.contact_name} · ${p.contact_email}`;
