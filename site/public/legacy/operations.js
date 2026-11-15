@@ -37,18 +37,19 @@ function toUtc(value) {
 
 async function loadPaperSettings() {
   const settings = requireData(await client.from('conference_settings')
-    .select('submissions_open,submission_deadline,revision_deadline,reviews_open,review_deadline,final_uploads_open,final_deadline,notice')
+    .select('submissions_open,submission_deadline,revision_deadline,reviews_open,review_deadline,re_review_deadline,final_uploads_open,final_deadline,notice')
     .eq('edition_year', edition.year).single());
   $('#paper-submissions-open').checked = settings.submissions_open;
   $('#paper-submission-deadline').value = toInput(settings.submission_deadline);
   $('#paper-revision-deadline').value = toInput(settings.revision_deadline);
   $('#paper-reviews-open').checked = settings.reviews_open;
   $('#paper-review-deadline').value = toInput(settings.review_deadline);
+  $('#paper-re-review-deadline').value = toInput(settings.re_review_deadline);
   $('#paper-final-open').checked = settings.final_uploads_open;
   $('#paper-final-deadline').value = toInput(settings.final_deadline);
   $('#paper-notice').value = settings.notice || '';
   const phase = (open, deadline) => open && (!deadline || Date.now() <= new Date(deadline).getTime()) ? '열림' : '닫힘';
-  $('#paper-management-status').textContent = `원고 접수 ${phase(settings.submissions_open, settings.submission_deadline)} · 수정본 ${phase(true, settings.revision_deadline)} · 심사 ${phase(settings.reviews_open, settings.review_deadline)} · 최종본 ${phase(settings.final_uploads_open, settings.final_deadline)}`;
+  $('#paper-management-status').textContent = `원고 접수 ${phase(settings.submissions_open, settings.submission_deadline)} · 수정본 ${phase(true, settings.revision_deadline)} · 심사 ${phase(settings.reviews_open, settings.review_deadline)} · 재심사 ${phase(settings.reviews_open, settings.re_review_deadline || settings.review_deadline)} · 최종본 ${phase(settings.final_uploads_open, settings.final_deadline)}`;
 }
 
 async function loadRegistrations() {
@@ -265,6 +266,7 @@ $('#paper-settings-form').addEventListener('submit', async (event) => {
       revision_deadline: toUtc($('#paper-revision-deadline').value),
       reviews_open: $('#paper-reviews-open').checked,
       review_deadline: toUtc($('#paper-review-deadline').value),
+      re_review_deadline: toUtc($('#paper-re-review-deadline').value),
       final_uploads_open: $('#paper-final-open').checked,
       final_deadline: toUtc($('#paper-final-deadline').value),
       notice: noticeText,
