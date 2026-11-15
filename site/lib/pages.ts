@@ -17,6 +17,7 @@ export const PAGE_IDS = [
   "chair",
   "session-chair",
   "monitor",
+  "staff",
   "privacy",
   "terms",
   "cmt-reference",
@@ -37,6 +38,7 @@ const PAGE_SCRIPTS: Partial<Record<PageId, string>> = {
   chair: "chair.js",
   "session-chair": "session-chair.js",
   monitor: "monitor.js",
+  staff: "staff.js",
 };
 
 const PAGE_METADATA: Record<PageId, Metadata> = {
@@ -85,6 +87,10 @@ const PAGE_METADATA: Record<PageId, Metadata> = {
   },
   monitor: {
     title: "참가·투고 현황 | T-VET Co-R&BD Conference",
+    robots: { index: false, follow: false },
+  },
+  staff: {
+    title: "운영진 명단 조회 | T-VET Co-R&BD Conference",
     robots: { index: false, follow: false },
   },
   privacy: {

@@ -323,6 +323,15 @@ uv run --with playwright --with pymupdf python scripts/verify-review-email.py --
 후 `update app_private.review_email_config set registration_enabled = true;`로 켭니다. 중지는 false로
 되돌리면 되고, 이미 쌓인 참가 신청 메일은 발송을 보류합니다. 검증: `scripts/verify-registration-emails.sql`.
 
+### 운영진 명단 조회 (조직위원장·학술위원장·사무국)
+
+위원장은 `operations.html`의 **운영진 명단 조회 권한**에서 가입·이메일 인증을 마친 계정에 역할(조직위원장·학술위원장·사무국)과
+만료일(기본 행사 종료 30일 후, 최대 180일 후)을 지정해 조회 권한을 줍니다. 운영진은 `staff.html`에서 등록자(신청·확정·취소, 등록비 납부
+상태·금액·방법·납부일, 체크인), 논문 제출자, 심사위원, 좌장 명단을 조회만 합니다. 위원장 권한(`staff_roles`)과 분리된
+`app_private.conference_staff`에 저장하며, 명단은 `staff_list_*` 함수로만 정해진 열을 반환합니다. 원고 PDF·심사의견·심사위원별
+배정 원고는 보이지 않습니다. 열람할 때마다 `app_private.staff_access_log`에 기록하고(위원장 화면에서 확인), 2년 뒤 자동 삭제합니다.
+검증: `scripts/verify-staff-lists.sql`.
+
 ## 투고·심사 작업 공간
 
 로그인 작업 공간은 내 원고·수정 요청·남은 심사를 요약하고, 현재 프로필/원고/심사 단계에 맞는 다음 작업을

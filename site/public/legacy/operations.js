@@ -505,6 +505,50 @@ $('#session-chair-list').addEventListener('click', async (event) => {
   } catch (error) { notice(error.message, true); button.disabled = false; }
 });
 
+const STAFF_ROLES = { organizing_chair: '조직위원장', program_chair: '학술위원장', secretariat: '사무국' };
+const STAFF_LISTS = { registrations: '등록자', submissions: '논문 제출자', reviewers: '심사위원', session_chairs: '좌장' };
+
+async function loadStaff() {
+  const [staffResult, logResult] = await Promise.all([
+    client.rpc('chair_list_staff', { p_year: edition.year }),
+    client.rpc('chair_staff_access_log', { p_year: edition.year, p_limit: 50 }),
+  ]);
+  const staff = requireData(staffResult) || [];
+  const log = requireData(logResult) || [];
+  $('#staff-list').innerHTML = staff.length ? staff.map((row) => `<article class="operations-item">
+    <h3>${escapeHtml(row.full_name || '이름 미입력')} · ${escapeHtml(STAFF_ROLES[row.staff_role] || row.staff_role)}</h3>
+    <p>${escapeHtml(row.email)} · ${row.active ? `${escapeHtml(kstLongDateTimeFormatter.format(new Date(row.expires_at)))}까지` : row.revoked_at ? '회수됨' : '만료됨'}${row.last_access_at ? ` · 최근 열람 ${escapeHtml(kstLongDateTimeFormatter.format(new Date(row.last_access_at)))}` : ''}</p>
+    <span class="operations-meta">${row.active ? '조회 가능' : '권한 없음'}</span>
+    ${row.active ? `<div class="operations-actions"><button type="button" class="operations-button secondary" data-revoke-staff="${row.id}">권한 회수</button></div>` : ''}</article>`).join('')
+    : '<p class="operations-empty">부여한 운영진 권한이 없습니다.</p>';
+  $('#staff-log').innerHTML = log.length ? log.map((row) => `<p>${escapeHtml(kstLongDateTimeFormatter.format(new Date(row.accessed_at)))} · ${escapeHtml(row.actor_email)} (${escapeHtml(STAFF_ROLES[row.staff_role] || '위원장')}) · ${escapeHtml(STAFF_LISTS[row.list_name] || row.list_name)} ${row.row_count}건</p>`).join('')
+    : '<p class="operations-empty">열람 기록이 없습니다.</p>';
+}
+
+$('#staff-grant-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  try {
+    requireData(await client.rpc('chair_grant_staff', {
+      p_year: edition.year, p_email: $('#staff-email').value.trim(), p_role: $('#staff-role').value,
+      p_expires_at: toUtc($('#staff-expires').value),
+    }));
+    $('#staff-grant-form').reset();
+    await loadStaff();
+    notice('운영진 조회 권한을 부여했습니다.');
+  } catch (error) { notice(error.message, true); }
+});
+
+$('#staff-list').addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-revoke-staff]');
+  if (!button || !window.confirm('이 운영진의 명단 조회 권한을 회수할까요?')) return;
+  button.disabled = true;
+  try {
+    requireData(await client.rpc('chair_revoke_staff', { p_id: button.dataset.revokeStaff }));
+    await loadStaff();
+    notice('권한을 회수했습니다.');
+  } catch (error) { notice(error.message, true); button.disabled = false; }
+});
+
 async function start() {
   try {
     client = await conferenceClient();
@@ -530,7 +574,7 @@ async function start() {
       $('#session-end').min = `${edition.start_date}T00:00`;
       $('#session-end').max = `${edition.end_date}T23:59`;
     }
-    await Promise.all([loadPaperSettings(), loadRegistrations(), loadProgram(), loadEditions()]);
+    await Promise.all([loadPaperSettings(), loadRegistrations(), loadProgram(), loadEditions(), loadStaff()]);
     await refreshSessionChairs();
     $('#operations-workspace').hidden = false;
     notice('운영 데이터를 불러왔습니다. 공개 설정을 변경하면 사이트에 바로 반영됩니다.');
