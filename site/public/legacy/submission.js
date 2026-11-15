@@ -28,7 +28,7 @@ const SESSIONS = {
   poster_1: 'Poster Session 1',
 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const STATUSES = { draft: '초안', submitted: '제출 완료', under_review: '심사 중', revision: '수정 요청', accepted: '채택', rejected: '반려', declined: '배정 거절' };
+const STATUSES = { draft: '초안', submitted: '제출 완료', under_review: '심사 중', revision: '수정 요청', accepted: '채택', rejected: '반려', withdrawn: '철회', declined: '배정 거절' };
 const RECOMMENDATIONS = { accept: 'Accept · 채택 권고', revise: 'Accept after revision · 수정 후 채택 권고', reject: 'Reject · 반려 권고' };
 const REVIEW_STATES = { assigned: '심사 대기', draft: '임시저장', submitted: '심사 제출', declined: '배정 거절' };
 const EMAIL_LINK_TYPES = { 'auth-signup': 'email', 'auth-magiclink': 'magiclink', 'auth-recovery': 'recovery' };
@@ -267,7 +267,7 @@ function paperCard(paper, action, label) {
   const detail = paper.status === 'declined' ? '원고 열람 권한이 종료됐습니다.' : `${TRACKS[paper.track] || '분야 미지정'} · ${submitted}${sessionLabel}`;
   const review = action === 'review' ? reviewRows.find(r => r.paper_id === paper.id) : null;
   const step = ({draft:0,submitted:1,under_review:2,revision:3,accepted:3,rejected:3})[paper.status] ?? 0;
-  const next = review ? `내 심사 · ${REVIEW_STATES[review.review_state] || '확인 필요'}` : ({draft:submissionsOpen?'PDF와 저자 정보를 확인하고 제출해 주세요.':'초안을 보관하고 투고 접수 기간을 확인해 주세요.',submitted:'접수가 완료되었습니다. 심사 배정을 기다려 주세요.',under_review:'심사가 진행 중입니다. 판정이 공개되면 알려드립니다.',revision:revisionsOpen?'같은 원고에 새 PDF를 올려 수정본을 제출해 주세요.':'수정본 재제출 기한이 지났습니다. 위원장에게 문의해 주세요.',accepted:finalUploadsOpen?'채택되었습니다. 최종본 제출 상태를 확인해 주세요.':'채택되었습니다. 최종본 제출 일정은 포털에서 확인해 주세요.',rejected:'공개된 판정 사유와 심사의견을 확인해 주세요.'})[paper.status] || '';
+  const next = review ? `내 심사 · ${REVIEW_STATES[review.review_state] || '확인 필요'}` : ({draft:submissionsOpen?'PDF와 저자 정보를 확인하고 제출해 주세요.':'초안을 보관하고 투고 접수 기간을 확인해 주세요.',submitted:'접수가 완료되었습니다. 심사 배정을 기다려 주세요.',under_review:'심사가 진행 중입니다. 판정이 공개되면 알려드립니다.',revision:revisionsOpen?'같은 원고에 새 PDF를 올려 수정본을 제출해 주세요.':'수정본 재제출 기한이 지났습니다. 위원장에게 문의해 주세요.',accepted:finalUploadsOpen?'채택되었습니다. 최종본 제출 상태를 확인해 주세요.':'채택되었습니다. 최종본 제출 일정은 포털에서 확인해 주세요.',rejected:'공개된 판정 사유와 심사의견을 확인해 주세요.',withdrawn:'투고를 철회했습니다.'})[paper.status] || '';
   const journey = review ? `<span class="review-state-tag">${esc(REVIEW_STATES[review.review_state] || '')}</span>` : `<ol class="paper-steps" role="list" aria-label="원고 진행 단계">${['작성','접수','심사','판정'].map((text,index) => `<li class="${index < step ? 'done' : index === step ? 'current' : ''}"${index === step ? ' aria-current="step"' : ''}>${text}</li>`).join('')}</ol>`;
   return `<article class="paper-card"><div class="paper-card-top"><span class="status status-${esc(paper.status)}">${STATUSES[paper.status] || esc(paper.status)}</span><span class="paper-id">${esc(paper.id.slice(0, 8).toUpperCase())}</span></div><h3>${esc(paper.title)}</h3><p>${esc(detail)}</p>${journey}<p class="paper-next">${esc(next)}</p><button type="button" class="card-action" data-action="${action}" data-id="${esc(paper.id)}" aria-label="${esc(label + ' · ' + paper.title)}">${label} <span aria-hidden="true">↗</span></button></article>`;
 }
@@ -428,6 +428,8 @@ async function openAuthor(paperId = '') {
   setAuthorRows([]);
   $('#final-form').reset();
   $('#final-form').hidden = true;
+  $('#withdraw-panel').hidden = true;
+  $('#withdraw-reason').value = '';
   $('#paper-id').value = paperId;
   $('#paper-form-title').textContent = paperId ? '원고 수정·확인' : '새 원고';
   $('#paper-form').hidden = true;
@@ -464,6 +466,8 @@ async function openAuthor(paperId = '') {
       $('#paper-receipt').textContent = `접수번호 ${paper.id.slice(0, 8).toUpperCase()} · 최근 제출 ${submitted} · 현재 상태 ${STATUSES[paper.status] || paper.status}${assignedText}. 이 화면에서 접수 상태와 PDF 버전을 다시 확인할 수 있습니다.`;
       $('#paper-receipt').hidden = false;
     }
+    $('#withdraw-panel').hidden = !['submitted', 'under_review', 'revision', 'accepted'].includes(paper.status);
+    if (paper.status === 'withdrawn') message(`투고를 철회했습니다 (${kstMediumDateTimeFormatter.format(new Date(paper.withdrawn_at))})${paper.withdrawal_reason ? ' · 사유: ' + paper.withdrawal_reason : ''}.`);
     const feedback=check(await client.rpc('author_review_feedback',{p_id:paperId}));
     const feedbackPanel=$('#author-review-feedback');
     feedbackPanel.hidden=!feedback.length;
@@ -629,6 +633,23 @@ $('#cancel-paper').addEventListener('click', () => {
   $('#author-review-feedback').hidden = true;
   $('#author-review-feedback').replaceChildren();
   $('#final-form').hidden = true;
+  $('#withdraw-panel').hidden = true;
+});
+$('#withdraw-paper').addEventListener('click', async () => {
+  const paperId = $('#paper-id').value;
+  const paper = myPapers.find((row) => row.id === paperId);
+  if (!paperId || !paper) return;
+  if (!window.confirm(`"${paper.title}" 투고를 철회할까요? 철회하면 심사가 중단되고 다시 제출할 수 없습니다.`)) return;
+  const button = $('#withdraw-paper');
+  button.disabled = true;
+  try {
+    check(await client.rpc('withdraw_paper', { p_paper_id: paperId, p_reason: $('#withdraw-reason').value.trim() }));
+    await loadMyPapers();
+    await openAuthor(paperId);
+    message('투고를 철회했습니다. 위원장과 심사위원 화면에도 철회로 표시됩니다.');
+  } catch (error) {
+    message(/session/i.test(error.message) ? '세션에 배정된 채택 원고입니다. 위원장에게 배정 해제를 요청한 뒤 철회해 주세요.' : (error.message || '투고를 철회하지 못했습니다.'), true);
+  } finally { button.disabled = false; }
 });
 $('#paper-form').addEventListener('submit', savePaper);
 $('#final-form').addEventListener('submit', async (event) => {
