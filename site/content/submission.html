@@ -87,6 +87,14 @@
               <p id="final-status" class="field-help"></p>
               <label class="file-label">최종 PDF <small>20 MB 이하 · 자료집 공개는 별도 승인</small><input id="final-file" type="file" accept="application/pdf,.pdf" required /></label>
               <div class="form-actions"><button id="final-submit" type="submit" class="portal-button">최종본 업로드</button></div>
+              <fieldset class="committee-fields" id="consent-fieldset"><legend>자료집 공개 여부</legend>
+                <p class="field-help">CFP에 따라 공개에 동의한 최종본만 자료집(온라인 공개 포함)에 수록합니다. 동의하지 않아도 채택과 발표는 그대로 유지됩니다. 채택 상태인 동안 바꿀 수 있습니다.</p>
+                <label class="choice-option"><input type="radio" name="publication-consent" value="yes" /> 최종본의 자료집 수록·공개에 동의합니다</label>
+                <label class="choice-option"><input type="radio" name="publication-consent" value="no" /> 자료집 수록·공개에 동의하지 않습니다</label>
+                <label class="checkbox-row"><input id="consent-coauthors" type="checkbox" /> 공동저자 전원에게 수록·공개 동의를 받았습니다.</label>
+                <p id="consent-status" class="field-help" role="status"></p>
+                <button id="consent-save" type="button" class="portal-button secondary">공개 여부 저장</button>
+              </fieldset>
             </form>
           </section>
 
