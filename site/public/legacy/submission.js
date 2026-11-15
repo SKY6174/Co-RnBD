@@ -444,10 +444,11 @@ async function openAuthor(paperId = '') {
     $('#paper-contact-name').value = paper.contact_name || '';
     $('#paper-contact-email').value = paper.contact_email || '';
     // 저자 목록(paper_authors)과 첨부 파일(paper_files)을 병렬(Promise.all)로 동시에 조회
-    const [authorsResult, filesResult, finalCheckResult] = await Promise.all([
+    const [authorsResult, filesResult, finalCheckResult, consentResult] = await Promise.all([
       client.from('paper_authors').select('*').eq('paper_id', paperId).order('sort_order'),
       client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }),
       client.from('paper_final_checks').select('file_id,checked_at').eq('paper_id', paperId).maybeSingle(),
+      client.from('paper_publication_consents').select('consented,coauthors_confirmed,decided_at').eq('paper_id', paperId).maybeSingle(),
     ]);
     const authors = check(authorsResult);
     const files = check(filesResult);
@@ -479,6 +480,7 @@ async function openAuthor(paperId = '') {
         ? ` 최종본 v${latestFinal.version} 위원장 확인 완료 (${kstMediumDateTimeFormatter.format(new Date(finalCheck.checked_at))}).`
         : ` 최종본 v${latestFinal.version} 위원장 확인 대기.`;
       $('#final-submit').disabled = !finalUploadsOpen;
+      renderConsent(check(consentResult));
       $('#final-form').hidden = false;
     }
   } else {
@@ -640,6 +642,31 @@ $('#final-form').addEventListener('submit', async (event) => {
     await openAuthor(paperId);
     message('최종 PDF를 업로드했습니다. 원고 화면에서 버전을 확인할 수 있습니다.');
   } catch (error) { message(error.message || '최종본을 업로드하지 못했습니다.', true); }
+});
+function renderConsent(row) {
+  document.querySelectorAll('[name="publication-consent"]').forEach((input) => { input.checked = row ? input.value === (row.consented ? 'yes' : 'no') : false; });
+  $('#consent-coauthors').checked = Boolean(row?.coauthors_confirmed);
+  $('#consent-status').textContent = row
+    ? `현재: ${row.consented ? '자료집 수록·공개 동의' : '수록·공개 비동의'} · ${kstMediumDateTimeFormatter.format(new Date(row.decided_at))} 저장`
+    : '아직 공개 여부를 선택하지 않았습니다. 선택하지 않은 원고는 자료집에 수록하지 않습니다.';
+}
+$('#consent-save').addEventListener('click', async () => {
+  const button = $('#consent-save');
+  button.disabled = true;
+  try {
+    const paperId = $('#final-paper-id').value;
+    const choice = document.querySelector('[name="publication-consent"]:checked')?.value;
+    if (!choice) throw new Error('자료집 공개 여부를 선택해 주세요.');
+    const consented = choice === 'yes';
+    const coauthors = $('#consent-coauthors').checked;
+    if (consented && !coauthors) throw new Error('공개에 동의하려면 공동저자 전원의 동의를 받았는지 확인해 주세요.');
+    const row = check(await client.from('paper_publication_consents')
+      .upsert({ paper_id: paperId, consented, coauthors_confirmed: consented && coauthors }, { onConflict: 'paper_id' })
+      .select('consented,coauthors_confirmed,decided_at').single());
+    renderConsent(row);
+    message(consented ? '자료집 수록·공개 동의를 저장했습니다.' : '자료집 수록·공개 비동의를 저장했습니다.');
+  } catch (error) { message(error.message || '공개 여부를 저장하지 못했습니다.', true); }
+  finally { button.disabled = false; }
 });
 $('#cancel-review').addEventListener('click', () => { $('#review-form').hidden = true; });
 $('#sign-out').addEventListener('click', async () => { await client.auth.signOut(); user = null; isChair = false; $('#submission-operations-link').hidden = true; $('#workspace').hidden = true; $('#auth-panel').hidden = false; showAuthMode('login'); showTab('author'); });

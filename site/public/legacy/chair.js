@@ -140,6 +140,7 @@ function renderFiles(p) {
   $('#chair-files').innerHTML=[...p.paper_files].sort((a,b)=>b.version-a.version).map(f=>`<div class="chair-file"><div><strong>${f.file_stage==='final'?'최종본':'심사용 원고'} v${f.version}</strong><small>${esc(f.original_name)} · ${esc(date(f.created_at))}</small></div><button type="button" class="chair-open" data-file="${f.id}">PDF 열기 ↗</button></div>`).join('')||'<p>제출된 PDF가 없습니다.</p>';
   const final=latestFinal(p),check=finalCheck(p);
   $('#chair-final-status').textContent=p.status!=='accepted'?'채택 후 최종본을 확인할 수 있습니다.':!final?'아직 최종본이 제출되지 않았습니다.':finalConfirmed(p)?`최종본 v${final.version} 확인 완료 · ${memberName(check.checked_by)} · ${date(check.checked_at)}`:`최종본 v${final.version} 확인 대기${check?' · 이전 버전 확인 기록은 보존됩니다.':''}`;
+  if(p.status==='accepted'){const c=Array.isArray(p.paper_publication_consents)?p.paper_publication_consents[0]:p.paper_publication_consents;$('#chair-final-status').textContent+=` · 자료집 공개: ${!c?'미선택(수록 제외)':c.consented?'동의 (공동저자 동의 확인)':'비동의'}${c?' · '+date(c.decided_at):''}`;}
   $('#chair-final-form').hidden=!isChief||p.status!=='accepted'||!final||finalConfirmed(p);$('#chair-final-confirm').checked=false;
 }
 function eventDetail(event) {
@@ -166,7 +167,7 @@ async function openPaper(id,focus=true) {
   let p, events;
   try {
     const [paperResult, history, mailResult]=await Promise.all([
-      client.from('papers').select('*,paper_authors(*),reviews(*),paper_files(*),paper_final_checks(*)').eq('id',id).eq('edition_year',edition.year).neq('status','draft').not('submitted_at','is',null).single(),
+      client.from('papers').select('*,paper_authors(*),reviews(*),paper_files(*),paper_final_checks(*),paper_publication_consents(consented,coauthors_confirmed,decided_at)').eq('id',id).eq('edition_year',edition.year).neq('status','draft').not('submitted_at','is',null).single(),
       allRows(()=>client.from('paper_events').select('*').eq('paper_id',id).order('created_at',{ascending:false}).order('id')),
       client.rpc('review_email_status',{p_id:id}),
     ]);
