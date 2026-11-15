@@ -87,6 +87,38 @@ async function loadRegistrations() {
       ${row.status !== 'cancelled' && !row.checked_in_at ? `<button type="button" class="operations-button secondary" data-registration="${row.id}" data-action="cancel">신청 취소</button>` : ''}</div>
     </article>`;
   }).join('') : '<p class="operations-empty">접수된 참가 신청이 없습니다.</p>';
+  await loadPresenterStatus();
+}
+
+function presenterState(row) {
+  if (!row.has_account) return { text: '계정 없음 (같은 이메일로 가입·인증 필요)', done: false };
+  if (!row.registration_id) return { text: '참가 미신청', done: false };
+  if (row.registration_status === 'cancelled') return { text: '신청 취소됨', done: false };
+  if (row.registration_category !== 'presenter') {
+    return { text: `${CATEGORIES[row.registration_category] || '일반'}으로 신청 (발표자 구분 아님)`, done: false };
+  }
+  return { text: `발표자 ${STATES[row.registration_status]}`, done: true };
+}
+
+async function loadPresenterStatus() {
+  const rows = requireData(await client.rpc('chair_presenter_status', { p_year: edition.year }));
+  const papers = new Map();
+  rows.forEach((row) => {
+    if (!papers.has(row.paper_id)) papers.set(row.paper_id, { title: row.paper_title, people: [] });
+    papers.get(row.paper_id).people.push({ ...row, state: presenterState(row) });
+  });
+  const list = [...papers.values()];
+  const covered = list.filter((paper) => paper.people.some((person) => person.state.done)).length;
+  $('#presenter-status-summary').textContent = list.length
+    ? `채택 ${list.length}편 · 발표자 등록 ${covered}편 · 미등록 ${list.length - covered}편 (취소되지 않은 '논문·사례 발표자' 신청이 있으면 등록으로 봅니다)`
+    : '아직 채택된 원고가 없습니다.';
+  list.sort((a, b) => Number(a.people.some((p) => p.state.done)) - Number(b.people.some((p) => p.state.done)));
+  $('#presenter-status-list').innerHTML = list.map((paper) => {
+    const done = paper.people.some((person) => person.state.done);
+    return `<article class="operations-item"><h4>${escapeHtml(paper.title)}</h4>
+      <ul>${paper.people.map((person) => `<li>${escapeHtml(person.author_name || '이름 미입력')} · ${escapeHtml(person.author_email || '이메일 없음')} — ${escapeHtml(person.state.text)}</li>`).join('')}</ul>
+      <span class="operations-meta">${done ? '발표자 등록됨' : '발표자 미등록'}</span></article>`;
+  }).join('');
 }
 
 async function loadProgram() {
