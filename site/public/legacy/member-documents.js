@@ -6,6 +6,9 @@ export const STATES = { applied: '참가 확인 대기', confirmed: '참가 확�
 export const money = (value) => new Intl.NumberFormat('ko-KR').format(value) + '원';
 export const date = (value) => value ? new Intl.DateTimeFormat('ko-KR', {timeZone:'Asia/Seoul',dateStyle:'medium'}).format(new Date(value)) : '—';
 export const one = (value) => Array.isArray(value) ? value[0] : value;
+// Registration number and the depositor name asked for bank transfers: name + first 4 characters.
+export const registrationNo = (id) => String(id || '').slice(0, 8).toUpperCase();
+export const depositorName = (name, id) => `${String(name || '').replace(/\s+/g, '')}${registrationNo(id).slice(0, 4)}`;
 export const REGISTRATION_COLUMNS = 'id,user_id,edition_year,category,attendance_days,status,checked_in_at,created_at,conference_editions(title,start_date,end_date,venue),registration_billing(amount,status,payment_method,paid_at),registration_documents(id,kind,document_no,state,issued_at,revocation_reason)';
 export function unavailable(row, kind, issuer) {
   if (row.status !== 'confirmed') return '참가 확정 후 발급';

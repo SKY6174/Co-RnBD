@@ -1,4 +1,5 @@
 import { conferenceClient, conferenceConfig, currentEdition, renderConferenceContext, escapeHtml, requireData } from './conference-client.js';
+import { registrationNo, depositorName } from './member-documents.js';
 
 const $ = (selector) => document.querySelector(selector);
 const STATES = { applied: '확인 대기', confirmed: '참가 확정', cancelled: '취소됨' };
@@ -155,7 +156,7 @@ async function load() {
   current.hidden = !registration;
   if (registration) {
     const selectedDays = registration.attendance_days.map((day) => days.find((entry) => entry.value === day)?.label || day).join(' · ');
-    current.innerHTML = `<div class="operations-note"><strong>${escapeHtml(STATES[registration.status])}</strong><br>${escapeHtml(selectedDays)} · ${escapeHtml(CATEGORIES[registration.category])}</div>`
+    current.innerHTML = `<div class="operations-note"><strong>${escapeHtml(STATES[registration.status])}</strong><br>${escapeHtml(selectedDays)} · ${escapeHtml(CATEGORIES[registration.category])}<br><small>등록번호 ${escapeHtml(registrationNo(registration.id))}${registration.status !== 'cancelled' ? ` · 계좌이체 입금자명 <strong>${escapeHtml(depositorName(profile.full_name, registration.id))}</strong>` : ''}</small></div>`
       + (registration.status !== 'cancelled' && !registration.checked_in_at
         ? '<div class="operations-actions"><button id="cancel-registration" type="button" class="operations-button secondary">신청 취소</button></div>' : '');
     $('#cancel-registration')?.addEventListener('click', cancelRegistration);

@@ -15,7 +15,7 @@
    </form>
   </details>
   <div class="document-admin-grid">
-   <section class="operations-card"><h2>참가자 선택</h2><label>이름·소속·이메일 검색<input id="documents-search" type="search" placeholder="참가자 검색"></label><div id="documents-participants" class="document-person-list"></div></section>
+   <section class="operations-card"><h2>참가자 선택</h2><label>이름·소속·이메일·등록번호·입금자명 검색<input id="documents-search" type="search" placeholder="예: 홍길동A1B2"></label><label>납부 상태<select id="documents-billing-filter"><option value="">전체</option><option value="unpaid">납부 확인 전</option><option value="paid">납부 확인</option><option value="waived">등록비 면제</option><option value="refunded">환불 확인</option></select></label><p id="documents-count" class="operations-meta" role="status"></p><div id="documents-participants" class="document-person-list"></div></section>
    <section id="documents-detail" class="operations-card" hidden><span class="operations-kicker">REGISTRATION &amp; BILLING</span><h2 id="documents-person"></h2><p id="documents-state" class="document-summary"></p>
     <h3>등록비·수동 납부 확인</h3><p>은행 입금·현장 수납 등 실제 내역을 확인한 후 저장하세요. 이 화면에서 결제나 환불이 실행되지는 않습니다.</p>
     <form id="billing-form" class="operations-form-grid">
