@@ -1,13 +1,23 @@
 import { conferenceClient, currentEdition, editionDateRange, escapeHtml, kstTime, requireData } from './conference-client.js';
 
 const $ = (selector) => document.querySelector(selector);
-const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타' };
+const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타', presenter: '논문·사례 발표자' };
 const STATES = { applied: '확인 대기', confirmed: '참가 확정', cancelled: '취소됨' };
 let client;
 let speakers = [];
 let sessions = [];
 let links = [];
+let sessionChairs = [];
+let sessionPresentations = [];
 let edition;
+
+const kstInputPartsFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+});
+const kstLongDateTimeFormatter = new Intl.DateTimeFormat('ko-KR', {
+  dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Seoul',
+});
 
 function notice(text, error = false) {
   $('#operations-message').textContent = text;
@@ -16,10 +26,7 @@ function notice(text, error = false) {
 
 function toInput(value) {
   if (!value) return '';
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
-  }).formatToParts(new Date(value));
+  const parts = kstInputPartsFormatter.formatToParts(new Date(value));
   const part = (name) => parts.find((item) => item.type === name).value;
   return `${part('year')}-${part('month')}-${part('day')}T${part('hour')}:${part('minute')}`;
 }
@@ -28,17 +35,39 @@ function toUtc(value) {
   return value ? new Date(`${value}:00+09:00`).toISOString() : null;
 }
 
-async function loadRegistrations() {
+async function loadPaperSettings() {
   const settings = requireData(await client.from('conference_settings')
-    .select('registration_open,registration_deadline').eq('edition_year', edition.year).single());
+    .select('submissions_open,submission_deadline,revision_deadline,reviews_open,review_deadline,re_review_deadline,final_uploads_open,final_deadline,notice')
+    .eq('edition_year', edition.year).single());
+  $('#paper-submissions-open').checked = settings.submissions_open;
+  $('#paper-submission-deadline').value = toInput(settings.submission_deadline);
+  $('#paper-revision-deadline').value = toInput(settings.revision_deadline);
+  $('#paper-reviews-open').checked = settings.reviews_open;
+  $('#paper-review-deadline').value = toInput(settings.review_deadline);
+  $('#paper-re-review-deadline').value = toInput(settings.re_review_deadline);
+  $('#paper-final-open').checked = settings.final_uploads_open;
+  $('#paper-final-deadline').value = toInput(settings.final_deadline);
+  $('#paper-notice').value = settings.notice || '';
+  const phase = (open, deadline) => open && (!deadline || Date.now() <= new Date(deadline).getTime()) ? '열림' : '닫힘';
+  $('#paper-management-status').textContent = `원고 접수 ${phase(settings.submissions_open, settings.submission_deadline)} · 수정본 ${phase(true, settings.revision_deadline)} · 심사 ${phase(settings.reviews_open, settings.review_deadline)} · 재심사 ${phase(settings.reviews_open, settings.re_review_deadline || settings.review_deadline)} · 최종본 ${phase(settings.final_uploads_open, settings.final_deadline)}`;
+}
+
+async function loadRegistrations() {
+  // 참가 설정과 참가 신청 목록을 병렬(Promise.all)로 동시에 조회
+  const [settingsResult, rowsResult] = await Promise.all([
+    client.from('conference_settings')
+      .select('registration_open,registration_deadline').eq('edition_year', edition.year).single(),
+    client.from('attendee_registrations')
+      .select('id,user_id,category,attendance_days,status,checked_in_at,created_at')
+      .eq('edition_year', edition.year).order('created_at', { ascending: false }),
+  ]);
+  const settings = requireData(settingsResult);
+  const rows = requireData(rowsResult);
   $('#registration-open').checked = settings.registration_open;
   $('#registration-deadline').value = toInput(settings.registration_deadline);
   $('#registration-deadline-note').textContent = settings.registration_deadline
-    ? `현재 마감: ${new Intl.DateTimeFormat('ko-KR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(settings.registration_deadline))} KST.`
+    ? `현재 ${settings.registration_open && Date.now() <= new Date(settings.registration_deadline).getTime() ? '접수 중' : '접수 종료'} · 마감: ${kstLongDateTimeFormatter.format(new Date(settings.registration_deadline))} KST.`
     : '신청을 열기 전에 마감 시각을 입력해 주세요.';
-  const rows = requireData(await client.from('attendee_registrations')
-    .select('id,user_id,category,attendance_days,status,checked_in_at,created_at')
-    .eq('edition_year', edition.year).order('created_at', { ascending: false }));
   const users = rows.map((row) => row.user_id);
   const profiles = users.length
     ? requireData(await client.from('profiles').select('user_id,full_name,affiliation,email').in('user_id', users))
@@ -59,15 +88,52 @@ async function loadRegistrations() {
       ${row.status !== 'cancelled' && !row.checked_in_at ? `<button type="button" class="operations-button secondary" data-registration="${row.id}" data-action="cancel">신청 취소</button>` : ''}</div>
     </article>`;
   }).join('') : '<p class="operations-empty">접수된 참가 신청이 없습니다.</p>';
+  await loadPresenterStatus();
+}
+
+function presenterState(row) {
+  if (!row.has_account) return { text: '계정 없음 (같은 이메일로 가입·인증 필요)', done: false };
+  if (!row.registration_id) return { text: '참가 미신청', done: false };
+  if (row.registration_status === 'cancelled') return { text: '신청 취소됨', done: false };
+  if (row.registration_category !== 'presenter') {
+    return { text: `${CATEGORIES[row.registration_category] || '일반'}으로 신청 (발표자 구분 아님)`, done: false };
+  }
+  return { text: `발표자 ${STATES[row.registration_status]}`, done: true };
+}
+
+async function loadPresenterStatus() {
+  const rows = requireData(await client.rpc('chair_presenter_status', { p_year: edition.year }));
+  const papers = new Map();
+  rows.forEach((row) => {
+    if (!papers.has(row.paper_id)) papers.set(row.paper_id, { title: row.paper_title, people: [] });
+    papers.get(row.paper_id).people.push({ ...row, state: presenterState(row) });
+  });
+  const list = [...papers.values()];
+  const covered = list.filter((paper) => paper.people.some((person) => person.state.done)).length;
+  $('#presenter-status-summary').textContent = list.length
+    ? `채택 ${list.length}편 · 발표자 등록 ${covered}편 · 미등록 ${list.length - covered}편 (취소되지 않은 '논문·사례 발표자' 신청이 있으면 등록으로 봅니다)`
+    : '아직 채택된 원고가 없습니다.';
+  list.sort((a, b) => Number(a.people.some((p) => p.state.done)) - Number(b.people.some((p) => p.state.done)));
+  $('#presenter-status-list').innerHTML = list.map((paper) => {
+    const done = paper.people.some((person) => person.state.done);
+    return `<article class="operations-item"><h4>${escapeHtml(paper.title)}</h4>
+      <ul>${paper.people.map((person) => `<li>${escapeHtml(person.author_name || '이름 미입력')} · ${escapeHtml(person.author_email || '이메일 없음')} — ${escapeHtml(person.state.text)}</li>`).join('')}</ul>
+      <span class="operations-meta">${done ? '발표자 등록됨' : '발표자 미등록'}</span></article>`;
+  }).join('');
 }
 
 async function loadProgram() {
-  speakers = requireData(await client.from('program_speakers')
-    .select('id,full_name,affiliation,bio,is_published')
-    .eq('edition_year', edition.year).order('full_name'));
-  sessions = requireData(await client.from('program_sessions')
-    .select('id,title,session_type,starts_at,ends_at,room,description,moderator,is_published')
-    .eq('edition_year', edition.year).order('starts_at', { nullsFirst: false }));
+  // 연사 목록과 세션 목록을 병렬(Promise.all)로 동시에 조회
+  const [speakersResult, sessionsResult] = await Promise.all([
+    client.from('program_speakers')
+      .select('id,full_name,affiliation,bio,is_published')
+      .eq('edition_year', edition.year).order('full_name'),
+    client.from('program_sessions')
+      .select('id,title,session_type,starts_at,ends_at,room,description,moderator,is_published')
+      .eq('edition_year', edition.year).order('starts_at', { nullsFirst: false }),
+  ]);
+  speakers = requireData(speakersResult);
+  sessions = requireData(sessionsResult);
   links = sessions.length
     ? requireData(await client.from('program_session_speakers')
       .select('session_id,speaker_id,sort_order').in('session_id', sessions.map((row) => row.id)))
@@ -88,6 +154,69 @@ async function loadProgram() {
     <div class="operations-actions"><button type="button" class="operations-button secondary" data-edit-session="${row.id}">수정</button>
     <button type="button" class="operations-button secondary" data-delete-session="${row.id}">삭제</button></div></article>`).join('')
     : '<p class="operations-empty">등록된 세션이 없습니다.</p>';
+}
+
+async function loadSessionChairs() {
+  const eligible = sessions.filter((row) => ['oral', 'poster'].includes(row.session_type));
+  if (!eligible.length) {
+    $('#session-chair-list').innerHTML = '<p class="operations-empty">구두·포스터 세션을 먼저 만드세요.</p>';
+    return;
+  }
+  const ids = eligible.map((row) => row.id);
+  // 좌장 배정, 발표 배정, 채택 원고 목록 3개 쿼리를 병렬(Promise.all)로 동시에 조회
+  const [chairsResult, presentationsResult, acceptedResult] = await Promise.all([
+    client.from('session_chairs')
+      .select('session_id,user_id,report_note,report_submitted_at').in('session_id', ids),
+    client.from('session_presentations')
+      .select('id,session_id,paper_id,paper_title,presenter_name,attendance,award_recommended,chair_note')
+      .in('session_id', ids).order('created_at'),
+    client.from('papers')
+      .select('id,title,final_presentation').eq('edition_year', edition.year).eq('status', 'accepted').order('title'),
+  ]);
+  sessionChairs = requireData(chairsResult);
+  sessionPresentations = requireData(presentationsResult);
+  const accepted = requireData(acceptedResult);
+  const userIds = [...new Set(sessionChairs.map((row) => row.user_id))];
+  const profiles = userIds.length ? requireData(await client.from('profiles')
+    .select('user_id,full_name,email').in('user_id', userIds)) : [];
+  const people = new Map(profiles.map((row) => [row.user_id, row]));
+  const scheduled = new Set(sessionPresentations.map((row) => row.paper_id));
+  $('#session-chair-list').innerHTML = eligible.map((session) => {
+    const assignment = sessionChairs.find((row) => row.session_id === session.id);
+    const person = assignment && people.get(assignment.user_id);
+    const items = sessionPresentations.filter((row) => row.session_id === session.id);
+    const available = accepted.filter((paper) => paper.final_presentation === session.session_type && !scheduled.has(paper.id));
+    return `<article class="operations-item"><h3>${escapeHtml(session.title)}</h3>
+      <p>${escapeHtml(session.session_type === 'oral' ? '구두발표' : '포스터')} · ${escapeHtml(session.room || '장소 미정')}</p>
+      <p>좌장 계정: ${escapeHtml(person ? `${person.full_name || '이름 미입력'} (${person.email})` : '미배정')}
+      ${assignment?.report_submitted_at ? ' · 보고서 제출 완료' : assignment ? ' · 보고 대기' : ''}</p>
+      <form class="session-chair-assign" data-session="${session.id}"><label>좌장 계정 이메일
+        <input type="email" name="email" required value="${escapeHtml(person?.email || '')}" placeholder="가입된 계정 이메일" /></label>
+        <div class="operations-actions"><button class="operations-button" type="submit" ${assignment?.report_submitted_at ? 'disabled' : ''}>좌장 배정·교체</button>
+        ${assignment ? `<button class="operations-button secondary" type="button" data-remove-chair="${session.id}" ${assignment.report_submitted_at ? 'disabled' : ''}>배정 해제</button>` : ''}
+        ${assignment?.report_submitted_at ? `<button class="operations-button secondary" type="button" data-reopen-report="${session.id}">보고서 재개</button>` : ''}</div></form>
+      <p class="operations-meta">발표 ${items.length}편${assignment?.report_submitted_at ? ` · 좌장 메모: ${escapeHtml(assignment.report_note || '없음')}` : ''}</p>
+      <div class="operations-list">${items.map((row) => `<div class="operations-item"><strong>${escapeHtml(row.paper_title)}</strong>
+        <p>발표자 ${escapeHtml(row.presenter_name)} · ${escapeHtml({ pending: '확인 전', presented: '발표', absent: '불참' }[row.attendance])}${row.award_recommended ? ' · 우수발표 후보 추천' : ''}</p>
+        ${row.chair_note ? `<p>좌장 메모: ${escapeHtml(row.chair_note)}</p>` : ''}
+        <button type="button" class="operations-button secondary" data-remove-presentation="${row.id}" ${assignment?.report_submitted_at ? 'disabled' : ''}>발표 배정 해제</button></div>`).join('') || '<p class="operations-empty">배정된 발표가 없습니다.</p>'}</div>
+      <form class="session-presentation-add" data-session="${session.id}"><div class="operations-form-grid">
+        <label>채택 원고 <select name="paper_id" required><option value="">선택하세요</option>${available.map((paper) =>
+          `<option value="${paper.id}">${escapeHtml(paper.title)}</option>`).join('')}</select></label>
+        <label>실제 발표자 이름 <input name="presenter_name" maxlength="120" required /></label></div>
+        <button class="operations-button secondary" type="submit" ${available.length && !assignment?.report_submitted_at ? '' : 'disabled'}>발표 배정</button></form>
+    </article>`;
+  }).join('');
+}
+
+async function refreshSessionChairs() {
+  try {
+    await loadSessionChairs();
+  } catch (error) {
+    if (error.code !== 'PGRST205' && error.code !== '42P01'
+      && !/could not find the table|relation .* does not exist/i.test(error.message)) throw error;
+    $('#session-chair-list').innerHTML = '<p class="operations-empty">좌장 운영 DB 변경이 아직 적용되지 않았습니다. 기존 참가·프로그램 관리는 계속 이용할 수 있습니다.</p>';
+  }
 }
 
 async function loadEditions() {
@@ -123,6 +252,30 @@ function clearSession() {
   $('#session-form').reset();
   $('#session-id').value = '';
 }
+
+$('#paper-settings-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const button = $('#paper-settings-form button[type="submit"]');
+  button.disabled = true;
+  try {
+    const noticeText = $('#paper-notice').value.trim();
+    if (!noticeText || noticeText.length > 500) throw new Error('공개 투고 안내문을 1~500자로 입력해 주세요.');
+    requireData(await client.from('conference_settings').update({
+      submissions_open: $('#paper-submissions-open').checked,
+      submission_deadline: toUtc($('#paper-submission-deadline').value),
+      revision_deadline: toUtc($('#paper-revision-deadline').value),
+      reviews_open: $('#paper-reviews-open').checked,
+      review_deadline: toUtc($('#paper-review-deadline').value),
+      re_review_deadline: toUtc($('#paper-re-review-deadline').value),
+      final_uploads_open: $('#paper-final-open').checked,
+      final_deadline: toUtc($('#paper-final-deadline').value),
+      notice: noticeText,
+    }).eq('edition_year', edition.year).select('edition_year').single());
+    await loadPaperSettings();
+    notice('논문투고·심사 운영 설정을 저장했습니다. 공개 투고 화면에 바로 반영됩니다.');
+  } catch (error) { notice(error.message, true); }
+  finally { button.disabled = false; }
+});
 
 $('#registration-settings-form').addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -200,6 +353,7 @@ $('#session-form').addEventListener('submit', async (event) => {
     ));
     clearSession();
     await loadProgram();
+    await refreshSessionChairs();
     notice('세션을 저장했습니다. 공개 설정은 프로그램 페이지에 바로 반영됩니다.');
   } catch (error) { notice(error.message, true); }
   finally { button.disabled = false; }
@@ -294,9 +448,105 @@ $('#session-list').addEventListener('click', async (event) => {
   if (remove && window.confirm('세션을 삭제할까요? 공개 프로그램에서도 사라집니다.')) {
     try {
       requireData(await client.from('program_sessions').delete().eq('id', remove.dataset.deleteSession));
-      await loadProgram(); notice('세션을 삭제했습니다.');
+      await loadProgram(); await refreshSessionChairs(); notice('세션을 삭제했습니다.');
     } catch (error) { notice(error.message, true); }
   }
+});
+
+$('#session-chair-list').addEventListener('submit', async (event) => {
+  const assign = event.target.closest('.session-chair-assign');
+  const add = event.target.closest('.session-presentation-add');
+  if (!assign && !add) return;
+  event.preventDefault();
+  const form = assign || add;
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    if (assign) {
+      const email = assign.elements.email.value.trim().toLowerCase();
+      const profile = requireData(await client.from('profiles').select('user_id').ilike('email', email).maybeSingle());
+      if (!profile) throw new Error('가입된 계정을 찾을 수 없습니다. 좌장이 먼저 로그인했는지 확인해 주세요.');
+      const existing = sessionChairs.find((row) => row.session_id === assign.dataset.session);
+      if (existing) requireData(await client.from('session_chairs').update({ user_id: profile.user_id })
+        .eq('session_id', assign.dataset.session).select('session_id').single());
+      else requireData(await client.from('session_chairs').insert({
+        session_id: assign.dataset.session, user_id: profile.user_id,
+      }).select('session_id').single());
+      notice('좌장 계정을 배정했습니다. 공개용 좌장 표기는 세션 편집에서 별도로 확인해 주세요.');
+    } else {
+      requireData(await client.from('session_presentations').insert({
+        session_id: add.dataset.session,
+        paper_id: add.elements.paper_id.value,
+        presenter_name: add.elements.presenter_name.value.trim(),
+      }).select('id').single());
+      notice('발표를 세션에 배정했습니다.');
+    }
+    await refreshSessionChairs();
+  } catch (error) { notice(error.message, true); button.disabled = false; }
+});
+
+$('#session-chair-list').addEventListener('click', async (event) => {
+  const removeChair = event.target.closest('[data-remove-chair]');
+  const removePresentation = event.target.closest('[data-remove-presentation]');
+  const reopen = event.target.closest('[data-reopen-report]');
+  const button = removeChair || removePresentation || reopen;
+  if (!button) return;
+  if ((removeChair || removePresentation) && !window.confirm('이 배정을 해제할까요? 기존 좌장 기록도 함께 삭제됩니다.')) return;
+  button.disabled = true;
+  try {
+    if (removeChair) requireData(await client.from('session_chairs').delete()
+      .eq('session_id', removeChair.dataset.removeChair));
+    else if (removePresentation) requireData(await client.from('session_presentations').delete()
+      .eq('id', removePresentation.dataset.removePresentation));
+    else requireData(await client.from('session_chairs').update({ report_submitted_at: null })
+      .eq('session_id', reopen.dataset.reopenReport).select('session_id').single());
+    await refreshSessionChairs();
+    notice(reopen ? '좌장 보고서를 다시 열었습니다.' : '배정을 해제했습니다.');
+  } catch (error) { notice(error.message, true); button.disabled = false; }
+});
+
+const STAFF_ROLES = { organizing_chair: '조직위원장', program_chair: '학술위원장', secretariat: '사무국' };
+const STAFF_LISTS = { registrations: '등록자', submissions: '논문 제출자', reviewers: '심사위원', session_chairs: '좌장' };
+
+async function loadStaff() {
+  const [staffResult, logResult] = await Promise.all([
+    client.rpc('chair_list_staff', { p_year: edition.year }),
+    client.rpc('chair_staff_access_log', { p_year: edition.year, p_limit: 50 }),
+  ]);
+  const staff = requireData(staffResult) || [];
+  const log = requireData(logResult) || [];
+  $('#staff-list').innerHTML = staff.length ? staff.map((row) => `<article class="operations-item">
+    <h3>${escapeHtml(row.full_name || '이름 미입력')} · ${escapeHtml(STAFF_ROLES[row.staff_role] || row.staff_role)}</h3>
+    <p>${escapeHtml(row.email)} · ${row.active ? `${escapeHtml(kstLongDateTimeFormatter.format(new Date(row.expires_at)))}까지` : row.revoked_at ? '회수됨' : '만료됨'}${row.last_access_at ? ` · 최근 열람 ${escapeHtml(kstLongDateTimeFormatter.format(new Date(row.last_access_at)))}` : ''}</p>
+    <span class="operations-meta">${row.active ? '조회 가능' : '권한 없음'}</span>
+    ${row.active ? `<div class="operations-actions"><button type="button" class="operations-button secondary" data-revoke-staff="${row.id}">권한 회수</button></div>` : ''}</article>`).join('')
+    : '<p class="operations-empty">부여한 운영진 권한이 없습니다.</p>';
+  $('#staff-log').innerHTML = log.length ? log.map((row) => `<p>${escapeHtml(kstLongDateTimeFormatter.format(new Date(row.accessed_at)))} · ${escapeHtml(row.actor_email)} (${escapeHtml(STAFF_ROLES[row.staff_role] || '위원장')}) · ${escapeHtml(STAFF_LISTS[row.list_name] || row.list_name)} ${row.row_count}건</p>`).join('')
+    : '<p class="operations-empty">열람 기록이 없습니다.</p>';
+}
+
+$('#staff-grant-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  try {
+    requireData(await client.rpc('chair_grant_staff', {
+      p_year: edition.year, p_email: $('#staff-email').value.trim(), p_role: $('#staff-role').value,
+      p_expires_at: toUtc($('#staff-expires').value),
+    }));
+    $('#staff-grant-form').reset();
+    await loadStaff();
+    notice('운영진 조회 권한을 부여했습니다.');
+  } catch (error) { notice(error.message, true); }
+});
+
+$('#staff-list').addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-revoke-staff]');
+  if (!button || !window.confirm('이 운영진의 명단 조회 권한을 회수할까요?')) return;
+  button.disabled = true;
+  try {
+    requireData(await client.rpc('chair_revoke_staff', { p_id: button.dataset.revokeStaff }));
+    await loadStaff();
+    notice('권한을 회수했습니다.');
+  } catch (error) { notice(error.message, true); button.disabled = false; }
 });
 
 async function start() {
@@ -306,19 +556,26 @@ async function start() {
     if (auth.error && !/Auth session missing/i.test(auth.error.message)) throw auth.error;
     const user = auth.data?.user;
     if (!user) throw new Error('위원장 계정으로 로그인해 주세요. 상단의 투고·심사 관리에서 로그인할 수 있습니다.');
-    const role = requireData(await client.from('staff_roles').select('role').eq('user_id', user.id).maybeSingle());
+    // 권한 확인과 현재 학회 회차 조회를 병렬(Promise.all)로 동시에 수행
+    const [roleResult, currentEditionData] = await Promise.all([
+      client.from('staff_roles').select('role,is_super_admin').eq('user_id', user.id).maybeSingle(),
+      currentEdition(client),
+    ]);
+    const role = requireData(roleResult);
     if (role?.role !== 'chair') throw new Error('위원장 계정만 이 화면을 이용할 수 있습니다.');
-    edition = await currentEdition(client);
+    $('#operations-monitor-link').hidden = !role.is_super_admin;
+    edition = currentEditionData;
     $('#operations-edition-label').textContent = `CO-R&BD ${edition.year} / CHAIR DESK`;
-    $('#operations-intro').textContent = `${edition.title} 운영 화면입니다. 참가 신청, 프로그램 공개와 연도별 학회 기록을 관리합니다.`;
-    document.title = `참가·프로그램 관리 | ${edition.title}`;
+    $('#operations-intro').textContent = `${edition.title}의 논문투고·심사, 참가신청, 프로그램과 연도별 학회 기록을 관리합니다.`;
+    document.title = `학회 운영 관리 | ${edition.title}`;
     if (edition.start_date && edition.end_date) {
       $('#session-start').min = `${edition.start_date}T00:00`;
       $('#session-start').max = `${edition.end_date}T23:59`;
       $('#session-end').min = `${edition.start_date}T00:00`;
       $('#session-end').max = `${edition.end_date}T23:59`;
     }
-    await Promise.all([loadRegistrations(), loadProgram(), loadEditions()]);
+    await Promise.all([loadPaperSettings(), loadRegistrations(), loadProgram(), loadEditions(), loadStaff()]);
+    await refreshSessionChairs();
     $('#operations-workspace').hidden = false;
     notice('운영 데이터를 불러왔습니다. 공개 설정을 변경하면 사이트에 바로 반영됩니다.');
   } catch (error) { notice(error.message, true); }

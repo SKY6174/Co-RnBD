@@ -1,0 +1,45 @@
+.member-main [hidden], .document-view [hidden] { display:none !important; }
+.member-main input,.member-main select { max-width:100%; min-width:0; }
+.member-main h2,.member-main p,.document-card { overflow-wrap:anywhere; }
+.member-account,.document-section-head { display:flex; align-items:center; justify-content:space-between; gap:20px; }
+.document-history-list { display:grid; gap:24px; margin-top:24px; }
+.document-card-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:22px; }
+.document-card { padding:22px 18px; border:1px solid #dbe4db; border-radius:14px; background:linear-gradient(145deg,#fafcf6,#fff); display:flex; flex-direction:column; align-items:flex-start; }
+.document-card h3 { margin:12px 0 4px; font-size:19px; }
+.document-card p { margin:0 0 18px; color:#556b60; font-size:13px; flex:1; }
+.document-icon { font-size:13px; font-weight:800; color:#33786e; letter-spacing:.15em; }
+.document-card .operations-button { font-size:12px; padding:10px 12px; }
+.member-main button:disabled { opacity:.55; cursor:not-allowed; }
+.document-status { padding:6px 12px; border-radius:24px; background:#eaf4df; white-space:nowrap; font-size:13px; font-weight:700; }
+.document-summary { font-size:14px; color:#50685c; }
+.document-guide { margin-top:28px; align-items:flex-start; }
+.document-guide div { min-width:0; }.document-guide p { margin:8px 0; }
+.document-toolbar { margin:20px 0; align-items:end; }.document-toolbar label { display:grid; gap:6px; }
+.document-settings { margin-bottom:24px; }.document-settings summary { font-size:20px; font-weight:800; cursor:pointer; }
+.document-admin-grid { display:grid; grid-template-columns:minmax(220px,1fr) minmax(0,3fr); gap:24px; align-items:start; }
+.document-person-list { display:grid; gap:8px; max-height:620px; overflow:auto; }
+.document-person { padding:14px; text-align:left; background:white; border:1px solid #dbe4db; border-radius:10px; cursor:pointer; overflow-wrap:anywhere; }
+.document-person[aria-pressed=true] { border-color:#237469; background:#f0f7e8; }
+.document-person span,.document-audit span { display:block; font-size:12px; color:#557064; margin:5px 0; }
+.document-warning { font-size:12px; color:#79562b; background:#fff8e9; padding:12px; border-radius:8px; }
+.document-audit { list-style:none; padding:0; }.document-audit li { border-top:1px solid #dbe4db; padding:14px 0; overflow-wrap:anywhere; }
+.document-print-toolbar { max-width:900px; margin:20px auto; padding:0 20px; display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+.document-print-toolbar p { flex:1; min-width:220px; font-size:13px; }
+.document-view { padding-bottom:40px; }
+.issued-document { width:210mm; max-width:calc(100% - 24px); margin:0 auto; min-height:275mm; padding:18mm; background:#fff; color:#172d28; border:1px solid #d6dfd8; box-shadow:0 12px 40px #08201e0d; }
+.issued-header { display:flex; justify-content:space-between; align-items:center; gap:15px; border-bottom:2px solid #173c34; padding-bottom:18px; }.issued-header img { width:220px; max-width:50%; height:auto; }.issued-header p { font-size:10px; overflow-wrap:anywhere; }
+.issued-document h1 { text-align:center; font-size:32px; letter-spacing:.2em; margin:34px 0; }
+.issued-info,.issued-amount { width:100%; border-collapse:collapse; margin:20px 0; font-size:14px; }.issued-info th,.issued-info td,.issued-amount th,.issued-amount td { text-align:left; padding:12px; border:1px solid #cfd9d3; overflow-wrap:anywhere; }.issued-info th { width:110px; background:#f5f7f2; }.issued-amount td:last-child { text-align:right; white-space:nowrap; }
+.issued-declaration { text-align:center; margin:35px 0 25px; font-size:17px; }.issued-date { text-align:center; }
+.issued-issuer { text-align:center; margin-top:30px; }.issued-issuer strong { font-size:22px; }.issued-issuer p { margin:6px 0; font-size:13px; overflow-wrap:anywhere; }.issued-issuer small { display:block; border-top:1px solid #dbe4db; margin-top:28px; padding-top:16px; color:#52685d; font-size:10px; }
+@media(max-width:760px){.member-account,.document-section-head { align-items:flex-start; flex-direction:column; }.document-card-grid,.document-admin-grid { grid-template-columns:1fr; }.document-card { padding:18px; }.document-person-list { max-height:240px; }.document-print-toolbar { gap:12px; }.issued-document { padding:22px 16px; min-height:0; }.issued-header img { width:150px; }.issued-document h1 { font-size:26px; }.issued-info th { width:80px; }.issued-info th,.issued-info td,.issued-amount th,.issued-amount td { padding:9px 7px; font-size:12px; }.issued-issuer strong { font-size:20px; }}
+@page { size:A4; margin:12mm; }
+@media print {
+ body { background:#fff !important; }.document-print-toolbar { display:none !important; }.document-view { padding:0; }
+ .issued-document { display:block; max-width:none; width:100%; min-height:0; padding:6mm; margin:0; border:0; box-shadow:none; break-inside:avoid; }
+ .issued-document h1 { font-size:30px; }.issued-header img { width:210px; }.issued-info th { width:110px; }.issued-info th,.issued-info td,.issued-amount th,.issued-amount td { font-size:13px; padding:10px; }
+}
+
+.issued-brand { display:flex; align-items:center; gap:12px; }.issued-brand img { width:48px; height:48px; max-width:none; }.issued-brand strong { font-size:22px; white-space:nowrap; }
+@media(max-width:760px){.issued-brand { gap:8px; }.issued-brand img { width:32px; height:32px; }.issued-brand strong { font-size:16px; }}
+@media print {.issued-brand img { width:42px; height:42px; }.issued-brand strong { font-size:22px; }}

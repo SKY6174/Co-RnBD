@@ -2,6 +2,10 @@
 
 > 2026-09-27 · [기획](../../01-plan/features/nextjs-typescript-redesign.plan.md) · 배포 루트 `site/`
 
+## 2026-10-28 보안 유지보수
+
+Next.js를 `16.4.0`에서 같은 minor 계열의 `16.4.3`으로 고정 업데이트하고 npm 잠금 파일을 함께 갱신한다. 기준은 npm audit의 Next.js 취약 패키지 1건(보안 권고 3개)과 [공식 릴리스](https://github.com/vercel/next.js/releases/tag/v16.4.3)다. 앱 코드·콘텐츠·API 계약·DB·권한은 변경하지 않는다. `npm ci`, `npm audit`, 타입 검사, 프로덕션 빌드 및 데스크톱·390px의 공개 페이지·로그인 보호 화면·API 오류 상태·PDF 다운로드를 확인한 뒤 PR을 병합하고 운영 배포를 검증한다. 운영 데이터 쓰기·인증 메일 발송은 검증 범위에 포함하지 않는다. 배포 문제 시 이전 배포를 복구할 수 있으며, 취약 버전 복구는 임시 대응으로만 사용한다.
+
 ## 구조
 
 `site/`에 Next.js 16 App Router와 TypeScript를 설치한다. 서버 컴포넌트는 저장소에 있는 승인된 HTML 본문 조각을 빌드 시 읽어 렌더링한다. `app/page.tsx`와 각 공개·포털 경로의 `page.tsx`가 명시적 라우트다. 메타데이터와 페이지별 클라이언트 엔트리는 타입이 있는 단일 라우트 목록에서 관리한다. 홈·CFP의 메뉴와 탭은 TypeScript 클라이언트 컴포넌트로 관리한다. 데이터 포털의 기존 브라우저 코드는 `public/legacy/`로 옮겨 DOM ID와 Supabase 직접 연결을 유지한다. 이는 인증·심사·위원장 기능의 안전한 첫 프레임워크 전환을 위한 호환성 계층이다. 신규 화면과 데이터 접근 코드는 TypeScript로 작성한다.

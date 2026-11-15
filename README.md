@@ -1,6 +1,6 @@
-# Co-R&BD Conference
+# T-VET Co-R&BD Conference
 
-제1회 전문대학 산학공동 R&BD 컨퍼런스의 공개 안내 사이트와 논문·현장사례 모집공고 초안입니다. 행사일은 **2026년 12월 17–18일**, 장소는 **울산과학대학교 동부캠퍼스**입니다. 일반 참가신청 마감은 **2026년 10월 30일(금) 18:00 KST**이며, 발표자는 채택 후 별도 등록합니다.
+제1회 전문대학 산학공동 R&BD 컨퍼런스의 공개 안내 사이트와 논문·현장사례 모집공고 초안입니다. 행사일은 **2027년 1월 20–21일**, 장소는 **울산과학대학교 동부캠퍼스**입니다. 일반 참가신청 마감은 **2027년 1월 5일(화) 18:00 KST**이며, 발표자는 채택 후 별도 등록합니다.
 
 ## 연도별 운영
 
@@ -30,14 +30,36 @@ npm run dev
 |---|---|---|
 | GitHub | `SKY6174/Co-RnBD` · `main` | 소스 및 CFP 버전 관리 |
 | Vercel | `ucsky6174/co-rnbd` · 루트 `site/` · `co-rnbd.org` | Next.js App Router 배포 |
-| Supabase | `Co-RnBD/Co-RnBD-2026` · ref `lvtdnrmwunahgwutafhv` | Auth·Postgres·비공개 PDF Storage |
+| Supabase | `SKY6174/Co-R&BD` · ref `lvtdnrmwunahgwutafhv` | Auth·Postgres·비공개 PDF Storage |
 
-Vercel에는 `SUPABASE_URL`과 `SUPABASE_PUBLISHABLE_KEY`가 설정되어 있습니다. 로컬 연결은 `supabase link --project-ref lvtdnrmwunahgwutafhv`로 재현할 수 있습니다. 키 값과 `.env.local`은 Git에 올리지 않습니다.
+Vercel에는 `SUPABASE_URL`과 `SUPABASE_PUBLISHABLE_KEY`가 설정되어 있습니다. Supabase CLI 버전과 원격 명령은 아래 기준을 따릅니다. 키 값과 `.env.local`은 Git에 올리지 않습니다.
+
+## Supabase CLI 3
+
+CLI는 [`.supabase-cli-version`](.supabase-cli-version)의 **3.0.0**으로 통일합니다(2026-11-07 공식 최신 안정판). Homebrew에서는 `brew update && brew upgrade supabase` 후 `supabase --version`을 확인합니다. 정확한 버전이 필요하면 [공식 릴리스](https://github.com/supabase/cli/releases/tag/v3.0.0)의 OS·CPU별 바이너리를 사용합니다. PR CI도 같은 파일에서 버전을 읽어 설치합니다. `latest`나 beta를 별도로 설치하지 않습니다. 업데이트 시 이 파일과 호환성 검증을 함께 검토합니다.
+
+저장소 루트에서 `sh scripts/supabase.sh ...`로 실행합니다. 이 진입점은 버전 불일치를 차단하고 기본 workdir를 이 저장소로 고정합니다. 별도 로컬 테스트 환경은 명시적 `--workdir`로 지정할 수 있습니다.
+
+```sh
+sh scripts/supabase.sh --version
+python3 scripts/verify-supabase-cli.py
+# 로컬 DB가 기본 대상입니다. status는 운영 상태 확인 명령이 아닙니다.
+sh scripts/supabase.sh status
+# 운영 DB 읽기는 대상을 명시하며 읽기 전용으로 실행합니다.
+sh scripts/supabase.sh db query --remote=lvtdnrmwunahgwutafhv --read-only 'select current_database()'
+sh scripts/supabase.sh migration list --remote=lvtdnrmwunahgwutafhv
+```
+
+CLI 3에서 `db push/pull/dump`, `migration list`, `gen types`, Storage 명령은 **기본적으로 로컬**입니다. 원격은 `--remote=<project-ref>`로 지정합니다. 원격 변경은 대화형 확인이 필요하며 사전 검토·승인된 자동화에서만 `--yes`를 명시합니다. 파이프의 `y`나 `.env`의 `SUPABASE_YES`는 동의로 인정되지 않습니다. 원격 설정은 먼저 `sh scripts/supabase.sh config diff --remote=lvtdnrmwunahgwutafhv`로 비교합니다. 로컬 개발용 `config.toml` 전체를 운영에 push하지 않습니다. 현재 PR 품질 검사는 원격 DB에 배포하지 않습니다.
+
+CLI 버전은 개발 도구의 버전입니다. 브라우저의 `supabase-js` SDK 버전과 별개이며 CLI 변경만으로 운영 DB·Auth·Storage가 업그레이드되지는 않습니다. [공식 CLI 3 이전 안내](https://supabase.com/docs/guides/local-development/cli/migrating-to-v3).
 
 ## 논문 투고·심사
 
 [`/submission.html`](https://co-rnbd.org/submission.html)은 저자·심사위원·위원장 작업 공간입니다. 이메일·비밀번호 가입/로그인/재설정과 Google/Naver 로그인 연결을 지원합니다. 원고, 공동저자, PDF 버전, 심사 배정과 판정은 Supabase Postgres·비공개 Storage에 저장되며 RLS가 역할별 접근을 제한합니다. 참가등록과 투고는 별개입니다.
 
-DB 마이그레이션은 `supabase/migrations/`에 있고 연결된 `Co-RnBD-2026` 프로젝트에 적용했습니다. 접수 스위치는 기본적으로 **닫힘**입니다. 논문 일정·주최기관·개인정보 보존 기준이 확정되면 위원장 계정에서 접수를 열 수 있습니다. Google/Naver OAuth 제공자 등록과 최초 위원장 지정 방법은 [운영 설정](site/README.md#투고-시스템-운영-설정)에 있습니다.
+DB 마이그레이션은 `supabase/migrations/`에 있고 연결된 `Co-R&BD` 프로젝트에 적용했습니다. 2026 회차의 원고 접수는 열려 있으며, 투고 시작일(가안 11.30) 전 제출분도 운영자 결정(2026-11-15)에 따라 정식 접수로 처리합니다. 심사·최종본 단계는 별도로 관리합니다. 접수 상태와 안내문은 위원장이 [학회 운영 관리](https://co-rnbd.org/operations.html)에서 조정할 수 있습니다. 제출한 원고와 PDF는 운영 DB에 저장되며 정식 심사 대상입니다. Google/Naver OAuth 제공자 등록과 최초 위원장 지정 방법은 [운영 설정](site/README.md#투고-시스템-운영-설정)에 있습니다.
 
 Next.js Route Handler가 `/api/config`와 `/api/naver-userinfo`를 제공합니다. 로컬 공개 설정이 없으면 데이터 화면에는 연결 안내가 표시되며, 실제 투고 흐름은 별도의 안전한 Supabase 환경에서 검증해야 합니다.
+
+공동위원장의 [현황 모니터링](https://co-rnbd.org/monitor.html)은 현재 회차의 일반 참가신청과 논문투고 집계를 한곳에 보여 줍니다. `staff_roles`의 위원장 역할과 슈퍼 관리자 표식으로 접근을 제한합니다. 실제 배포 전에는 이 링크가 아직 제공되지 않을 수 있습니다.

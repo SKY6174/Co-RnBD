@@ -1,13 +1,29 @@
-import { conferenceClient, conferenceConfig, currentEdition, editionDateRange, escapeHtml, requireData } from './conference-client.js';
+import { conferenceClient, conferenceConfig, currentEdition, renderConferenceContext, escapeHtml, requireData } from './conference-client.js';
+import { registrationNo, depositorName } from './member-documents.js';
 
 const $ = (selector) => document.querySelector(selector);
 const STATES = { applied: '확인 대기', confirmed: '참가 확정', cancelled: '취소됨' };
-const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타' };
+const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타', presenter: '논문·사례 발표자' };
 let client;
 let user;
 let registration;
 let open = false;
+let presenterOpen = false;
+let presenterEligible = false;
 let edition;
+let authGeneration = 0;
+
+const utcShortDayFormatter = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'UTC',
+  month: 'long',
+  day: 'numeric',
+  weekday: 'short',
+});
+const kstLongDateTimeFormatter = new Intl.DateTimeFormat('ko-KR', {
+  dateStyle: 'long',
+  timeStyle: 'short',
+  timeZone: 'Asia/Seoul',
+});
 
 function attendanceDays() {
   if (!edition.start_date || !edition.end_date) return [];
@@ -16,7 +32,7 @@ function attendanceDays() {
     day <= new Date(`${edition.end_date}T00:00:00Z`) && days.length < 7;
     day.setUTCDate(day.getUTCDate() + 1)) {
     const value = day.toISOString().slice(0, 10);
-    const label = new Intl.DateTimeFormat('ko-KR', { timeZone: 'UTC', month: 'long', day: 'numeric', weekday: 'short' }).format(day);
+    const label = utcShortDayFormatter.format(day);
     days.push({ value, label });
   }
   return days;
@@ -27,11 +43,22 @@ function notice(text, error = false) {
   $('#registration-message').classList.toggle('error', error);
 }
 
+function showSignedOut() {
+  registration = null;
+  $('#registration-account').textContent = '참가 신청에는 계정 로그인이 필요합니다.';
+  $('#registration-sign-out-actions').hidden = true;
+  $('#registration-current').replaceChildren();
+  $('#registration-current').hidden = true;
+  $('#registration-form').reset();
+  $('#registration-form').hidden = true;
+  $('#registration-login').hidden = false;
+}
+
 async function loadAuthAvailability(config) {
   let settings = {};
   try {
     const settingsResponse = await fetch(`${config.url}/auth/v1/settings`, {
-      headers: { apikey: config.publishableKey }, cache: 'no-store',
+      headers: { apikey: config.publishableKey },
     });
     if (settingsResponse.ok) settings = await settingsResponse.json();
   } catch { /* 제공자 설정을 읽지 못해도 이메일 로그인 링크는 이용할 수 있습니다. */ }
@@ -61,58 +88,94 @@ $('#registration-login').addEventListener('click', async (event) => {
 });
 
 async function load() {
-  const settings = requireData(await client.from('conference_settings')
-    .select('registration_open,registration_deadline').eq('edition_year', edition.year).single());
+  const generation = authGeneration;
+  // 학회 참가 설정(conference_settings)과 로그인 사용자 확인(getUser)을 병렬(Promise.all)로 동시에 수행
+  const [settingsResult, auth] = await Promise.all([
+    client.from('conference_settings')
+      .select('registration_open,registration_deadline,final_deadline').eq('edition_year', edition.year).single(),
+    client.auth.getUser(),
+  ]);
+  if (generation !== authGeneration) return;
+  const settings = requireData(settingsResult);
   open = Boolean(edition.start_date && settings.registration_open
     && Date.now() <= new Date(settings.registration_deadline).getTime());
+  presenterOpen = Boolean(edition.start_date && (settings.final_deadline
+    ? Date.now() <= new Date(settings.final_deadline).getTime() : open));
+  const presenterDeadlineText = settings.final_deadline
+    ? `${kstLongDateTimeFormatter.format(new Date(settings.final_deadline))} KST` : '';
   const days = attendanceDays();
   $('#attendance-days').innerHTML = days.map(({ value, label }) =>
     `<label class="inline-check"><input type="checkbox" name="attendance-day" value="${value}" /> ${escapeHtml(label)}</label>`).join('');
   $('#registration-edition-label').textContent = `CO-R&BD ${edition.year} / ATTENDANCE`;
   const deadlineText = settings.registration_deadline
-    ? `${new Intl.DateTimeFormat('ko-KR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Seoul' }).format(new Date(settings.registration_deadline))} KST`
+    ? `${kstLongDateTimeFormatter.format(new Date(settings.registration_deadline))} KST`
     : '확정 전';
-  $('#registration-intro').innerHTML = [
-    '논문 투고와 별도로 신청합니다.',
-    `행사: ${editionDateRange(edition)}.`,
-    `신청 마감: ${deadlineText}.`,
-    '위원장 확인 후 참가가 확정됩니다.',
-  ].map((line) => escapeHtml(line)).join('<br />');
+  renderConferenceContext(edition);
+  $('#registration-intro').innerHTML = `
+    <div class="operations-spec-grid">
+      <div class="operations-spec-item"><span>REGISTRATION</span><strong>${open ? '참가신청 접수 중' : '참가신청 마감 또는 준비 중'}</strong></div>
+      <div class="operations-spec-item"><span>DEADLINE</span><strong>${escapeHtml(deadlineText)}</strong></div>
+      <div class="operations-spec-item"><span>APPROVAL</span><strong>논문 투고와 별도 신청 · 위원장 확인 후 확정</strong></div>
+    </div>
+  `;
   document.title = `참가 신청 | ${edition.title}`;
-  const auth = await client.auth.getUser();
   if (auth.error && !/Auth session missing/i.test(auth.error.message)) throw auth.error;
   user = auth.data?.user;
   $('#registration-login').hidden = Boolean(user);
+  $('#registration-sign-out-actions').hidden = !user;
   if (!user) {
-    $('#registration-account').textContent = '참가 신청에는 계정 로그인이 필요합니다.';
+    showSignedOut();
     notice(open ? '신청을 받는 중입니다. 로그인 후 참가 날짜를 선택해 주세요.' : '참가 신청은 현재 열려 있지 않습니다.');
     return;
   }
-  const profile = requireData(await client.from('profiles')
-    .select('full_name,affiliation,email').eq('user_id', user.id).single());
+  const currentUser = user;
+  // 회원 프로필과 기존 참가 신청 내역을 병렬(Promise.all)로 동시에 조회
+  const [profileResult, registrationResult] = await Promise.all([
+    client.from('profiles')
+      .select('full_name,affiliation,email').eq('user_id', currentUser.id).single(),
+    client.from('attendee_registrations')
+      .select('id,category,attendance_days,status,checked_in_at,created_at')
+      .eq('edition_year', edition.year).eq('user_id', currentUser.id).maybeSingle(),
+  ]);
+  if (generation !== authGeneration || user?.id !== currentUser.id) return;
+  const profile = requireData(profileResult);
   const complete = Boolean(profile.full_name?.trim() && profile.affiliation?.trim());
   $('#registration-account').innerHTML = complete
-    ? `<strong>${escapeHtml(profile.full_name)}</strong> · ${escapeHtml(profile.affiliation)}<br><small>${escapeHtml(profile.email || user.email)}</small>`
+    ? `<strong>${escapeHtml(profile.full_name)}</strong> · ${escapeHtml(profile.affiliation)}<br><small>${escapeHtml(profile.email || currentUser.email)}</small>`
     : '이름과 소속기관을 입력해야 참가 신청을 할 수 있습니다. <a href="./submission.html">내 정보 입력하기 →</a>';
-  registration = requireData(await client.from('attendee_registrations')
-    .select('id,category,attendance_days,status,checked_in_at,created_at')
-    .eq('edition_year', edition.year).eq('user_id', user.id).maybeSingle());
+  registration = requireData(registrationResult);
+  presenterEligible = Boolean(requireData(await client.rpc('presenter_registration_eligible', { p_year: edition.year })));
+  if (generation !== authGeneration || user?.id !== currentUser.id) return;
+  const presenterOption = $('#registration-category option[value="presenter"]');
+  const presenterOnly = !open && presenterEligible && presenterOpen;
+  presenterOption.hidden = presenterOption.disabled = !(presenterEligible && presenterOpen) && registration?.category !== 'presenter';
+  $('#registration-category').querySelectorAll('option[value]:not([value=""]):not([value="presenter"])').forEach((option) => {
+    option.disabled = presenterOnly;
+  });
   const current = $('#registration-current');
   current.hidden = !registration;
   if (registration) {
     const selectedDays = registration.attendance_days.map((day) => days.find((entry) => entry.value === day)?.label || day).join(' · ');
-    current.innerHTML = `<div class="operations-note"><strong>${escapeHtml(STATES[registration.status])}</strong><br>${escapeHtml(selectedDays)} · ${escapeHtml(CATEGORIES[registration.category])}</div>`
+    current.innerHTML = `<div class="operations-note"><strong>${escapeHtml(STATES[registration.status])}</strong><br>${escapeHtml(selectedDays)} · ${escapeHtml(CATEGORIES[registration.category])}<br><small>등록번호 ${escapeHtml(registrationNo(registration.id))}${registration.status !== 'cancelled' ? ` · 계좌이체 입금자명 <strong>${escapeHtml(depositorName(profile.full_name, registration.id))}</strong>` : ''}</small></div>`
       + (registration.status !== 'cancelled' && !registration.checked_in_at
         ? '<div class="operations-actions"><button id="cancel-registration" type="button" class="operations-button secondary">신청 취소</button></div>' : '');
     $('#cancel-registration')?.addEventListener('click', cancelRegistration);
     $('#registration-category').value = registration.category;
+  }
+  if (presenterOnly && (!registration || registration.status === 'cancelled' || registration.category !== 'presenter')) {
+    $('#registration-category').value = 'presenter';
+  }
+  if (registration) {
     document.querySelectorAll('[name="attendance-day"]').forEach((input) => {
       input.checked = registration.attendance_days.includes(input.value);
     });
   }
-  $('#registration-form').hidden = !open || !complete || (registration && registration.status === 'confirmed');
+  const canApply = open || (presenterEligible && presenterOpen);
+  $('#registration-form').hidden = !canApply || !complete || (registration && registration.status === 'confirmed');
   $('#registration-form button[type="submit"]').textContent = registration?.status === 'cancelled' ? '다시 신청' : registration ? '신청 내용 변경' : '참가 신청 제출';
-  notice(!open ? '참가 신청은 현재 열려 있지 않습니다. 기존 신청 상태는 아래에서 확인할 수 있습니다.'
+  notice(presenterOnly && complete && registration?.status !== 'confirmed'
+    ? `일반 참가 신청은 마감되었습니다. 채택 원고 발표자는 ${presenterDeadlineText}까지 '논문·사례 발표자'로 신청할 수 있습니다.`
+    : !canApply ? '참가 신청은 현재 열려 있지 않습니다. 기존 신청 상태는 아래에서 확인할 수 있습니다.'
     : !complete ? '이름과 소속기관을 먼저 입력해 주세요.'
       : registration?.status === 'confirmed' ? '참가가 확정되었습니다.'
         : registration?.status === 'applied' ? '신청이 접수되었습니다. 위원장 확인을 기다려 주세요.'
@@ -126,6 +189,23 @@ async function cancelRegistration() {
     await load();
   } catch (error) { notice(error.message, true); }
 }
+
+$('#registration-sign-out').addEventListener('click', async () => {
+  const button = $('#registration-sign-out');
+  button.disabled = true;
+  try {
+    const { error } = await client.auth.signOut();
+    if (error) throw error;
+    authGeneration++;
+    user = null;
+    showSignedOut();
+    notice('로그아웃했습니다.');
+  } catch (error) {
+    notice(`로그아웃하지 못했습니다: ${error.message}`, true);
+  } finally {
+    button.disabled = false;
+  }
+});
 
 $('#registration-form').addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -151,10 +231,12 @@ async function start() {
     client = await conferenceClient(config);
     [, edition] = await Promise.all([loadAuthAvailability(config), currentEdition(client)]);
     await load();
-    client.auth.onAuthStateChange((event) => {
-      if (event !== 'INITIAL_SESSION') {
-        setTimeout(() => load().catch((error) => notice(error.message, true)), 0);
-      }
+    client.auth.onAuthStateChange((event, session) => {
+      // Startup already loaded the account. Token refresh/focus must not reset an edited form.
+      if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') return;
+      if (event === 'SIGNED_IN' && session?.user?.id === user?.id) return;
+      if (event === 'SIGNED_OUT') authGeneration++;
+      setTimeout(() => load().catch((error) => notice(error.message, true)), 0);
     });
   } catch (error) {
     const preparing = ['PGRST204', 'PGRST205', '42703'].includes(error.code)

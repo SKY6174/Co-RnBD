@@ -1,16 +1,19 @@
 <a class="skip-link" href="#main">본문으로 바로가기</a>
   <header class="site-header operations-header"><div class="shell header-inner">
-    <a class="brand" href="./index.html" aria-label="Co-R&BD 홈"><span class="brand-logo"><img src="./assets/co-rbd-conference-logo.png" alt="Co-R&BD" width="3070" height="706" /></span></a>
-    <nav class="operations-header-nav" aria-label="주 메뉴"><a href="./index.html">행사 안내</a><a href="./program.html">프로그램</a><a href="./registration.html" aria-current="page">참가 신청</a><a href="./submission.html">논문 투고</a></nav>
+    <a class="brand" href="./index.html" aria-label="T-VET Co-R&BD 홈"><span class="brand-logo"><img src="./assets/t-vet-co-rbd-conference-logo.png" alt="T-VET Co-R&BD" width="2920" height="706" /></span></a>
+    <nav class="operations-header-nav" aria-label="주 메뉴"><a href="./index.html">학회 안내</a><a href="./program.html">학술 프로그램</a><a href="./registration.html" aria-current="page">참가 신청</a><a href="./submission.html">논문 투고</a><a href="./archive.html">지난 학회</a><a href="./mypage.html">마이페이지</a></nav>
   </div></header>
   <main id="main" class="operations-main"><div class="shell">
-    <div class="operations-intro"><p id="registration-edition-label" class="section-index">CO-R&amp;BD / ATTENDANCE</p><h1>일반 참가 신청</h1><p id="registration-intro">학회 신청 정보를 불러오는 중입니다.</p></div>
+    <div class="operations-intro"><p id="registration-edition-label" class="section-index">T-VET CO-R&amp;BD / ATTENDANCE</p><h1>일반 참가 신청</h1><div id="registration-intro">학회 신청 정보를 불러오는 중입니다.</div></div>
+    <section class="conference-context" data-conference-context aria-label="학술대회 정보" hidden></section>
     <div id="registration-message" class="operations-note" role="status" aria-live="polite">신청 상태를 확인하는 중입니다.</div>
     <div class="operations-grid">
       <section class="operations-card" aria-labelledby="registration-title">
+        <span class="operations-kicker">MY APPLICATION</span>
         <h2 id="registration-title">내 신청</h2>
         <p id="registration-account">로그인 상태를 확인하는 중입니다.</p>
-        <div id="registration-current" hidden></div>
+        <div id="registration-sign-out-actions" class="operations-actions" hidden><button id="registration-sign-out" type="button" class="operations-button secondary">로그아웃</button></div>
+        <div id="registration-current" hidden></div><p><a href="./mypage.html">참가 내역·참가확인증·영수증·거래명세서 →</a></p>
         <div id="registration-login" hidden>
           <p>구글 또는 네이버 계정으로 로그인하면 이 페이지에서 참가 신청을 계속할 수 있습니다.</p>
           <div class="registration-social-actions">
@@ -22,21 +25,47 @@
             </button>
           </div>
           <p id="registration-auth-availability" class="registration-auth-help" role="status">간편로그인 연결을 확인 중입니다.</p>
-          <p class="registration-email-link">이메일 계정을 이용하시나요? <a href="./submission.html">이메일 로그인·회원가입 →</a></p>
+          <p class="registration-email-link">이메일 계정을 이용하시나요? <a href="./submission.html?returnTo=registration">이메일 로그인·회원가입 →</a></p>
         </div>
         <form id="registration-form" hidden>
-          <label>참가 구분 <select id="registration-category" required><option value="">선택하세요</option><option value="student">학생·졸업생</option><option value="faculty">교원·연구자</option><option value="industry">기업·기관</option><option value="other">기타</option></select></label>
+          <label>참가 구분 <select id="registration-category" required><option value="">선택하세요</option><option value="student">학생·졸업생</option><option value="faculty">교원·연구자</option><option value="industry">기업·기관</option><option value="other">기타</option><option value="presenter" hidden disabled>논문·사례 발표자</option></select></label>
           <fieldset><legend>참가 날짜</legend><div id="attendance-days"></div></fieldset>
-          <p>등록비와 결제는 아직 확정되지 않았습니다. 현재 단계에서는 결제하지 않습니다.</p>
-          <button type="submit" class="operations-button">참가 신청 제출</button>
+          <div class="operations-hint-block registration-hint">
+            <div class="registration-hint-heading"><span>FEE NOTICE</span><strong>등록비 1인 200,000원 · 계좌이체</strong></div>
+            <p>입금 계좌는 추후 안내합니다. 입금자명은 <strong>이름+등록번호 앞 4자리</strong>(예: 홍길동A1B2)로 해 주세요. 등록번호와 입금자명은 신청 후 이 화면과 마이페이지에 표시됩니다. 기관 명의 입금이나 여러 명 일괄 입금 방법은 입금 계좌와 함께 안내합니다. <strong>2027년 1월 13일(수) 18:00 KST까지</strong> 신청을 취소하면 전액 환불하며, 이후 취소나 불참은 환불하지 않습니다(1월 19일까지 사무국에 알리면 같은 소속 대리 참석 가능). 이 신청 화면에서는 결제가 진행되지 않으며, 납부 확인 후 마이페이지에서 영수증을 발급받을 수 있습니다. 자세한 기준은 <a href="./terms.html#registration">이용약관</a>을 확인해 주세요.</p>
+          </div>
+          <div class="operations-hint-block registration-hint" id="registration-privacy-notice">
+            <div class="registration-hint-heading"><span>PRIVACY NOTICE</span><strong>개인정보 수집·이용 안내</strong></div>
+            <p><strong>항목</strong> 회원 프로필의 이름·소속·이메일, 참가 구분, 참가 날짜, 신청·확정·취소 상태, 현장 체크인 시각</p>
+            <p><strong>목적</strong> 참가 신청 확인과 접수·확정·취소 안내 메일 발송, 현장 등록, 참가확인증 등 증빙 발급</p>
+            <p><strong>보유기간</strong> 학회 종료일인 2027년 1월 21일까지 보유한 뒤 파기합니다. 등록비 납부·환불 확인 기록과 발급한 영수증·거래명세서는 국세기본법에 따라 5년간 분리 보관합니다.</p>
+            <p>정보 제공을 원하지 않으면 신청하지 않을 수 있으며, 이 경우 참가 신청을 접수할 수 없습니다. 자세한 내용은 <a href="./privacy.html">개인정보처리방침</a>을 확인해 주세요.</p>
+          </div>
+          <button type="submit" class="operations-button" aria-describedby="registration-privacy-notice">참가 신청 제출</button>
         </form>
       </section>
       <section class="operations-card" aria-labelledby="registration-guide-title">
-        <h2 id="registration-guide-title">신청 안내</h2>
-        <ol><li>계정으로 로그인하고 이름·소속을 확인합니다.</li><li>참가 날짜와 구분을 선택해 신청합니다.</li><li>위원장이 확인하면 상태가 ‘참가 확정’으로 바뀝니다.</li><li>행사 당일 등록 데스크에서 이름과 신청 상태를 확인합니다.</li></ol>
-        <p>발표자 등록은 원고 채택 후 별도 안내할 예정입니다. 이 양식은 일반 참가 신청용입니다.</p>
-        <p><a href="./privacy.html">개인정보처리방침</a> · <a href="./terms.html">서비스 이용약관</a></p>
-        <a href="./program.html">공개된 프로그램 보기 →</a>
+        <span class="operations-kicker">PROCESS GUIDE</span>
+        <h2 id="registration-guide-title">신청 절차</h2>
+        <div class="step-block-grid">
+          <div class="step-block"><span>STEP 01</span><strong>계정 로그인·프로필 확인</strong><p>이름과 소속기관이 입력되어 있는지 확인합니다.</p></div>
+          <div class="step-block"><span>STEP 02</span><strong>참가 일자·구분 선택</strong><p>참석할 날짜와 참가자 구분을 선택해 제출합니다.</p></div>
+          <div class="step-block"><span>STEP 03</span><strong>위원장 확인 및 확정</strong><p>위원장 확인 후 상태가 ‘참가 확정’으로 전환됩니다.</p></div>
+          <div class="step-block"><span>STEP 04</span><strong>현장 등록 데스크 체크인</strong><p>행사 당일 등록 데스크에서 명단을 확인합니다.</p></div>
+        </div>
+        <div class="operations-hint-block registration-hint">
+          <div class="registration-hint-heading"><span>PRESENTER NOTE</span><strong>발표자 등록 안내</strong></div>
+          <p>원고가 채택된 저자는 채택 통보 후 이 화면에서 참가 구분을 '논문·사례 발표자'로 선택해 신청합니다. 일반 참가 신청 마감 후에도 2027년 1월 13일(수) 18:00 KST까지 신청할 수 있으며, 등록비(1인 200,000원)와 환불 기준은 일반 참가자와 같습니다.</p>
+        </div>
+        <div class="operations-hint-block registration-hint">
+          <div class="registration-hint-heading"><span>ACCOMMODATION</span><strong>숙박 안내</strong></div>
+          <p>숙박은 개별적으로 준비해야 합니다.</p>
+        </div>
+        <div class="operations-card-footer">
+          <span><a href="./privacy.html">개인정보처리방침</a> · <a href="./terms.html">서비스 이용약관</a></span>
+          <a href="./program.html">공개된 프로그램 보기 →</a>
+        </div>
       </section>
     </div>
   </div></main>
+  <footer class="site-footer"><div class="shell footer-inner"><div><strong data-conference-footer>T-VET Co-R&amp;BD Conference</strong><p>College–Industry Cooperation for Research and Business Development</p></div><nav class="footer-links" aria-label="안내 및 정책 링크"><a href="./index.html">학회 안내</a><a href="./archive.html">지난 학회</a><a href="./privacy.html">개인정보처리방침</a><a href="./terms.html">이용약관</a></nav></div></footer>

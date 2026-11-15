@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="300" viewBox="0 0 1120 300" role="img" aria-labelledby="title desc">
+<defs>
+<radialGradient id="talentCore" cx="35%" cy="28%" r="75%">
+<stop offset="0%" stop-color="#FFE89A"/>
+<stop offset="42%" stop-color="#FFD15C"/>
+<stop offset="100%" stop-color="#F28C28"/>
+</radialGradient>
+</defs>
+<title id="title">T-VET Co-R&amp;BD Conference 2026</title>
+<desc id="desc">대학과 산업의 교차 궤도와 열린 고리 옆에 T-VET Co-R&amp;BD, Conference 2026을 두 줄로 표기한 로고</desc>
+<g transform="translate(15 8) scale(.94)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<path d="M248 93 A113 113 0 1 1 207 52" stroke="#0E201E" stroke-width="24"/>
+<ellipse cx="150" cy="150" rx="83" ry="37" transform="rotate(-34 150 150)" stroke="#167E83" stroke-width="12"/>
+<ellipse cx="150" cy="150" rx="83" ry="37" transform="rotate(34 150 150)" stroke="#B2D260" stroke-width="12"/>
+<circle cx="150" cy="150" r="25" fill="#0E201E" stroke="none"/>
+<circle cx="150" cy="150" r="21" fill="#FFFFFF" stroke="none"/>
+<circle cx="150" cy="150" r="17" fill="url(#talentCore)" stroke="none"/>
+<circle cx="144" cy="143" r="4" fill="#FFFFFF" opacity="0.92" stroke="none"/>
+<circle cx="207" cy="52" r="12" fill="#F28C28" stroke="none"/>
+</g>
+<text x="312" y="152" font-family="Arial, sans-serif" font-size="90" font-weight="800" letter-spacing="-3" fill="#0E201E"><tspan fill="#167E83">T-VET </tspan>Co-R<tspan fill="#C99A24">&amp;</tspan>BD</text>
+<path d="M316 187 H1012" stroke="#B2D260" stroke-width="5"/>
+<text x="316" y="250" font-family="Arial, sans-serif" font-size="51" font-weight="700" letter-spacing="2" fill="#0E201E">Conference 2026</text>
+</svg>

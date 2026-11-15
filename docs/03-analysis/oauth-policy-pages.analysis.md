@@ -13,6 +13,6 @@
 - Vercel production 배포 후 `https://co-rnbd.org/`, `/privacy.html`, `/terms.html`, `/legal.css` 모두 HTTP 200 및 예상 내용 확인
 
 ## 운영 후속 사항
-- 2026년 12월 18일 종료 후 Auth·DB·Storage·백업의 실제 파기 절차 실행
+- 2027년 1월 22일 종료 후 Auth·DB·Storage·백업의 실제 파기 절차 실행
 - Google OAuth 앱 브랜딩 필드에 두 공개 URL 등록
 - 직전부터 존재하던 다른 미커밋 사이트 수정은 이번 작업에서 정리하지 않음

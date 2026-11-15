@@ -27,6 +27,8 @@
 .legal-table { width: 100%; border-collapse: collapse; background: white; }
 .legal-table th, .legal-table td { padding: 12px 14px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
 .legal-table th { width: 28%; color: var(--deep); background: #eef3e7; font-weight: 800; }
+.legal-table-wide { min-width: 760px; }
+.legal-table-wide thead th { width: auto; }
 .legal-callout { padding: 18px 20px; border-left: 3px solid var(--lime-dark); background: #eef3e7; }
 .legal-callout p:last-child { margin-bottom: 0; }
 .legal-updated { margin-top: 25px; color: #65746b; font-size: 13px; }

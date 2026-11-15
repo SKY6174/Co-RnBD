@@ -18,7 +18,7 @@ async function start() {
     if (row.status === 'draft' || (row.status === 'archived' && !row.archive_published)) {
       throw new Error('공개되지 않은 학회입니다.');
     }
-    document.title = `${row.title} | Co-R&BD Conference`;
+    document.title = `${row.title} | T-VET Co-R&BD Conference`;
     document.querySelector('#edition-label').textContent = row.status === 'archived' ? `${row.year} / ARCHIVE` : `${row.year} / CURRENT CONFERENCE`;
     document.querySelector('#edition-title').textContent = row.title;
     document.querySelector('#edition-summary').textContent = row.summary || (row.status === 'archived'

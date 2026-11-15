@@ -1,13 +1,54 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/+esm';
+import { conferenceClient, conferenceConfig, renderConferenceContext } from './conference-client.js';
 
 const $ = (selector) => document.querySelector(selector);
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-const TRACKS = { applied: '전문기술석사 응용연구', industry: '산학공동기술개발 성과', convergence: '산업융합기술', education: '전문기술석사 교육·운영' };
+// 모집 분야 코드와 화면 표시명 매핑 (신규 4개 분야 및 기존 데이터 호환 코드)
+const TRACKS = {
+  master_eng: '전문기술석사 (공학 분야)',
+  master_sci: '전문기술석사 (자연과학 분야)',
+  industry_joint: '산학공동기술개발과제',
+  convergence_etc: '기타 산학융합과제',
+  applied: '전문기술석사 응용연구',
+  industry: '산학공동기술개발과제 성과발표',
+  convergence: '산업융합기술',
+  education: 'T-VET 정책·교육연구',
+};
+const ACTIVE_TRACK_KEYS = ['master_eng', 'master_sci', 'industry_joint', 'convergence_etc'];
+const LEGACY_TRACK_MAP = {
+  applied: 'master_eng',
+  industry: 'industry_joint',
+  convergence: 'convergence_etc',
+  education: 'convergence_etc',
+};
+const PRESENTATIONS = { oral: '구두', poster: '포스터', demo: '데모' };
+const SESSIONS = {
+  oral_1: 'Oral Session 1',
+  oral_2: 'Oral Session 2',
+  oral_3: 'Oral Session 3',
+  poster_1: 'Poster Session 1',
+};
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const STATUSES = { draft: '초안', submitted: '제출 완료', under_review: '심사 중', revision: '수정 요청', accepted: '채택', rejected: '반려', declined: '배정 거절' };
-const RECOMMENDATIONS = { accept: '채택 권고', revise: '수정 권고', reject: '반려 권고' };
+const STATUSES = { draft: '초안', submitted: '제출 완료', under_review: '심사 중', revision: '수정 요청', accepted: '채택', rejected: '반려', withdrawn: '철회', declined: '배정 거절' };
+const RECOMMENDATIONS = { accept: 'Accept · 채택 권고', revise: 'Accept after revision · 수정 후 채택 권고', reject: 'Reject · 반려 권고' };
 const REVIEW_STATES = { assigned: '심사 대기', draft: '임시저장', submitted: '심사 제출', declined: '배정 거절' };
 const EMAIL_LINK_TYPES = { 'auth-signup': 'email', 'auth-magiclink': 'magiclink', 'auth-recovery': 'recovery' };
+
+// 반복 호출되는 날짜 포매터를 싱글톤으로 생성하여 렌더링 속도 최적화
+const kstMediumDateTimeFormatter = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+const kstMediumDateFormatter = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  dateStyle: 'medium',
+});
+const RETURN_DESTINATIONS = { chair: './chair.html', mypage: './mypage.html', 'document-admin': './document-admin.html', registration: './registration.html' };
+let returnTo = location.hash === '#chair' ? 'chair' : new URLSearchParams(location.search).get('returnTo');
+try {
+  returnTo = returnTo || sessionStorage.getItem('co_rnbd_return_to');
+  if (Object.hasOwn(RETURN_DESTINATIONS, returnTo)) sessionStorage.setItem('co_rnbd_return_to', returnTo);
+} catch { /* Fixed query destinations work without session storage. */ }
 const emailLinkParams = new URLSearchParams(location.hash.slice(1));
 const emailLink = Object.entries(EMAIL_LINK_TYPES)
   .map(([name, type]) => ({ token_hash: emailLinkParams.get(name), type }))
@@ -17,15 +58,18 @@ let user;
 let profile;
 let isChair = false;
 let submissionsOpen = false;
-let reviewsOpen = false;
+let reReviewIds = new Set();
+// Reviews of a resubmitted manuscript use the re-review deadline when the chair set one.
+const reviewDeadlineFor = (row) => reReviewIds.has(row?.id) && settings.re_review_deadline ? settings.re_review_deadline : settings.review_deadline;
+const reviewOpenFor = (row) => settings.reviews_open && beforeDeadline(reviewDeadlineFor(row));
 let finalUploadsOpen = false;
+let revisionsOpen = true;
 let settings;
 let edition;
 let myPapers = [];
 let reviewRows = [];
-let chairPapers = [];
-let selectedChairReviews = [];
-let portalReady = false;
+let nextWorkspaceAction = () => {};
+const countTimers = {};
 let isRecovery = new URLSearchParams(location.hash.slice(1)).get('type') === 'recovery'
   || new URLSearchParams(location.search).get('type') === 'recovery'
   || emailLink?.type === 'recovery';
@@ -71,10 +115,13 @@ function parseKeywords(value, forSubmission = false) {
 }
 
 function showTab(name) {
+  if (name === 'chair') { if (isChair) location.assign('./chair.html'); return; }
+  if (!$(`[data-tab="${name}"]`) || $(`[data-tab="${name}"]`).hidden) return;
   document.querySelectorAll('[data-tab]').forEach((button) => {
     const active = button.dataset.tab === name;
     button.classList.toggle('active', active);
     button.setAttribute('aria-selected', String(active));
+    button.tabIndex = active ? 0 : -1;
   });
   document.querySelectorAll('.tab-panel').forEach((panel) => { panel.hidden = panel.id !== `tab-${name}`; });
   message('');
@@ -86,22 +133,7 @@ function beforeDeadline(value) {
 
 function formatKst(value) {
   if (!value) return '마감 시각 미설정';
-  return `${new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))} KST`;
-}
-
-function kstInputValue(value) {
-  if (!value) return '';
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
-  }).formatToParts(new Date(value));
-  const get = (type) => parts.find((part) => part.type === type).value;
-  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
-}
-
-function deadlineValue(selector) {
-  const value = $(selector).value;
-  return value ? new Date(`${value}:00+09:00`).toISOString() : null;
+  return `${kstMediumDateTimeFormatter.format(new Date(value))} KST`;
 }
 
 function phaseCard(title, configured, deadline) {
@@ -112,37 +144,34 @@ function phaseCard(title, configured, deadline) {
 
 async function loadSettings() {
   settings = check(await client.from('conference_settings')
-    .select('submissions_open,submission_deadline,reviews_open,review_deadline,final_uploads_open,final_deadline,notice')
+    .select('submissions_open,submission_deadline,revision_deadline,reviews_open,review_deadline,re_review_deadline,final_uploads_open,final_deadline,notice')
     .eq('edition_year', edition.year).single());
   submissionsOpen = settings.submissions_open && beforeDeadline(settings.submission_deadline);
-  reviewsOpen = settings.reviews_open && beforeDeadline(settings.review_deadline);
   finalUploadsOpen = settings.final_uploads_open && beforeDeadline(settings.final_deadline);
+  revisionsOpen = beforeDeadline(settings.revision_deadline);
   const publicNotice = settings.notice?.trim() || (submissionsOpen ? '투고 접수 중입니다.' : '투고 접수 준비 중입니다.');
   $('#notice').textContent = settings.submissions_open && !submissionsOpen
     ? `투고 접수 기간이 종료되었습니다. ${publicNotice}`
     : publicNotice;
+  $('#submission-pilot-status').textContent = `원고 접수가 ${submissionsOpen ? '열려 있습니다.' : '닫혀 있습니다.'}`;
   $('#phase-overview').innerHTML = phaseCard('원고 접수', settings.submissions_open, settings.submission_deadline)
+    + phaseCard('수정본 재제출', true, settings.revision_deadline)
     + phaseCard('심사 입력', settings.reviews_open, settings.review_deadline)
+    + (settings.re_review_deadline ? phaseCard('재심사 (수정본)', settings.reviews_open, settings.re_review_deadline) : '')
     + phaseCard('최종본 제출', settings.final_uploads_open, settings.final_deadline);
   $('#new-paper').disabled = !submissionsOpen;
-  $('#phase-submissions').checked = settings.submissions_open;
-  $('#phase-reviews').checked = settings.reviews_open;
-  $('#phase-final').checked = settings.final_uploads_open;
-  $('#phase-submission-deadline').value = kstInputValue(settings.submission_deadline);
-  $('#phase-review-deadline').value = kstInputValue(settings.review_deadline);
-  $('#phase-final-deadline').value = kstInputValue(settings.final_deadline);
-  $('#phase-notice').value = settings.notice || '';
+  if (user && profile) renderWorkspaceOverview();
 }
 
 async function loadAuthAvailability(config) {
-  let settings = {};
+  let authSettings = {};
   try {
     const response = await fetch(`${config.url}/auth/v1/settings`, {
-      headers: { apikey: config.publishableKey }, cache: 'no-store',
+      headers: { apikey: config.publishableKey },
     });
-    if (response.ok) settings = await response.json();
+    if (response.ok) authSettings = await response.json();
   } catch { /* Leave providers disabled; the rest of the portal can still load. */ }
-  const googleReady = settings.external?.google === true;
+  const googleReady = authSettings.external?.google === true;
   const naverReady = config.naverEnabled === true;
   $('[data-login="google"]').disabled = !googleReady;
   $('[data-login="custom:naver"]').disabled = !naverReady;
@@ -151,8 +180,22 @@ async function loadAuthAvailability(config) {
     : '소셜 로그인은 연동 준비 중입니다. 이메일로 가입하거나 로그인할 수 있습니다.';
 }
 
-async function loadWorkspace() {
+let workspaceReady = false;
+let workspaceGeneration = 0;
+let workspaceLoad = null;
+function loadWorkspace() {
+  if (!workspaceLoad) {
+    const pending = refreshWorkspace(workspaceGeneration).finally(() => {
+      if (workspaceLoad === pending) workspaceLoad = null;
+    });
+    workspaceLoad = pending;
+  }
+  return workspaceLoad;
+}
+
+async function refreshWorkspace(generation) {
   const sessionResult = await client.auth.getSession();
+  if (generation !== workspaceGeneration) return;
   let session = sessionResult.data?.session;
   if (sessionResult.error) {
     if (!/Auth session missing/i.test(sessionResult.error.message)) throw sessionResult.error;
@@ -163,6 +206,7 @@ async function loadWorkspace() {
   let current = null;
   if (session) {
     const result = await client.auth.getUser();
+    if (generation !== workspaceGeneration) return;
     if (result.error) {
       if (!/Auth session missing/i.test(result.error.message)) throw result.error;
       await client.auth.signOut({ scope: 'local' });
@@ -170,17 +214,25 @@ async function loadWorkspace() {
     } else current = result.data.user;
   }
   user = current;
+  $('.portal-main').classList.toggle('has-workspace', Boolean(user) && !isRecovery);
   $('#recovery-panel').hidden = !isRecovery;
   $('#auth-panel').hidden = Boolean(user) || isRecovery;
-  $('#workspace').hidden = !user || isRecovery;
-  if (!user || isRecovery) return;
-  const [profileResult, roleResult] = await Promise.all([
+  if (!user || isRecovery) {
+    $('#workspace').hidden = true;
+    $('#submission-operations-link').hidden = true;
+    return;
+  }
+  // 프로필(profiles)과 운영진 권한(staff_roles)을 병렬(Promise.all)로 동시에 조회하여 대기 시간 단축
+  const [profileResult, roleResult, committeeResult] = await Promise.all([
     client.from('profiles').select('*').eq('user_id', user.id).single(),
-    client.from('staff_roles').select('role').eq('user_id', user.id).maybeSingle(),
+    client.from('staff_roles').select('role,is_super_admin').eq('user_id', user.id).maybeSingle(),
+    client.from('review_committee').select('committee_role,active,edition_year').eq('user_id', user.id),
   ]);
+  if (generation !== workspaceGeneration) return;
   profile = check(profileResult);
   const role = check(roleResult);
   isChair = role?.role === 'chair';
+  $('#submission-operations-link').hidden = !isChair;
   $('#welcome').textContent = `${profile.full_name || '회원'}님의 작업 공간`;
   $('#account-email').textContent = profile.email || user.email || '이메일 정보 없음';
   $('#profile-name').value = profile.full_name || '';
@@ -190,52 +242,174 @@ async function loadWorkspace() {
   $('#profile-orcid').value = profile.orcid || '';
   $('#profile-email').value = profile.email || user.email || '';
   $('#profile-listing-consent').checked = Boolean(profile.committee_listing_consent);
+  const normalizedExpertise = (profile.expertise_tracks || []).map((track) => LEGACY_TRACK_MAP[track] || track);
   document.querySelectorAll('[name="expertise-track"]').forEach((input) => {
-    input.checked = (profile.expertise_tracks || []).includes(input.value);
+    input.checked = normalizedExpertise.includes(input.value);
   });
-  $('[data-tab="chair"]').hidden = !isChair;
-  await Promise.all([loadMyPapers(), loadReviews(), isChair ? loadChairPapers() : Promise.resolve()]);
+  $('#submission-chair-links').hidden = !isChair && !check(committeeResult).some(c=>c.active&&c.committee_role==='associate_editor'&&c.edition_year===edition.year);
+  if (Object.hasOwn(RETURN_DESTINATIONS, returnTo) && !isRecovery) {
+    try { sessionStorage.removeItem('co_rnbd_return_to'); } catch {}
+    location.replace(RETURN_DESTINATIONS[returnTo]);
+    return;
+  }
+  await Promise.all([loadMyPapers(), loadReviews()]);
+  // Do not accept input until the initial profile response has populated fields.
+  // A late load must also never reopen the workspace after signout/account change.
+  if (generation === workspaceGeneration && user?.id === current.id) {
+    $('#workspace').hidden = false;
+  }
 }
 
 function paperCard(paper, action, label) {
-  const submitted = paper.submitted_at ? new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium' }).format(new Date(paper.submitted_at)) : '아직 제출하지 않음';
-  const detail = paper.status === 'declined' ? '원고 열람 권한이 종료됐습니다.' : `${TRACKS[paper.track] || '분야 미지정'} · ${submitted}`;
-  return `<article class="paper-card"><div class="paper-card-top"><span class="status status-${esc(paper.status)}">${STATUSES[paper.status] || esc(paper.status)}</span><span class="paper-id">${esc(paper.id.slice(0, 8).toUpperCase())}</span></div><h3>${esc(paper.title)}</h3><p>${esc(detail)}</p><button type="button" class="card-action" data-action="${action}" data-id="${esc(paper.id)}">${label} <span aria-hidden="true">↗</span></button></article>`;
+  const submitted = paper.submitted_at ? kstMediumDateFormatter.format(new Date(paper.submitted_at)) : '아직 제출하지 않음';
+  const sessionLabel = paper.assigned_session
+    ? ` · ${SESSIONS[paper.assigned_session] || paper.assigned_session}`
+    : paper.final_presentation
+      ? ` · ${PRESENTATIONS[paper.final_presentation] || paper.final_presentation} 확정`
+      : '';
+  const detail = paper.status === 'declined' ? '원고 열람 권한이 종료됐습니다.' : `${TRACKS[paper.track] || '분야 미지정'} · ${submitted}${sessionLabel}`;
+  const review = action === 'review' ? reviewRows.find(r => r.paper_id === paper.id) : null;
+  const step = ({draft:0,submitted:1,under_review:2,revision:3,accepted:3,rejected:3})[paper.status] ?? 0;
+  const next = review ? `내 심사 · ${REVIEW_STATES[review.review_state] || '확인 필요'}` : ({draft:submissionsOpen?'PDF와 저자 정보를 확인하고 제출해 주세요.':'초안을 보관하고 투고 접수 기간을 확인해 주세요.',submitted:'접수가 완료되었습니다. 심사 배정을 기다려 주세요.',under_review:'심사가 진행 중입니다. 판정이 공개되면 알려드립니다.',revision:revisionsOpen?'같은 원고에 새 PDF를 올려 수정본을 제출해 주세요.':'수정본 재제출 기한이 지났습니다. 위원장에게 문의해 주세요.',accepted:finalUploadsOpen?'채택되었습니다. 최종본 제출 상태를 확인해 주세요.':'채택되었습니다. 최종본 제출 일정은 포털에서 확인해 주세요.',rejected:'공개된 판정 사유와 심사의견을 확인해 주세요.',withdrawn:'투고를 철회했습니다.'})[paper.status] || '';
+  const journey = review ? `<span class="review-state-tag">${esc(REVIEW_STATES[review.review_state] || '')}</span>` : `<ol class="paper-steps" role="list" aria-label="원고 진행 단계">${['작성','접수','심사','판정'].map((text,index) => `<li class="${index < step ? 'done' : index === step ? 'current' : ''}"${index === step ? ' aria-current="step"' : ''}>${text}</li>`).join('')}</ol>`;
+  return `<article class="paper-card"><div class="paper-card-top"><span class="status status-${esc(paper.status)}">${STATUSES[paper.status] || esc(paper.status)}</span><span class="paper-id">${esc(paper.id.slice(0, 8).toUpperCase())}</span></div><h3>${esc(paper.title)}</h3><p>${esc(detail)}</p>${journey}<p class="paper-next">${esc(next)}</p><button type="button" class="card-action" data-action="${action}" data-id="${esc(paper.id)}" aria-label="${esc(label + ' · ' + paper.title)}">${label} <span aria-hidden="true">↗</span></button></article>`;
+}
+
+const pendingReview = r => ['assigned','draft'].includes(r.review_state) && ['submitted','under_review'].includes(r.papers?.status);
+function goToList(name, filter = 'all') {
+  $(`#${name}-search`).value = '';
+  $(`#${name}-filter`).value = filter;
+  showTab(name);
+  renderPaperLists(name);
+  $(`#${name}-search`).focus();
+}
+function renderWorkspaceOverview() {
+  const revisions = myPapers.filter(p => p.status === 'revision');
+  const drafts = myPapers.filter(p => p.status === 'draft');
+  const pending = reviewRows.filter(pendingReview);
+  $('#workspace-metrics').innerHTML = [['author','all','내 원고',myPapers.length],['author','revision','수정 요청',revisions.length],['reviewer','pending','남은 심사',pending.length]].map(([name,filter,label,count]) => `<button type="button" data-workspace-list="${name}" data-workspace-filter="${filter}"${name === 'reviewer' && !reviewRows.length ? ' disabled' : ''}><span>${label}</span><strong>${count}<small>편</small></strong><span class="metric-arrow" aria-hidden="true">↗</span></button>`).join('');
+  let text, label;
+  if (!hasCompleteProfile() || (pending.length && !(profile.expertise_tracks || []).length)) {
+    text = '제출 전에 이름·소속기관을 저장해 주세요. 심사위원은 전문 분야도 필요합니다.';
+    label = '내 정보 완성하기'; nextWorkspaceAction = () => {showTab('profile'); $('#profile-name').focus();};
+  } else if (revisions.length) {
+    text = revisionsOpen ? `수정 요청 원고 ${revisions.length}편이 있습니다. 판정 사유를 확인하고 같은 원고에 수정본을 제출하세요${settings.revision_deadline ? ` (마감 ${formatKst(settings.revision_deadline)})` : ''}.` : `수정 요청 원고 ${revisions.length}편이 있습니다. 수정본 재제출 기한이 지났습니다. 위원장에게 문의하세요.`;
+    label = '수정 요청 확인'; nextWorkspaceAction = () => goToList('author','revision');
+  } else if (pending.length) {
+    text = pending.some(reviewOpenFor) ? `작성할 심사가 ${pending.length}편 있습니다. 이해관계를 확인하고 의견을 제출하세요.` : `작성 대기 심사는 ${pending.length}편이며 현재 심사 입력이 닫혀 있습니다. 운영 단계를 확인하세요.`;
+    label = '심사 배정 확인'; nextWorkspaceAction = () => goToList('reviewer','pending');
+  } else if (drafts.length) {
+    text = `작성 중인 초안이 ${drafts.length}편 있습니다. 초안 저장만으로는 접수되지 않습니다.`;
+    label = '작성 중 원고 보기'; nextWorkspaceAction = () => goToList('author','draft');
+  } else {
+    text = myPapers.length ? '등록된 원고의 접수·심사·판정 상태를 확인하세요. 새 알림은 인증 이메일로도 안내합니다.' : '새 원고를 작성하거나 배정된 업무를 확인하세요. 현재 접수 단계는 위 운영 현황에서 볼 수 있습니다.';
+    label = '내 원고 확인'; nextWorkspaceAction = () => goToList('author');
+  }
+  $('#workspace-next-text').textContent = text;
+  $('#workspace-next-action').textContent = label;
+}
+function renderPaperLists(name) {
+  const search = $(`#${name}-search`).value.trim().toLocaleLowerCase();
+  const filter = $(`#${name}-filter`).value;
+  const all = name === 'author' ? myPapers : reviewRows;
+  const rows = all.filter(row => {
+    const paper = name === 'author' ? row : row.papers;
+    const statusMatches = filter === 'all' || (name === 'author' ? row.status === filter : filter === 'pending' ? pendingReview(row) : row.review_state === filter);
+    return statusMatches && (!search || `${paper?.id || row.paper_id} ${paper?.title || ''}`.toLocaleLowerCase().includes(search));
+  });
+  const target = name === 'author' ? $('#my-papers') : $('#review-list');
+  target.innerHTML = rows.map(row => {
+    if (name === 'author') return paperCard(row,'author',['draft','revision'].includes(row.status) ? '수정·제출' : '원고 보기');
+    const paper = row.papers || {id:row.paper_id,title:'배정 거절 내역',status:'declined'};
+    const closed = !reviewOpenFor(row) || !['submitted','under_review'].includes(paper.status);
+    return paperCard(paper,'review',row.review_state === 'declined' ? '거절 사유 확인' : closed ? '심사 기록 확인' : row.review_state === 'submitted' ? '심사 확인·수정' : '심사 입력');
+  }).join('') || `<p class="empty-state">${all.length ? '검색 조건에 맞는 원고가 없습니다. 검색어 또는 필터를 변경해 주세요.' : name === 'author' ? '아직 작성한 원고가 없습니다. 접수가 시작되면 새 원고를 작성할 수 있습니다.' : '배정된 원고가 없습니다.'}</p>`;
+  clearTimeout(countTimers[name]);
+  countTimers[name] = setTimeout(() => {$(`#${name}-count`).textContent = `${rows.length}편 표시 · 전체 ${all.length}편`;},180);
 }
 
 async function loadMyPapers() {
-  myPapers = check(await client.from('papers').select('*')
-    .eq('edition_year', edition.year).eq('owner_id', user.id).order('created_at', { ascending: false }));
-  $('#my-papers').innerHTML = myPapers.length ? myPapers.map((paper) => paperCard(paper, 'author', paper.status === 'draft' || paper.status === 'revision' ? '수정·제출' : '원고 보기')).join('') : '<p class="empty-state">아직 작성한 원고가 없습니다. 접수가 시작되면 새 원고를 작성할 수 있습니다.</p>';
+  const generation = workspaceGeneration, userId = user.id;
+  const result = await client.from('papers').select('*')
+    .eq('edition_year', edition.year).eq('owner_id', userId).order('created_at', { ascending: false });
+  if (generation !== workspaceGeneration || user?.id !== userId) return;
+  myPapers = check(result);
+  renderPaperLists('author'); renderWorkspaceOverview();
 }
 
 async function loadReviews() {
-  reviewRows = check(await client.from('reviews').select('id,paper_id,review_state,recommendation,comments,conflict_confirmed,submitted_at,decline_reason,papers(id,title,abstract,track,status,owner_id,submitted_at,edition_year)').eq('reviewer_id', user.id).order('assigned_at', { ascending: false }))
-    .filter((review) => review.papers?.edition_year === edition.year);
+  const generation = workspaceGeneration, userId = user.id;
+  const result = await client.from('reviews').select('id,paper_id,review_state,recommendation,comments,conflict_confirmed,submitted_at,decline_reason,manuscript_submitted_at,revoked_at,papers(id,title,abstract,track,status,owner_id,submitted_at,edition_year)').eq('reviewer_id', userId).order('assigned_at', { ascending: false });
+  if (generation !== workspaceGeneration || user?.id !== userId) return;
+  const reReview = await client.rpc('my_re_review_ids');
+  if (generation !== workspaceGeneration || user?.id !== userId) return;
+  reReviewIds = new Set((check(reReview) || []).map((row) => typeof row === 'string' ? row : row.my_re_review_ids));
+  reviewRows = check(result)
+    .filter((review) => review.papers?.edition_year === edition.year && !review.revoked_at
+      && new Date(review.manuscript_submitted_at).getTime() === new Date(review.papers.submitted_at).getTime());
   $('[data-tab="reviewer"]').hidden = reviewRows.length === 0;
-  $('#review-list').innerHTML = reviewRows.length ? reviewRows.map((review) => {
-    const paper = review.papers || { id: review.paper_id, title: '배정 거절 내역', status: 'declined' };
-    const label = review.review_state === 'declined' ? '거절 사유 확인' : review.review_state === 'submitted' ? '심사 확인·수정' : '심사 입력';
-    return paperCard(paper, 'review', label);
-  }).join('') : '<p class="empty-state">배정된 원고가 없습니다.</p>';
+  if (!reviewRows.length && $('[data-tab="reviewer"]').getAttribute('aria-selected') === 'true') showTab('author');
+  renderPaperLists('reviewer'); renderWorkspaceOverview();
 }
 
-async function loadChairPapers() {
-  chairPapers = check(await client.from('papers').select('*').eq('edition_year', edition.year)
-    .neq('status', 'draft').order('created_at', { ascending: false }));
-  const count = (statuses) => chairPapers.filter((paper) => statuses.includes(paper.status)).length;
-  $('#chair-summary').innerHTML = `<span>전체 ${chairPapers.length}</span><span>심사 대기·진행 ${count(['submitted', 'under_review'])}</span><span>수정 요청 ${count(['revision'])}</span><span>채택 ${count(['accepted'])}</span><span>반려 ${count(['rejected'])}</span>`;
-  $('#chair-list').innerHTML = chairPapers.length ? chairPapers.map((paper) => paperCard(paper, 'chair', '배정·판정')).join('') : '<p class="empty-state">접수된 원고가 없습니다.</p>';
+$('#workspace-next-action').addEventListener('click', () => nextWorkspaceAction());
+$('#workspace-metrics').addEventListener('click', event => {
+  const button = event.target.closest('[data-workspace-list]');
+  if (button) goToList(button.dataset.workspaceList,button.dataset.workspaceFilter);
+});
+for (const name of ['author','reviewer']) {
+  $(`#${name}-search`).addEventListener('input', () => renderPaperLists(name));
+  $(`#${name}-filter`).addEventListener('change', () => renderPaperLists(name));
+  $(`[data-reset-list="${name}"]`).addEventListener('click', () => goToList(name));
 }
+$('.portal-tabs').addEventListener('keydown', event => {
+  if (!event.target.matches('[data-tab]')) return;
+  const tabs = [...document.querySelectorAll('[data-tab]')].filter(tab => !tab.hidden);
+  const index = tabs.indexOf(event.target);
+  const next = event.key === 'ArrowRight' ? (index+1)%tabs.length : event.key === 'ArrowLeft' ? (index-1+tabs.length)%tabs.length : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length-1 : -1;
+  if (next < 0) return;
+  event.preventDefault(); showTab(tabs[next].dataset.tab); tabs[next].focus();
+});
 
-function parseAuthors(text) {
-  const authors = text.split('\n').map((line) => line.trim()).filter(Boolean).map((line, index) => {
-    const [full_name, affiliation, email = ''] = line.split('|').map((part) => part.trim());
-    if (!full_name || !affiliation || (email && !EMAIL_RE.test(email))) throw new Error(`${index + 1}번째 저자 정보를 확인해 주세요.`);
-    return { sort_order: index + 1, full_name, affiliation, email: email || null };
+function renumberAuthorRows() {
+  const rows = [...$('#paper-authors').querySelectorAll('tr')];
+  rows.forEach((row, index) => {
+    row.querySelectorAll('input').forEach((input) => {
+      input.setAttribute('aria-label', `${index + 1}번째 저자 ${input.dataset.authorFieldLabel}`);
+    });
+    const remove = row.querySelector('[data-remove-author]');
+    remove.setAttribute('aria-label', `${index + 1}번째 저자 삭제`);
+    remove.disabled = rows.length === 1 || row.querySelector('input').disabled;
   });
-  if (authors.length < 1 || authors.length > 30) throw new Error('저자는 1~30명 입력해 주세요.');
-  return authors;
+  $('#add-author').disabled = rows.length >= 30 || rows[0]?.querySelector('input').disabled;
+}
+
+function addAuthorRow(author = {}) {
+  const row = document.createElement('tr');
+  row.innerHTML = '<td data-label="이름"><input data-author="full_name" data-author-field-label="이름" maxlength="120" required placeholder="이름" /></td><td data-label="소속"><input data-author="affiliation" data-author-field-label="소속" maxlength="200" required placeholder="소속 기관" /></td><td data-label="이메일"><input data-author="email" data-author-field-label="이메일" type="email" maxlength="254" required placeholder="name@example.com" /></td><td data-label="비고"><input data-author="note" data-author-field-label="비고" maxlength="200" placeholder="선택" /></td><td data-label="관리"><button type="button" data-remove-author class="text-action">삭제</button></td>';
+  row.querySelectorAll('[data-author]').forEach((input) => { input.value = author[input.dataset.author] || ''; });
+  $('#paper-authors').append(row);
+  renumberAuthorRows();
+  return row;
+}
+
+function setAuthorRows(authors) {
+  $('#paper-authors').replaceChildren();
+  (authors.length ? authors : [{}]).forEach(addAuthorRow);
+}
+
+function readAuthors() {
+  const rows = [...$('#paper-authors').querySelectorAll('tr')];
+  if (rows.length < 1 || rows.length > 30) throw new Error('저자는 1~30명 입력해 주세요.');
+  return rows.map((row, index) => {
+    const value = (key) => row.querySelector(`[data-author="${key}"]`).value.trim();
+    const full_name = value('full_name');
+    const affiliation = value('affiliation');
+    const email = value('email');
+    const note = value('note');
+    if (!full_name || !affiliation || !EMAIL_RE.test(email)) throw new Error(`${index + 1}번째 저자의 이름·소속·이메일을 확인해 주세요.`);
+    return { sort_order: index + 1, full_name, affiliation, email, note: note || null };
+  });
 }
 
 async function uploadFile(paperId, file, fileStage = 'submission') {
@@ -254,40 +428,69 @@ async function uploadFile(paperId, file, fileStage = 'submission') {
 }
 
 async function openAuthor(paperId = '') {
+  $('#author-review-feedback').hidden = true;
+  $('#author-review-feedback').replaceChildren();
   $('#paper-form').reset();
+  setAuthorRows([]);
   $('#final-form').reset();
   $('#final-form').hidden = true;
+  $('#withdraw-panel').hidden = true;
+  $('#withdraw-reason').value = '';
   $('#paper-id').value = paperId;
   $('#paper-form-title').textContent = paperId ? '원고 수정·확인' : '새 원고';
-  $('#paper-form').hidden = false;
+  $('#paper-form').hidden = true;
   $('#paper-receipt').hidden = true;
   const editable = !paperId || ['draft', 'revision'].includes(myPapers.find((paper) => paper.id === paperId)?.status);
   if (paperId) {
     const paper = myPapers.find((item) => item.id === paperId);
     $('#paper-title').value = paper.title;
     $('#paper-abstract').value = paper.abstract;
-    $('#paper-track').value = paper.track;
+    $('#paper-track').value = ACTIVE_TRACK_KEYS.includes(paper.track) ? paper.track : (LEGACY_TRACK_MAP[paper.track] || 'master_eng');
     $('#paper-type').value = paper.paper_type;
     $('#paper-presentation').value = paper.preferred_presentation;
     $('#paper-keywords').value = (paper.keywords || []).join(', ');
     $('#paper-contact-name').value = paper.contact_name || '';
     $('#paper-contact-email').value = paper.contact_email || '';
-    const authors = check(await client.from('paper_authors').select('*').eq('paper_id', paperId).order('sort_order'));
-    $('#paper-authors').value = authors.map((author) => [author.full_name, author.affiliation, author.email].filter(Boolean).join(' | ')).join('\n');
-    const files = check(await client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }));
+    // 저자 목록(paper_authors)과 첨부 파일(paper_files)을 병렬(Promise.all)로 동시에 조회
+    const [authorsResult, filesResult, finalCheckResult, consentResult] = await Promise.all([
+      client.from('paper_authors').select('*').eq('paper_id', paperId).order('sort_order'),
+      client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }),
+      client.from('paper_final_checks').select('file_id,checked_at').eq('paper_id', paperId).maybeSingle(),
+      client.from('paper_publication_consents').select('consented,coauthors_confirmed,decided_at').eq('paper_id', paperId).maybeSingle(),
+    ]);
+    const authors = check(authorsResult);
+    const files = check(filesResult);
+    setAuthorRows(authors);
     showFiles(files, $('#paper-form'), 'paper-file-links');
     if (paper.submitted_at) {
-      const submitted = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(paper.submitted_at));
-      $('#paper-receipt').textContent = `접수번호 ${paper.id.slice(0, 8).toUpperCase()} · 최근 제출 ${submitted} · 현재 상태 ${STATUSES[paper.status] || paper.status}. 이 화면에서 접수 상태와 PDF 버전을 다시 확인할 수 있습니다.`;
+      const submitted = kstMediumDateTimeFormatter.format(new Date(paper.submitted_at));
+      const assignedText = paper.assigned_session
+        ? ` · 배정 세션 ${SESSIONS[paper.assigned_session] || paper.assigned_session}`
+        : paper.final_presentation
+          ? ` · 확정 발표 형태 ${PRESENTATIONS[paper.final_presentation] || paper.final_presentation}`
+          : '';
+      $('#paper-receipt').textContent = `접수번호 ${paper.id.slice(0, 8).toUpperCase()} · 최근 제출 ${submitted} · 현재 상태 ${STATUSES[paper.status] || paper.status}${assignedText}. 이 화면에서 접수 상태와 PDF 버전을 다시 확인할 수 있습니다.`;
       $('#paper-receipt').hidden = false;
     }
-    if (paper.decision_note) message(`위원장 메모: ${paper.decision_note}`);
+    $('#withdraw-panel').hidden = !['submitted', 'under_review', 'revision', 'accepted'].includes(paper.status);
+    if (paper.status === 'withdrawn') message(`투고를 철회했습니다 (${kstMediumDateTimeFormatter.format(new Date(paper.withdrawn_at))})${paper.withdrawal_reason ? ' · 사유: ' + paper.withdrawal_reason : ''}.`);
+    const feedback=check(await client.rpc('author_review_feedback',{p_id:paperId}));
+    const feedbackPanel=$('#author-review-feedback');
+    feedbackPanel.hidden=!feedback.length;
+    feedbackPanel.innerHTML='<h3>공개된 심사의견</h3>'+feedback.map((r,i)=>`<article><h4>심사 의견 ${i+1} · ${{accept:'Accept',revise:'Accept after revision',reject:'Reject'}[r.recommendation]||''}</h4><p class="chair-prose">${esc(r.comments)}</p></article>`).join('');
+    if (paper.decision_note) message(`위원장 판정: ${paper.decision_note}${paper.decision_exception_reason ? ' · 예외 사유: ' + paper.decision_exception_reason : ''}${paper.decision_published_at ? ' · 공개 ' + kstMediumDateTimeFormatter.format(new Date(paper.decision_published_at)) : ''}`);
     if (paper.status === 'accepted') {
       $('#final-paper-id').value = paperId;
       $('#final-status').textContent = finalUploadsOpen
         ? `최종본을 업로드할 수 있습니다. ${formatKst(settings.final_deadline)}.`
         : `최종본 제출 단계가 닫혀 있습니다. ${formatKst(settings.final_deadline)}. 위원장 안내를 확인해 주세요.`;
+      const finalCheck = check(finalCheckResult);
+      const latestFinal = files.find((file) => file.file_stage === 'final');
+      if (latestFinal) $('#final-status').textContent += finalCheck?.file_id === latestFinal.id
+        ? ` 최종본 v${latestFinal.version} 위원장 확인 완료 (${kstMediumDateTimeFormatter.format(new Date(finalCheck.checked_at))}).`
+        : ` 최종본 v${latestFinal.version} 위원장 확인 대기.`;
       $('#final-submit').disabled = !finalUploadsOpen;
+      renderConsent(check(consentResult));
       $('#final-form').hidden = false;
     }
   } else {
@@ -295,10 +498,13 @@ async function openAuthor(paperId = '') {
     $('#paper-contact-email').value = profile.email || user.email || '';
     document.getElementById('paper-file-links')?.remove();
   }
-  $('#paper-form').querySelectorAll('input:not([type="hidden"]),select,textarea,button[type="submit"]').forEach((field) => { field.disabled = !editable; });
-  if (editable && !submissionsOpen && myPapers.find((paper) => paper.id === paperId)?.status !== 'revision') {
+  $('#paper-form').querySelectorAll('input:not([type="hidden"]),select,textarea,button[type="submit"],[data-remove-author],#add-author').forEach((field) => { field.disabled = !editable; });
+  renumberAuthorRows();
+  const isRevision = myPapers.find((paper) => paper.id === paperId)?.status === 'revision';
+  if (editable && (isRevision ? !revisionsOpen : !submissionsOpen)) {
     $('#paper-form').querySelector('[data-save="submitted"]').disabled = true;
   }
+  $('#paper-form').hidden = false;
   $('#paper-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -317,7 +523,7 @@ async function savePaper(event) {
   const submit = event.submitter?.dataset.save === 'submitted';
   const paperId = $('#paper-id').value;
   try {
-    const authors = parseAuthors($('#paper-authors').value);
+    const authors = readAuthors();
     const keywords = parseKeywords($('#paper-keywords').value, submit);
     const input = {
       title: $('#paper-title').value.trim(), abstract: $('#paper-abstract').value.trim(),
@@ -332,15 +538,18 @@ async function savePaper(event) {
     if (submit && (!input.contact_name || !input.contact_email)) throw new Error('원고 제출에는 연락 담당자 이름과 이메일이 필요합니다.');
     let id = paperId;
     if (id) {
-      check(await client.from('papers').update(input).eq('id', id));
-      check(await client.from('paper_authors').delete().eq('paper_id', id));
+      check(await client.from('papers').update(input).eq('id', id).select('id').single());
     } else {
       id = check(await client.from('papers').insert({ ...input, owner_id: user.id, edition_year: edition.year }).select('id').single()).id;
+      $('#paper-id').value = id;
     }
-    check(await client.from('paper_authors').insert(authors.map((author) => ({ ...author, paper_id: id }))));
+    // Keep existing authors if validation or insertion fails; RLS is enforced by the RPC.
+    check(await client.rpc('replace_paper_authors', { p_paper_id: id, p_authors: authors }));
     await uploadFile(id, $('#paper-file').files[0]);
     if (submit) check(await client.from('papers').update({ status: 'submitted' }).eq('id', id));
     $('#paper-form').hidden = true;
+    $('#author-review-feedback').hidden = true;
+    $('#author-review-feedback').replaceChildren();
     await loadMyPapers();
     message(submit ? `원고가 제출되었습니다. 접수번호 ${id.slice(0, 8).toUpperCase()}` : '초안을 저장했습니다.');
   } catch (error) { message(error.message || '저장 중 오류가 발생했습니다.', true); }
@@ -351,7 +560,7 @@ async function openReview(paperId) {
   if (!review) return;
   const declined = review.review_state === 'declined';
   const assigned = !declined && review.papers?.status === 'under_review';
-  const editable = assigned && reviewsOpen;
+  const editable = assigned && reviewOpenFor(review);
   $('#review-id').value = review.id;
   $('#review-title').textContent = review.papers?.title || '배정 거절 내역';
   $('#review-paper-summary').textContent = review.papers?.abstract || '거절한 원고는 더 이상 열람할 수 없습니다.';
@@ -364,7 +573,7 @@ async function openReview(paperId) {
   $('#review-state-notice').textContent = declined
     ? `배정 거절 사유: ${review.decline_reason}`
     : editable ? `현재 상태: ${REVIEW_STATES[review.review_state] || '심사 대기'}. 임시저장한 의견은 판정에 반영되지 않습니다.`
-      : assigned ? `심사 입력 단계가 닫혀 있습니다. ${formatKst(settings.review_deadline)}.`
+      : assigned ? `심사 입력 단계가 닫혀 있습니다. ${formatKst(reviewDeadlineFor(review))}.`
         : `현재 상태: ${REVIEW_STATES[review.review_state] || '심사 대기'}. 위원장 판정 후에는 수정할 수 없습니다.`;
   $('#review-form').querySelectorAll('#review-conflict,#review-recommendation,#review-comments,[data-review-action]').forEach((field) => { field.disabled = !editable; });
   $('[data-review-action="draft"]').disabled = !editable || review.review_state === 'submitted';
@@ -372,35 +581,19 @@ async function openReview(paperId) {
     $('#review-authors').hidden = true;
     document.getElementById('review-file-links')?.remove();
   } else {
-    const authors = check(await client.from('paper_authors').select('full_name,affiliation').eq('paper_id', paperId).order('sort_order'));
+    // 심사 대상 원고의 저자 목록과 첨부 PDF 파일을 병렬(Promise.all)로 동시에 조회
+    const [authorsResult, filesResult] = await Promise.all([
+      client.from('paper_authors').select('full_name,affiliation').eq('paper_id', paperId).order('sort_order'),
+      client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }),
+    ]);
+    const authors = check(authorsResult);
+    const files = check(filesResult);
     $('#review-authors').textContent = `저자·소속 확인: ${authors.map((author) => `${author.full_name} (${author.affiliation})`).join(', ') || '저자 정보 없음'}`;
     $('#review-authors').hidden = false;
-    const files = check(await client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }));
     showFiles(files, $('#review-form'), 'review-file-links');
   }
   $('#review-form').hidden = false;
   $('#review-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-async function openChair(paperId) {
-  const paper = chairPapers.find((row) => row.id === paperId);
-  $('#chair-paper-id').value = paperId;
-  $('#chair-title').textContent = paper.title;
-  const authors = check(await client.from('paper_authors').select('full_name,affiliation,email').eq('paper_id', paperId).order('sort_order'));
-  $('#chair-paper-summary').innerHTML = `<p>${esc(paper.abstract)}</p><p class="field-help">저자: ${esc(authors.map((author) => `${author.full_name} (${author.affiliation})`).join(', ') || '미입력')}<br>키워드: ${esc((paper.keywords || []).join(', ') || '미입력')}<br>연락 담당자: ${esc(paper.contact_name || '미입력')} · ${esc(paper.contact_email || '미입력')}<br>접수번호 ${esc(paperId.slice(0, 8).toUpperCase())}</p>`;
-  $('#chair-status').value = paper.status;
-  $('#chair-presentation').value = paper.final_presentation || '';
-  $('#chair-note').value = paper.decision_note || '';
-  selectedChairReviews = check(await client.from('reviews').select('id,reviewer_id,review_state,recommendation,comments,decline_reason,submitted_at,profiles(full_name,email,expertise_tracks)').eq('paper_id', paperId));
-  $('#assigned-reviewers').innerHTML = selectedChairReviews.length ? selectedChairReviews.map((review) => {
-    const detail = review.review_state === 'declined' ? review.decline_reason : review.review_state === 'submitted' ? review.comments : '';
-    const expertise = (review.profiles?.expertise_tracks || []).map((track) => TRACKS[track] || track).join(', ');
-    return `<p>${esc(review.profiles?.full_name || review.profiles?.email || '심사위원')} · ${esc(REVIEW_STATES[review.review_state] || '심사 대기')}${review.review_state === 'submitted' ? ` · ${esc(RECOMMENDATIONS[review.recommendation])}` : ''}<br><small>전문 분야: ${esc(expertise || '미입력')}</small>${detail ? `<br><small>${esc(detail)}</small>` : ''}</p>`;
-  }).join('') : '<p>아직 배정된 심사위원이 없습니다. 2명 배정을 권장합니다.</p>';
-  const files = check(await client.from('paper_files').select('*').eq('paper_id', paperId).order('version', { ascending: false }));
-  showFiles(files, $('#chair-form'), 'chair-file-links');
-  $('#chair-form').hidden = false;
-  $('#chair-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 document.addEventListener('click', async (event) => {
@@ -416,7 +609,6 @@ document.addEventListener('click', async (event) => {
     try {
       if (action.dataset.action === 'author') await openAuthor(action.dataset.id);
       if (action.dataset.action === 'review') await openReview(action.dataset.id);
-      if (action.dataset.action === 'chair') await openChair(action.dataset.id);
     } catch (error) { message(error.message, true); }
   }
   const file = event.target.closest('[data-file]');
@@ -432,7 +624,39 @@ document.addEventListener('click', async (event) => {
 });
 
 $('#new-paper').addEventListener('click', () => openAuthor());
-$('#cancel-paper').addEventListener('click', () => { $('#paper-form').hidden = true; $('#final-form').hidden = true; });
+$('#add-author').addEventListener('click', () => {
+  if ($('#paper-authors').rows.length >= 30) return;
+  addAuthorRow().querySelector('[data-author="full_name"]').focus();
+});
+$('#paper-authors').addEventListener('click', (event) => {
+  const remove = event.target.closest('[data-remove-author]');
+  if (!remove || $('#paper-authors').rows.length === 1) return;
+  remove.closest('tr').remove();
+  renumberAuthorRows();
+});
+$('#cancel-paper').addEventListener('click', () => {
+  $('#paper-form').hidden = true;
+  $('#author-review-feedback').hidden = true;
+  $('#author-review-feedback').replaceChildren();
+  $('#final-form').hidden = true;
+  $('#withdraw-panel').hidden = true;
+});
+$('#withdraw-paper').addEventListener('click', async () => {
+  const paperId = $('#paper-id').value;
+  const paper = myPapers.find((row) => row.id === paperId);
+  if (!paperId || !paper) return;
+  if (!window.confirm(`"${paper.title}" 투고를 철회할까요? 철회하면 심사가 중단되고 다시 제출할 수 없습니다.`)) return;
+  const button = $('#withdraw-paper');
+  button.disabled = true;
+  try {
+    check(await client.rpc('withdraw_paper', { p_paper_id: paperId, p_reason: $('#withdraw-reason').value.trim() }));
+    await loadMyPapers();
+    await openAuthor(paperId);
+    message('투고를 철회했습니다. 위원장과 심사위원 화면에도 철회로 표시됩니다.');
+  } catch (error) {
+    message(/session/i.test(error.message) ? '세션에 배정된 채택 원고입니다. 위원장에게 배정 해제를 요청한 뒤 철회해 주세요.' : (error.message || '투고를 철회하지 못했습니다.'), true);
+  } finally { button.disabled = false; }
+});
 $('#paper-form').addEventListener('submit', savePaper);
 $('#final-form').addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -446,30 +670,33 @@ $('#final-form').addEventListener('submit', async (event) => {
     message('최종 PDF를 업로드했습니다. 원고 화면에서 버전을 확인할 수 있습니다.');
   } catch (error) { message(error.message || '최종본을 업로드하지 못했습니다.', true); }
 });
-$('#cancel-review').addEventListener('click', () => { $('#review-form').hidden = true; });
-$('#cancel-chair').addEventListener('click', () => { $('#chair-form').hidden = true; });
-$('#refresh-chair').addEventListener('click', () => loadChairPapers().catch((error) => message(error.message, true)));
-$('#phase-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
+function renderConsent(row) {
+  document.querySelectorAll('[name="publication-consent"]').forEach((input) => { input.checked = row ? input.value === (row.consented ? 'yes' : 'no') : false; });
+  $('#consent-coauthors').checked = Boolean(row?.coauthors_confirmed);
+  $('#consent-status').textContent = row
+    ? `현재: ${row.consented ? '자료집 수록·공개 동의' : '수록·공개 비동의'} · ${kstMediumDateTimeFormatter.format(new Date(row.decided_at))} 저장`
+    : '아직 공개 여부를 선택하지 않았습니다. 선택하지 않은 원고는 자료집에 수록하지 않습니다.';
+}
+$('#consent-save').addEventListener('click', async () => {
+  const button = $('#consent-save');
+  button.disabled = true;
   try {
-    const submissionsRequested = $('#phase-submissions').checked;
-    const submissionDeadline = deadlineValue('#phase-submission-deadline');
-    const notice = $('#phase-notice').value.trim();
-    if (!notice || notice.length > 500) throw new Error('공개 투고 안내문을 1~500자로 입력해 주세요.');
-    check(await client.from('conference_settings').update({
-      submissions_open: submissionsRequested,
-      submission_deadline: submissionDeadline,
-      reviews_open: $('#phase-reviews').checked,
-      review_deadline: deadlineValue('#phase-review-deadline'),
-      final_uploads_open: $('#phase-final').checked,
-      final_deadline: deadlineValue('#phase-final-deadline'),
-      notice,
-    }).eq('edition_year', edition.year).select('edition_year').single());
-    await loadSettings();
-    message('접수·심사·최종본 운영 설정과 공개 안내문을 저장했습니다.');
-  } catch (error) { message(error.message, true); }
+    const paperId = $('#final-paper-id').value;
+    const choice = document.querySelector('[name="publication-consent"]:checked')?.value;
+    if (!choice) throw new Error('자료집 공개 여부를 선택해 주세요.');
+    const consented = choice === 'yes';
+    const coauthors = $('#consent-coauthors').checked;
+    if (consented && !coauthors) throw new Error('공개에 동의하려면 공동저자 전원의 동의를 받았는지 확인해 주세요.');
+    const row = check(await client.from('paper_publication_consents')
+      .upsert({ paper_id: paperId, consented, coauthors_confirmed: consented && coauthors }, { onConflict: 'paper_id' })
+      .select('consented,coauthors_confirmed,decided_at').single());
+    renderConsent(row);
+    message(consented ? '자료집 수록·공개 동의를 저장했습니다.' : '자료집 수록·공개 비동의를 저장했습니다.');
+  } catch (error) { message(error.message || '공개 여부를 저장하지 못했습니다.', true); }
+  finally { button.disabled = false; }
 });
-$('#sign-out').addEventListener('click', async () => { await client.auth.signOut(); user = null; $('#workspace').hidden = true; $('#auth-panel').hidden = false; showAuthMode('login'); showTab('author'); });
+$('#cancel-review').addEventListener('click', () => { $('#review-form').hidden = true; });
+$('#sign-out').addEventListener('click', async () => { await client.auth.signOut(); user = null; isChair = false; $('#submission-operations-link').hidden = true; $('#workspace').hidden = true; $('#auth-panel').hidden = false; showAuthMode('login'); showTab('author'); });
 
 document.querySelectorAll('[data-auth-mode]').forEach((button) => button.addEventListener('click', () => {
   $('#auth-password').value = '';
@@ -484,7 +711,13 @@ $('#email-auth-form').addEventListener('submit', async (event) => {
   const email = $('#auth-email').value.trim().toLowerCase();
   const password = $('#auth-password').value;
   try {
-    check(await client.auth.signInWithPassword({ email, password }));
+    const signedIn = check(await client.auth.signInWithPassword({ email, password }));
+    // Discard an anonymous/old-account load that was in flight during sign-in.
+    // Set the known identity before queued SIGNED_IN callbacks compare users.
+    workspaceGeneration++;
+    workspaceLoad = null;
+    user = signedIn.user;
+    $('#workspace').hidden = true;
     await loadWorkspace();
     message('로그인했습니다.');
   } catch (error) { message(error.message || '이메일 인증을 완료하지 못했습니다.', true); }
@@ -599,64 +832,38 @@ $('#decline-review').addEventListener('click', async () => {
   } catch (error) { message(error.message, true); }
 });
 
-$('#assign-reviewer').addEventListener('click', async () => {
-  try {
-    const email = $('#reviewer-email').value.trim();
-    if (!email) throw new Error('심사위원 이메일을 입력해 주세요.');
-    if (!EMAIL_RE.test(email)) throw new Error('심사위원 이메일 형식을 확인해 주세요.');
-    const reviewer = check(await client.from('profiles').select('user_id').eq('email', email).maybeSingle());
-    if (!reviewer) throw new Error('가입한 계정을 찾을 수 없습니다. 심사위원에게 먼저 로그인을 요청해 주세요.');
-    const paperId = $('#chair-paper-id').value;
-    check(await client.from('reviews').insert({ paper_id: paperId, reviewer_id: reviewer.user_id }));
-    check(await client.from('papers').update({ status: 'under_review' }).eq('id', paperId));
-    $('#reviewer-email').value = '';
-    await loadChairPapers();
-    await openChair(paperId);
-    message('심사위원을 배정했습니다.');
-  } catch (error) { message(error.message, true); }
-});
-
-$('#chair-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  try {
-    const status = $('#chair-status').value;
-    if (!status) throw new Error('판정을 선택해 주세요.');
-    const paperId = $('#chair-paper-id').value;
-    check(await client.from('papers').update({ status, decision_note: $('#chair-note').value.trim(), final_presentation: $('#chair-presentation').value || null, decided_at: ['accepted', 'rejected'].includes(status) ? new Date().toISOString() : null }).eq('id', paperId));
-    $('#chair-form').hidden = true;
-    await loadChairPapers();
-    message('원고 상태를 저장했습니다. 저자는 대시보드에서 결과를 확인할 수 있습니다.');
-  } catch (error) { message(error.message, true); }
-});
-
 async function start() {
   try {
-    const response = await fetch('/api/config');
-    if (!response.ok) throw new Error('Supabase 공개 설정이 연결되지 않았습니다. Vercel 환경변수를 확인해 주세요.');
-    const config = await response.json();
-    client = createClient(config.url, config.publishableKey);
+    const config = await conferenceConfig();
+    client = await conferenceClient(config);
     client.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
+        workspaceGeneration++;
+        workspaceLoad = null;
         isRecovery = true;
         $('#recovery-panel').hidden = false;
         $('#auth-panel').hidden = true;
         $('#workspace').hidden = true;
-      } else if (portalReady && !isRecovery && session?.user?.id !== user?.id) {
-        setTimeout(() => loadWorkspace().catch((error) => message(error.message, true)), 0);
+      } else if (workspaceReady && !isRecovery && event !== 'INITIAL_SESSION'
+        && event !== 'TOKEN_REFRESHED' && session?.user?.id !== user?.id) {
+        workspaceGeneration++;
+        workspaceLoad = null;
+        setTimeout(() => {
+          if (session?.user?.id !== user?.id) loadWorkspace().catch((error) => message(error.message, true));
+        }, 0);
       }
     });
     const [, editionResult] = await Promise.all([
       loadAuthAvailability(config),
-      client.from('conference_editions').select('year,title,status').eq('status', 'current').single(),
+      client.from('conference_editions').select('year,title,status,start_date,end_date,venue').eq('status', 'current').single(),
     ]);
     edition = check(editionResult);
+    renderConferenceContext(edition);
     document.title = `논문 투고·심사 | ${edition.title}`;
     $('#submission-edition-label').textContent = `CO-R&BD ${edition.year} / PAPER PORTAL`;
-    $('#submission-intro').textContent = `${edition.title}의 원고 제출, 심사와 결과 확인을 이 화면에서 진행합니다.`;
     $('#submission-footer-edition').textContent = edition.title;
     $('#submission-cfp-link').href = edition.year === 2026 ? './cfp.html' : './edition.html';
     $('#submission-cfp-link').textContent = edition.year === 2026 ? '모집공고 보기' : '학회 안내 보기';
-    await loadSettings();
     let emailLinkMessage;
     let emailLinkError = false;
     if (emailLink) {
@@ -673,8 +880,9 @@ async function start() {
       }
       history.replaceState(null, '', `${location.pathname}${location.search}`);
     }
-    await loadWorkspace();
-    portalReady = true;
+    // 학회 운영 설정(loadSettings)과 사용자 워크스페이스(loadWorkspace)를 병렬(Promise.all)로 동시에 로드
+    await Promise.all([loadSettings(), loadWorkspace()]);
+    workspaceReady = true;
     if (emailLink?.type === 'email' && !emailLinkError && !user) {
       showAuthMode('login');
       emailLinkMessage = '이메일 인증이 완료되어 회원가입이 완료되었습니다. 이메일과 비밀번호로 로그인해 주세요.';

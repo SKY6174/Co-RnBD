@@ -3,10 +3,12 @@ import type { ReactNode } from "react";
 import "../styles.css";
 import "../submission.css";
 import "../operations.css";
+import "../member-documents.css";
+import "../chair.css";
 import "../legal.css";
 
 export const metadata: Metadata = {
-  title: "Co-R&BD Conference",
+  title: "T-VET Co-R&BD Conference",
   icons: { icon: "/favicon.png" },
 };
 
@@ -19,6 +21,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ko">
+      <head>
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+      </head>
       <body>{children}</body>
     </html>
   );
