@@ -2,11 +2,13 @@ import { conferenceClient, conferenceConfig, currentEdition, renderConferenceCon
 
 const $ = (selector) => document.querySelector(selector);
 const STATES = { applied: '확인 대기', confirmed: '참가 확정', cancelled: '취소됨' };
-const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타' };
+const CATEGORIES = { student: '학생·졸업생', faculty: '교원·연구자', industry: '기업·기관', other: '기타', presenter: '논문·사례 발표자' };
 let client;
 let user;
 let registration;
 let open = false;
+let presenterOpen = false;
+let presenterEligible = false;
 let edition;
 let authGeneration = 0;
 
@@ -89,13 +91,17 @@ async function load() {
   // 학회 참가 설정(conference_settings)과 로그인 사용자 확인(getUser)을 병렬(Promise.all)로 동시에 수행
   const [settingsResult, auth] = await Promise.all([
     client.from('conference_settings')
-      .select('registration_open,registration_deadline').eq('edition_year', edition.year).single(),
+      .select('registration_open,registration_deadline,final_deadline').eq('edition_year', edition.year).single(),
     client.auth.getUser(),
   ]);
   if (generation !== authGeneration) return;
   const settings = requireData(settingsResult);
   open = Boolean(edition.start_date && settings.registration_open
     && Date.now() <= new Date(settings.registration_deadline).getTime());
+  presenterOpen = Boolean(edition.start_date && (settings.final_deadline
+    ? Date.now() <= new Date(settings.final_deadline).getTime() : open));
+  const presenterDeadlineText = settings.final_deadline
+    ? `${kstLongDateTimeFormatter.format(new Date(settings.final_deadline))} KST` : '';
   const days = attendanceDays();
   $('#attendance-days').innerHTML = days.map(({ value, label }) =>
     `<label class="inline-check"><input type="checkbox" name="attendance-day" value="${value}" /> ${escapeHtml(label)}</label>`).join('');
@@ -137,6 +143,14 @@ async function load() {
     ? `<strong>${escapeHtml(profile.full_name)}</strong> · ${escapeHtml(profile.affiliation)}<br><small>${escapeHtml(profile.email || currentUser.email)}</small>`
     : '이름과 소속기관을 입력해야 참가 신청을 할 수 있습니다. <a href="./submission.html">내 정보 입력하기 →</a>';
   registration = requireData(registrationResult);
+  presenterEligible = Boolean(requireData(await client.rpc('presenter_registration_eligible', { p_year: edition.year })));
+  if (generation !== authGeneration || user?.id !== currentUser.id) return;
+  const presenterOption = $('#registration-category option[value="presenter"]');
+  const presenterOnly = !open && presenterEligible && presenterOpen;
+  presenterOption.hidden = presenterOption.disabled = !(presenterEligible && presenterOpen) && registration?.category !== 'presenter';
+  $('#registration-category').querySelectorAll('option[value]:not([value=""]):not([value="presenter"])').forEach((option) => {
+    option.disabled = presenterOnly;
+  });
   const current = $('#registration-current');
   current.hidden = !registration;
   if (registration) {
@@ -146,13 +160,21 @@ async function load() {
         ? '<div class="operations-actions"><button id="cancel-registration" type="button" class="operations-button secondary">신청 취소</button></div>' : '');
     $('#cancel-registration')?.addEventListener('click', cancelRegistration);
     $('#registration-category').value = registration.category;
+  }
+  if (presenterOnly && (!registration || registration.status === 'cancelled' || registration.category !== 'presenter')) {
+    $('#registration-category').value = 'presenter';
+  }
+  if (registration) {
     document.querySelectorAll('[name="attendance-day"]').forEach((input) => {
       input.checked = registration.attendance_days.includes(input.value);
     });
   }
-  $('#registration-form').hidden = !open || !complete || (registration && registration.status === 'confirmed');
+  const canApply = open || (presenterEligible && presenterOpen);
+  $('#registration-form').hidden = !canApply || !complete || (registration && registration.status === 'confirmed');
   $('#registration-form button[type="submit"]').textContent = registration?.status === 'cancelled' ? '다시 신청' : registration ? '신청 내용 변경' : '참가 신청 제출';
-  notice(!open ? '참가 신청은 현재 열려 있지 않습니다. 기존 신청 상태는 아래에서 확인할 수 있습니다.'
+  notice(presenterOnly && complete && registration?.status !== 'confirmed'
+    ? `일반 참가 신청은 마감되었습니다. 채택 원고 발표자는 ${presenterDeadlineText}까지 '논문·사례 발표자'로 신청할 수 있습니다.`
+    : !canApply ? '참가 신청은 현재 열려 있지 않습니다. 기존 신청 상태는 아래에서 확인할 수 있습니다.'
     : !complete ? '이름과 소속기관을 먼저 입력해 주세요.'
       : registration?.status === 'confirmed' ? '참가가 확정되었습니다.'
         : registration?.status === 'applied' ? '신청이 접수되었습니다. 위원장 확인을 기다려 주세요.'
