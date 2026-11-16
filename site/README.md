@@ -277,6 +277,25 @@ API가 Resend `reply_to`로 전달합니다. 기존 대기 알림은 이전 본�
 소진될 때까지 호환 API를 유지합니다. 기존 알림 행을 수정하거나 재생하지 않습니다.
 Zoho의 상담·답장 기록과 Resend 자동 발송 기록은 별도로 관리하며, 인증 SMTP 설정도 유지합니다.
 
+### 반송·스팸 신고 처리 (Resend webhook)
+
+`20261117090000_email_delivery_feedback.sql`과 `/api/resend-webhook`은 outbox로 보낸 메일의 전달 결과를
+기록합니다. 영구 반송·스팸 신고·Resend suppression 주소는 `app_private.email_suppressions`에 들어가며,
+같은 주소의 대기 알림과 이후 새 알림은 `recipient_suppressed`로 취소됩니다. 일시 반송은 기록만 합니다.
+원고 상세 알림 목록에 수신 서버 전달·반송·스팸 신고가 표시됩니다. Auth 메일 등 outbox 밖의 발송은 무시합니다.
+
+1. migration을 적용하고 production을 배포합니다. webhook을 등록하기 전에는 동작하지 않습니다.
+2. Resend → Webhooks → Add endpoint: `https://co-rnbd.org/api/resend-webhook`, 이벤트
+   `email.delivered`, `email.delivery_delayed`, `email.bounced`, `email.complained`, `email.suppressed`.
+3. 발급된 signing secret(`whsec_…`)을 Vercel production 서버 환경변수 `RESEND_WEBHOOK_SECRET`에 저장하고
+   재배포합니다. Preview에는 넣지 않습니다. DB 기록용 비밀은 기존 `REVIEW_MAIL_WEBHOOK_SECRET`/Vault
+   `review_email_webhook_token`을 그대로 씁니다.
+4. 지정 테스트 계정에 `is_test` 알림을 보내고 해당 outbox 행의 `delivery_state='delivered'`를 확인합니다.
+
+주소가 정정되어 다시 보내야 하면 `delete from app_private.email_suppressions where email=lower('<주소>');`
+후 새 알림부터 발송됩니다. 취소된 과거 알림은 재생하지 않습니다. 중지는 Resend에서 webhook을 비활성화합니다.
+전달·수신 거부 기록은 원본 outbox 행에 묶여 행사 후 파기 때 함께 삭제됩니다. 검증: `scripts/verify-email-delivery-feedback.sql`.
+
 ## 심사의견 제출 → AE·심사위원장 알림
 
 `20261107150629_review_submitted_notifications.sql`은 실제 최초 제출 및 제출 후 의견·추천 변경 시
