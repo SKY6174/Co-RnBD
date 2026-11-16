@@ -15,7 +15,7 @@
 | 심사 배정·판정·심사의견 제출 | 켜짐 | `review_submitted_enabled=true` |
 | 신규 투고·수정본 알림 (편집 담당자), 투고자 접수 확인 | 켜짐 | `paper_submitted_enabled`, `author_receipt_enabled` = true |
 | 참가 신청 접수·확정·취소 | 구현됨, **꺼짐** | `registration_enabled=false`, 운영 등록 0건 |
-| 자동 메일 답장 → Zoho `office@` | **PR #94 미병합** (`codex/zoho-office-reply-to`) | API는 `replyTo=office@co-rnbd.org`만 허용 |
+| 자동 메일 답장 → Zoho `office@` | 운영 중. PR #94 병합·배포(2aad310), migration `20261115165917` 적용. 지정 계정 `is_test` 1통으로 도착·회신·Zoho 수신 확인 (2026-11-16) | API는 `replyTo=office@co-rnbd.org`만 허용 |
 | 개인정보처리방침의 Resend 위탁·국외이전 | 거래성 알림까지 기재됨. 홍보 메일은 없음 | `site/content/privacy.html` §5·§6 |
 | DNS | Zoho MX·SPF·DKIM, Resend `co-rnbd.org`·`auth.co-rnbd.org`. **DMARC `p=none` 2026-11-16 추가** (`rua=office@`) | 공개 DNS 조회 |
 | 반송·스팸 신고 처리 | 없음. `sent`는 provider 접수까지만 의미 | 코드 검색 |
@@ -71,7 +71,7 @@
 
 ### 즉시 (코드 변경 없음 또는 기존 PR)
 
-1. **PR #94 병합·배포** — README 순서대로 API 먼저, Zoho 송수신 확인 후 migration.
+1. ~~PR #94 병합·배포~~ — 2026-11-16 완료 (API 배포 → migration → 테스트 메일 회신 확인).
 2. **Zoho 설정** — 세 주소의 표시명·서명, office@에 DMARC 리포트 필터(`DMARC` 폴더).
    여러 운영자가 보면 office@를 공유 메일함으로.
 3. **DMARC 모니터링** — 2~4주 리포트에서 Zoho(`zmail` DKIM)와 Resend(`co-rnbd.org`, `auth.co-rnbd.org`)가
@@ -94,11 +94,10 @@ Resend 플랜과 한도는 계정의 현재 플랜을 대시보드에서 확인�
 
 ## 6. 결정이 필요한 항목
 
-1. PR #94 병합 시점
-2. 일괄 운영 공지를 outbox 확장(권장)으로 할지, 초기에는 Zoho에서 수동 발송할지
-3. 홍보 동의를 받을 위치(회원가입, 참가 신청, 별도 구독 폼)
-4. `chair@`를 자동 메일 Reply-To로 쓸 필요가 있는지
-5. Resend 플랜 전환 시점
+1. 일괄 운영 공지를 outbox 확장(권장)으로 할지, 초기에는 Zoho에서 수동 발송할지
+2. 홍보 동의를 받을 위치(회원가입, 참가 신청, 별도 구독 폼)
+3. `chair@`를 자동 메일 Reply-To로 쓸 필요가 있는지
+4. Resend 플랜 전환 시점
 
 ## 검증 원칙
 
