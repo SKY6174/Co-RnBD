@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const OFFICE_REPLY_TO = 'office@co-rnbd.org';
 const PORTAL = 'https://co-rnbd.org/submission.html';
 const DECISIONS: Record<string, string> = { accepted: 'Accept · 채택', revision: '수정 후 채택 검토 · 수정본 요청', rejected: 'Reject · 반려' };
 const TRACKS: Record<string, string> = { master_eng: '전문기술석사 공학', master_sci: '전문기술석사 자연과학', industry_joint: '산학공동기술개발과제', convergence_etc: '기타 산학융합과제', applied: '전문기술석사 응용연구', industry: '산학공동기술개발', convergence: '산업융합기술', education: 'T-VET 정책·교육연구' };
@@ -15,6 +16,7 @@ type MailEvent = {
   version: 1 | 2 | 3 | 4 | 5; eventId: string; kind: 'reviewer_assignment' | 'decision' | 'review_submitted' | 'paper_submitted' | 'paper_resubmitted' | 'author_submission_receipt' | 'author_resubmission_receipt' | RegistrationKind;
   recipient: string; recipientName: string; paperId: string; paperTitle: string;
   conferenceTitle: string; editionYear: number; track: string;
+  replyTo?: typeof OFFICE_REPLY_TO;
   registrationId?: string; registrationStatus?: string; category?: string; attendanceDays?: string[];
   submissionEventId?: string; manuscriptAt?: string; reviewId?: string; reviewFingerprint?: string; decision?: string | null; note: string; exceptionReason?: string; test?: boolean;
 };
@@ -33,6 +35,7 @@ function text(value: unknown, max: number, min = 0): value is string {
 export function parseMailEvent(value: unknown): MailEvent | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const e = value as Record<string, unknown>;
+  if (e.replyTo !== undefined && e.replyTo !== OFFICE_REPLY_TO) return null;
   if (Object.hasOwn(REGISTRATION_KINDS, String(e.kind))) return parseRegistrationEvent(e);
   const paperSubmission = e.kind === 'paper_submitted' || e.kind === 'paper_resubmitted';
   const authorReceipt = e.kind === 'author_submission_receipt' || e.kind === 'author_resubmission_receipt';
