@@ -23,6 +23,7 @@
 .registration-hint-heading > span { white-space: nowrap; }
 .registration-hint-heading > strong { min-width: 0; text-wrap: balance; }
 .registration-hint > p { margin: .5rem 0 0; text-wrap: pretty; }
+.registration-hint .accommodation-list { margin: .5rem 0 0; padding-left: 1.1em; font-weight: 700; }
 .step-block-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 14px 0 18px; }
 .step-block { padding: 13px 15px; border: 1px solid #dce5d7; border-radius: 11px; background: #f9fbf7; }
 .step-block span { display: inline-block; margin-bottom: 4px; color: #588235; font-size: 9.5px; font-weight: 800; letter-spacing: .13em; }
