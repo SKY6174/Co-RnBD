@@ -9,4 +9,4 @@
 - `kcce.png`: 한국전문대학교육협의회 심볼·국문 시그니처. 사용자 보관 원본 `kcce-01.png`(1813×236px, 국영문 가로형)에서 영문 줄을 지우고 국문을 심볼 높이 중앙에 맞춘 투명 PNG.
 - `national-research-foundation.png`: 기존 포스터의 NRF 국문 로고. 원본 SVG가 [한국연구재단 공식 홈페이지 로고](https://www.nrf.re.kr/resources/img/common/header/logo.svg)와 바이트 단위로 일치함을 확인.
 
-웹 CFP와 A4 PDF에서 동일한 파일을 사용한다. 비율과 색상은 유지한다.
+웹 CFP와 A4 PDF에서 동일한 파일을 사용한다. 2026-11-17부터 행사 포스터 하단에도 주최·주관·후원 로고 띠를 둔다. 비율과 색상은 유지한다.
