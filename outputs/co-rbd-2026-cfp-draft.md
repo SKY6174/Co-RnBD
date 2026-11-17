@@ -49,7 +49,7 @@
 **채택 발표자 등록:** [별도 등록 절차·URL]<br>
 **주최:** 울산과학대학교<br>
 **주관:** 디지텍고등직업교육협의회<br>
-**후원:** 교육부, 한국연구재단<br>
+**후원:** 교육부, 한국전문대학교육협의회, 한국연구재단<br>
 **사무국:** 052)230-0441
 
 ## English
@@ -80,5 +80,5 @@ At least one author of each accepted contribution must register and present onsi
 **Accepted presenter registration:** [separate registration process and URL]<br>
 **Host:** Ulsan College<br>
 **Organizer:** DigiTech Higher Vocational Education Council<br>
-**Supporters:** Ministry of Education; National Research Foundation of Korea<br>
+**Supporters:** Ministry of Education; Korean Council for University College Education; National Research Foundation of Korea<br>
 **Secretariat:** +82-52-230-0441
