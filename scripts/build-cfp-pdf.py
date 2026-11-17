@@ -132,7 +132,7 @@ def buildPdf(output, fontDir, background):
         ("전문기술석사 (공학 분야)", "공학 계열 학위 프로젝트·현장 애로기술 응용연구와 실증 성과"),
         ("전문기술석사 (자연과학 분야)", "자연과학·바이오·환경·보건·식품 계열 학위 연구와 실증 성과"),
         ("산학공동기술개발과제", "대학·기업 공동 기술개발, 현장 실증과 후속 사업화 사례"),
-        ("기타 산학융합과제", "AI·DX 산업융합 연구와 T-VET 교육·운영·산학협력 사례"),
+        ("기타 산학융합과제(AI, AX 등 포함)", "AI·DX 산업융합 연구와 T-VET 교육·운영·산학협력 사례"),
     ]
     for index, (title, detail) in enumerate(tracks, 1):
         text(f"{index:02}", left, y - 10, size=9.5, font="Bold", color=BLUE)
