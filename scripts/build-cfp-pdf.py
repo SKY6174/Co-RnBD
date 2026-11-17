@@ -162,17 +162,15 @@ def buildPdf(output, fontDir, background):
                   "포스터로 발표하며, 발표자 1명 이상이 별도 등록하고 현장에서 발표해야 합니다.", right, y)
 
     y = heading("주요 일정", "IMPORTANT DATES", right, y - 20)
+    # Chronological order; status labels are intentionally not shown (operator request 2026-11-17).
     dates = [
-        ("일반 참가신청 마감", "2027. 01. 05.(화) 18:00", True),
-        ("원고 접수 마감", "2026. 12. 21.(월) 18:00", False),
-        ("채택·수정 요청 통보", "2027. 01. 04.(월)", False),
-        ("최종본·발표자 등록", "2027. 01. 13.(수) 18:00", False),
+        ("원고 접수 마감", "2026. 12. 21.(월) 18:00"),
+        ("채택·수정 요청 통보", "2027. 01. 04.(월)"),
+        ("일반 참가신청 마감", "2027. 01. 05.(화) 18:00"),
+        ("최종본·발표자 등록", "2027. 01. 13.(수) 18:00"),
     ]
-    for label, value, confirmed in dates:
+    for label, value in dates:
         text(label, right, y - 9, size=8.8, font="Bold")
-        status = "확정" if confirmed else "가안"
-        text(status, right + COL - 20, y - 9, size=8,
-             font="Bold", color=BLUE if confirmed else MUTED)
         text(value, right, y - 24, size=9.2, color=MUTED)
         c.setStrokeColor(RULE)
         c.line(right, y - 32, right + COL, y - 32)
