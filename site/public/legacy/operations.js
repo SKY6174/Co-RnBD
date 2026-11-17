@@ -549,6 +549,146 @@ $('#staff-list').addEventListener('click', async (event) => {
   } catch (error) { notice(error.message, true); button.disabled = false; }
 });
 
+// Operational announcements: save → test to yourself → confirm with the recipient count.
+const SEGMENTS = {
+  registrants_confirmed: '참가 확정자', registrants_active: '참가 신청자', authors_submitted: '투고자',
+  authors_accepted: '채택 원고 투고자', authors_draft: '초안만 있는 회원', reviewers_active: '심사위원',
+};
+const MAILS_PER_MINUTE = 2;
+let announcement = null;
+let announcementCount = null;
+let announcementBusy = false;
+
+function announcementDirty() {
+  return !announcement || announcement.segment !== $('#announcement-segment').value
+    || announcement.subject !== $('#announcement-subject').value.trim()
+    || announcement.body !== $('#announcement-body').value.trim();
+}
+
+function renderAnnouncementState() {
+  const dirty = announcementDirty();
+  const tested = announcement?.test_sent_at && !dirty;
+  $('#announcement-test').disabled = announcementBusy || !announcement || dirty;
+  $('#announcement-confirm').disabled = announcementBusy || !tested || !announcementCount;
+  $('#announcement-state').textContent = !announcement ? '새 공지를 작성하고 저장하세요.'
+    : dirty ? '변경 내용이 있습니다. 저장한 뒤 다시 테스트 발송해 주세요.'
+      : !announcement.test_sent_at ? '저장됨. 나에게 테스트 발송으로 내용을 확인해 주세요.'
+        : `테스트 발송 ${kstLongDateTimeFormatter.format(new Date(announcement.test_sent_at))}. 받은 메일을 확인한 뒤 발송을 확정하세요.`;
+}
+
+async function previewAnnouncement() {
+  const segment = $('#announcement-segment').value;
+  $('#announcement-count').textContent = '수신자 수를 확인하는 중입니다.';
+  try {
+    announcementCount = requireData(await client.rpc('chair_announcement_preview', { p_segment: segment }));
+    if (segment !== $('#announcement-segment').value) return;
+    const minutes = Math.ceil(announcementCount / MAILS_PER_MINUTE);
+    $('#announcement-count').textContent = announcementCount
+      ? `${SEGMENTS[segment]} ${announcementCount}명 · 발송 예상 약 ${minutes}분 (분당 ${MAILS_PER_MINUTE}통)`
+      : `${SEGMENTS[segment]}: 현재 받을 수 있는 수신자가 없습니다.`;
+  } catch (error) {
+    announcementCount = null;
+    $('#announcement-count').textContent = `수신자 수를 불러오지 못했습니다: ${error.message}`;
+  }
+  renderAnnouncementState();
+}
+
+async function loadAnnouncements() {
+  const rows = requireData(await client.rpc('chair_announcements', { p_limit: 20 })) || [];
+  $('#announcement-list').innerHTML = rows.length ? rows.map((row) => {
+    const state = row.cancelled_at ? '취소됨' : row.confirmed_at ? `발송 확정 ${kstLongDateTimeFormatter.format(new Date(row.confirmed_at))}`
+      : row.test_sent_at ? '테스트 발송됨 · 미확정' : '작성 중';
+    const counts = row.confirmed_at ? `수신자 ${row.recipient_count}명 · 대기 ${row.pending} · 발송 ${row.sent} · 전달 ${row.delivered}`
+      + `${row.bounced ? ` · 반송 ${row.bounced}` : ''}${row.complained ? ` · 스팸 신고 ${row.complained}` : ''}`
+      + `${row.failed ? ` · 실패 ${row.failed}` : ''}${row.cancelled ? ` · 취소 ${row.cancelled}` : ''}` : '';
+    const actions = [
+      !row.confirmed_at && !row.cancelled_at ? `<button type="button" class="operations-button secondary" data-edit-announcement="${row.id}">이어서 작성</button>` : '',
+      !row.cancelled_at && (!row.confirmed_at || row.pending) ? `<button type="button" class="operations-button secondary" data-cancel-announcement="${row.id}">${row.confirmed_at ? '남은 발송 취소' : '공지 취소'}</button>` : '',
+    ].join('');
+    return `<article class="operations-item"><h3>${escapeHtml(row.subject)}</h3>
+      <p>${escapeHtml(SEGMENTS[row.segment] || row.segment)} · ${escapeHtml(state)}</p>
+      ${counts ? `<span class="operations-meta">${escapeHtml(counts)}</span>` : ''}
+      ${actions ? `<div class="operations-actions">${actions}</div>` : ''}</article>`;
+  }).join('') : '<p class="operations-empty">아직 작성한 공지가 없습니다.</p>';
+  $('#announcement-list').dataset.rows = JSON.stringify(rows.map(({ id, segment, subject, body, test_sent_at }) => ({ id, segment, subject, body, test_sent_at })));
+}
+
+async function announcementAction(task) {
+  if (announcementBusy) return;
+  announcementBusy = true;
+  renderAnnouncementState();
+  try { await task(); } catch (error) { notice(error.message, true); }
+  finally { announcementBusy = false; renderAnnouncementState(); }
+}
+
+$('#announcement-segment').addEventListener('change', previewAnnouncement);
+['#announcement-subject', '#announcement-body'].forEach((id) => $(id).addEventListener('input', renderAnnouncementState));
+
+$('#announcement-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const subject = $('#announcement-subject').value.trim();
+  const body = $('#announcement-body').value.trim();
+  if (subject.length < 2 || body.length < 10) { notice('제목은 2자 이상, 본문은 10자 이상 입력해 주세요.', true); return; }
+  announcementAction(async () => {
+    const segment = $('#announcement-segment').value;
+    const id = requireData(await client.rpc('chair_announcement_save', { p_id: announcement?.id || null, p_segment: segment, p_subject: subject, p_body: body }));
+    const unchanged = announcement && !announcementDirty();
+    announcement = { id, segment, subject, body, test_sent_at: unchanged ? announcement.test_sent_at : null };
+    await loadAnnouncements();
+    notice('공지를 저장했습니다.');
+  });
+});
+
+$('#announcement-test').addEventListener('click', () => announcementAction(async () => {
+  const address = requireData(await client.rpc('chair_announcement_test', { p_id: announcement.id }));
+  announcement.test_sent_at = new Date().toISOString();
+  await loadAnnouncements();
+  notice(`테스트 메일을 ${address}(으)로 보냈습니다. 1–2분 안에 도착합니다.`);
+}));
+
+$('#announcement-confirm').addEventListener('click', () => announcementAction(async () => {
+  await previewAnnouncement();
+  const typed = window.prompt(`${SEGMENTS[announcement.segment]} ${announcementCount}명에게 "${announcement.subject}"을(를) 보냅니다. 발송 후에는 회수할 수 없습니다.\n확정하려면 수신자 수(${announcementCount})를 입력하세요.`);
+  if (typed === null) return;
+  if (Number(typed) !== announcementCount) throw new Error('입력한 수신자 수가 일치하지 않아 발송하지 않았습니다.');
+  const sent = requireData(await client.rpc('chair_announcement_confirm', { p_id: announcement.id, p_expected_count: announcementCount }));
+  announcement = null;
+  $('#announcement-form').reset();
+  await Promise.all([loadAnnouncements(), previewAnnouncement()]);
+  notice(`${sent}명에게 발송을 확정했습니다. 분당 ${MAILS_PER_MINUTE}통씩 순서대로 발송됩니다.`);
+}));
+
+$('#announcement-new').addEventListener('click', () => {
+  announcement = null;
+  $('#announcement-form').reset();
+  previewAnnouncement();
+});
+
+$('#announcement-list').addEventListener('click', (event) => {
+  const edit = event.target.closest('[data-edit-announcement]');
+  const cancel = event.target.closest('[data-cancel-announcement]');
+  const rows = JSON.parse($('#announcement-list').dataset.rows || '[]');
+  if (edit) {
+    const row = rows.find((item) => item.id === edit.dataset.editAnnouncement);
+    if (!row) return;
+    announcement = { ...row };
+    $('#announcement-segment').value = row.segment;
+    $('#announcement-subject').value = row.subject;
+    $('#announcement-body').value = row.body;
+    previewAnnouncement();
+    $('#announcement-subject').focus();
+  }
+  if (cancel) {
+    if (!window.confirm('이 공지의 남은 발송을 취소할까요? 이미 발송된 메일은 회수할 수 없습니다.')) return;
+    announcementAction(async () => {
+      const n = requireData(await client.rpc('chair_announcement_cancel', { p_id: cancel.dataset.cancelAnnouncement }));
+      if (announcement?.id === cancel.dataset.cancelAnnouncement) { announcement = null; $('#announcement-form').reset(); }
+      await loadAnnouncements();
+      notice(`공지를 취소했습니다. 대기 중이던 ${n}통을 보내지 않습니다.`);
+    });
+  }
+});
+
 async function start() {
   try {
     client = await conferenceClient();
@@ -574,7 +714,7 @@ async function start() {
       $('#session-end').min = `${edition.start_date}T00:00`;
       $('#session-end').max = `${edition.end_date}T23:59`;
     }
-    await Promise.all([loadPaperSettings(), loadRegistrations(), loadProgram(), loadEditions(), loadStaff()]);
+    await Promise.all([loadPaperSettings(), loadRegistrations(), loadProgram(), loadEditions(), loadStaff(), loadAnnouncements(), previewAnnouncement()]);
     await refreshSessionChairs();
     $('#operations-workspace').hidden = false;
     notice('운영 데이터를 불러왔습니다. 공개 설정을 변경하면 사이트에 바로 반영됩니다.');

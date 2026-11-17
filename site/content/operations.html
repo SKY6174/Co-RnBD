@@ -59,6 +59,33 @@
           <p id="presenter-status-summary" role="status">채택 원고 정보를 불러오는 중입니다.</p>
           <div id="presenter-status-list" class="operations-list" aria-labelledby="presenter-status-title"></div>
         </section>
+        <section id="announcement-management" class="operations-card full" aria-labelledby="announcement-management-title">
+          <span class="operations-kicker">OPERATIONAL NOTICES</span>
+          <h2 id="announcement-management-title">운영 공지 메일</h2>
+          <p>현재 회차의 정해진 대상에게 행사 운영 안내를 메일로 보냅니다. 이메일 인증을 마친 계정에 한 통씩 가며, 수신 거부(반송·스팸 신고) 주소는 빠집니다. 회신은 사무국(office@co-rnbd.org)으로 갑니다. <strong>홍보·광고성 내용은 보내지 마세요.</strong></p>
+          <form id="announcement-form" class="operations-form-grid" novalidate>
+            <label>대상 <select id="announcement-segment" required>
+              <option value="registrants_confirmed">참가 확정자</option>
+              <option value="registrants_active">참가 신청자 (확인 대기 + 확정)</option>
+              <option value="authors_submitted">투고자 (제출한 원고 보유)</option>
+              <option value="authors_accepted">채택 원고 투고자</option>
+              <option value="authors_draft">초안만 있는 회원 (미제출)</option>
+              <option value="reviewers_active">심사위원 (활성 배정)</option>
+            </select></label>
+            <p id="announcement-count" class="operations-meta" role="status" aria-live="polite">대상을 고르면 수신자 수를 표시합니다.</p>
+            <label class="wide">제목 (120자 이하) <input id="announcement-subject" maxlength="120" required autocomplete="off" /></label>
+            <label class="wide">본문 (빈 줄로 문단 구분, 5000자 이하) <textarea id="announcement-body" maxlength="5000" rows="8" required></textarea></label>
+            <p id="announcement-state" class="operations-meta wide" role="status" aria-live="polite">새 공지를 작성하세요.</p>
+            <div class="operations-actions wide">
+              <button type="submit" class="operations-button secondary">저장</button>
+              <button type="button" id="announcement-test" class="operations-button secondary" disabled>나에게 테스트 발송</button>
+              <button type="button" id="announcement-confirm" class="operations-button" disabled>대상자에게 발송 확정</button>
+              <button type="button" id="announcement-new" class="operations-button secondary">새 공지</button>
+            </div>
+          </form>
+          <h3 id="announcement-list-title">최근 공지</h3>
+          <div id="announcement-list" class="operations-list" aria-labelledby="announcement-list-title" aria-live="polite"></div>
+        </section>
         <section class="operations-card" aria-labelledby="speaker-management-title">
           <span class="operations-kicker">SPEAKERS</span>
           <h2 id="speaker-management-title">연사</h2>
