@@ -285,7 +285,7 @@ h1, h2, h3, p { margin-top: 0; }
 .cfp-host img { width: 152px; margin-top: calc(var(--logo-row-center) - 152px * 75.5 / 646); }
 .cfp-organizer img { width: 180px; margin-top: calc(var(--logo-row-center) - 180px * 445.5 / 3000); margin-left: 22.5px; }
 .cfp-supporters > div { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px; }
-.cfp-logo-moe { --logo-width: 167px; width: var(--logo-width); margin-top: calc(var(--logo-row-center) - var(--logo-width) * 47 / 381); }
+.cfp-logo-moe { --logo-width: 167px; width: var(--logo-width); margin-top: calc(var(--logo-row-center) - var(--logo-width) * 47 / 381); margin-left: calc(var(--logo-width) * -86 / 381); }
 .cfp-logo-kcce { --logo-width: 190px; width: var(--logo-width); margin-top: calc(var(--logo-row-center) - var(--logo-width) * 118 / 1813); }
 .cfp-logo-nrf { --logo-width: 151px; width: var(--logo-width); margin-top: calc(var(--logo-row-center) - var(--logo-width) * 216 / 1200); }
 .cfp-table-wrap { max-width: 100%; margin-bottom: 25px; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
