@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   try {
     const result = await fetch(endpoint, {
       method: 'POST', headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json', 'Idempotency-Key': 'co-rnbd-review/' + event.eventId },
-      body: JSON.stringify({ from: 'Co-R&BD 2026 <no-reply@co-rnbd.org>', to: [event.recipient], ...renderMail(event), ...(event.replyTo ? { reply_to: event.replyTo } : {}), tags: [{ name: 'notification_id', value: event.eventId }] }),
+      body: JSON.stringify({ from: 'T-VET Co-R&BD 2026 <no-reply@co-rnbd.org>', to: [event.recipient], ...renderMail(event), ...(event.replyTo ? { reply_to: event.replyTo } : {}), tags: [{ name: 'notification_id', value: event.eventId }] }),
       signal: AbortSignal.timeout(8000), cache: 'no-store',
     });
     const payload = await result.json().catch(() => ({}));

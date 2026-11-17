@@ -55,7 +55,7 @@ class Collector(BaseHTTPRequestHandler):
             assert self.path == '/emails'
             body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
             assert len(body['to']) == 1 and body['to'][0].endswith('@example.test')
-            assert body['from'] == 'Co-R&BD 2026 <no-reply@co-rnbd.org>'
+            assert body['from'] == 'T-VET Co-R&BD 2026 <no-reply@co-rnbd.org>'
             assert not body.get('attachments') and 'signedUrl' not in json.dumps(body)
             key = self.headers['Idempotency-Key']
             assert key.startswith('co-rnbd-review/')
