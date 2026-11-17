@@ -32,6 +32,11 @@ select (select v from fx where k=x.k), 'fb:'||x.k, x.email, 'decision', '{}'::js
 from (values ('a','a@example.test','sent'),('b','b@example.test','sent'),('c','c@example.test','sent'),
              ('d','c@example.test','queued'),('e','c@example.test','sending')) x(k,email,status);
 
+-- f: sent to the provider but the worker has not stored the provider ID yet
+insert into fx select k, gen_random_uuid() from unnest(array['f','pf']) k;
+insert into app_private.review_email_outbox (id, event_key, recipient_email, kind, payload, status, paper_id)
+values ((select v from fx where k='f'), 'fb:f', 'f@example.test', 'decision', '{}'::jsonb, 'sending', (select v from fx where k='paper'));
+
 create or replace function pg_temp.fb(msg text, typ text, k text, extra jsonb default '{}') returns text language sql as $$
   select public.record_email_feedback(repeat('t',40), msg,
     jsonb_build_object('type', typ, 'emailId', (select v::text from fx where k='p'||$3), 'notificationId', (select v::text from fx where k=$3)) || extra)
@@ -47,6 +52,14 @@ begin
   exception when sqlstate '22023' then null; end;
   if public.record_email_feedback(repeat('t',40), 'm-unknown', jsonb_build_object('type','email.delivered','emailId',gen_random_uuid()::text)) <> 'ignored' then raise exception 'unknown provider id not ignored'; end if;
   if public.record_email_feedback(repeat('t',40), 'm-mismatch', jsonb_build_object('type','email.delivered','emailId',(select v::text from fx where k='pa'),'notificationId',gen_random_uuid()::text)) <> 'ignored' then raise exception 'tag mismatch not ignored'; end if;
+
+  -- Early feedback: tag matches while provider ID is still empty; untagged early events cannot match
+  if public.record_email_feedback(repeat('t',40), 'm-early-untagged', jsonb_build_object('type','email.delivered','emailId',(select v::text from fx where k='pf'))) <> 'ignored' then raise exception 'untagged early event matched'; end if;
+  if pg_temp.fb('m-early','email.delivered','f') <> 'recorded' then raise exception 'early tagged event not recorded'; end if;
+  if (select delivery_state from app_private.review_email_outbox where id=(select v from fx where k='f')) <> 'delivered' then raise exception 'early event state missing'; end if;
+  -- Once the provider ID is stored, a different provider ID with the same tag is ignored
+  update app_private.review_email_outbox set provider_id=(select v::text from fx where k='pf'), status='sent' where id=(select v from fx where k='f');
+  if public.record_email_feedback(repeat('t',40), 'm-wrong-provider', jsonb_build_object('type','email.bounced','emailId',gen_random_uuid()::text,'notificationId',(select v::text from fx where k='f'))) <> 'ignored' then raise exception 'provider mismatch matched'; end if;
 
   -- Delivered, duplicate, weaker later event
   if pg_temp.fb('m1','email.delivered','a') <> 'recorded' then raise exception 'delivered not recorded'; end if;
@@ -83,7 +96,7 @@ begin
   perform pg_temp.fb('m7','email.suppressed','a');
   if not exists(select 1 from app_private.email_suppressions where email='a@example.test' and reason='bounce') then raise exception 'suppressed event ignored'; end if;
   select count(*) into n from app_private.email_feedback_events;
-  if n <> 7 then raise exception 'expected 7 feedback events, got %', n; end if;
+  if n <> 8 then raise exception 'expected 8 feedback events, got %', n; end if;
 end $$;
 
 -- anon may call the RPC (token-gated) but cannot read the private tables

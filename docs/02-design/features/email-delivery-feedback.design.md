@@ -32,7 +32,7 @@ Resend ──(Svix 서명)──▶ Vercel /api/resend-webhook
 route는 다음 필드만 넘긴다: `type`, `emailId`(provider UUID), `notificationId`(발송 시 태그 `notification_id`),
 `bounceType`, `bounceSubType`(각 60자 이하), `occurredAt`.
 
-RPC는 `provider_id = emailId`이고 (태그가 있으면) `id = notificationId`인 outbox 행만 찾는다. 없으면 `ignored`.
+RPC는 태그가 있으면 `id = notificationId`이고 `provider_id`가 아직 비었거나 `emailId`와 같은 행, 태그가 없으면 `provider_id = emailId`인 행만 찾는다. 없으면 `ignored`. (2026-11-17 운영 확인: Resend의 `delivered`가 worker의 다음 분 접수 회수보다 먼저 도착하므로 provider ID가 비어 있는 동안에도 태그로 매칭한다. `20261117110000_feedback_early_match.sql`)
 
 | type | outbox | 수신 거부 |
 |---|---|---|
