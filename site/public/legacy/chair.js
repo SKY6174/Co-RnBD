@@ -2,6 +2,8 @@ import { conferenceClient, currentEdition, escapeHtml as esc, requireData as dat
 
 const $ = (selector) => document.querySelector(selector);
 const TRACKS = { master_eng:'전문기술석사 (공학 분야)',master_sci:'전문기술석사 (자연과학 분야)',industry_joint:'산학공동기술개발과제',convergence_etc:'기타 산학융합과제',applied:'전문기술석사 응용연구',industry:'산학공동기술개발과제 성과발표',convergence:'산업융합기술',education:'T-VET 정책·교육연구' };
+// Retired track codes stay in TRACKS for labels only; pickers show the four current tracks.
+const ACTIVE_TRACKS = Object.entries(TRACKS).filter(([key]) => ['master_eng','master_sci','industry_joint','convergence_etc'].includes(key));
 const STATUS = {submitted:'제출 완료',under_review:'심사 중',revision:'수정 요청',accepted:'채택',rejected:'반려',withdrawn:'철회'};
 const REVIEW = {assigned:'심사 대기',draft:'임시저장',submitted:'심사 제출',declined:'배정 거절'};
 const RECOMMENDATION = {accept:'Accept · 채택 권고',revise:'Accept after revision · 수정 후 채택 권고',reject:'Reject · 반려 권고'};
@@ -48,7 +50,7 @@ async function load() {
   const tracks=editorTracks();
   if(!isChief&&!tracks.size){papers=[];selectedId=null;selectedPaper=null;$('#chair-workspace').hidden=true;$('#chair-access').hidden=false;throw Error('활성 분야별 편집위원장 권한을 확인해 주세요.');}
   const priorTrack=$('#chair-track-filter').value;
-  $('#chair-track-filter').innerHTML='<option value="all">전체 분야</option>'+Object.entries(TRACKS).filter(([key])=>isChief||tracks.has(key)).map(([key,label])=>`<option value="${key}">${label}</option>`).join('');
+  $('#chair-track-filter').innerHTML='<option value="all">전체 분야</option>'+ACTIVE_TRACKS.filter(([key])=>isChief||tracks.has(key)).map(([key,label])=>`<option value="${key}">${label}</option>`).join('');
   $('#chair-track-filter').value=isChief||tracks.has(priorTrack)?priorTrack:'all';
   const [list,profiles]=await Promise.all([
     allRows(()=>{const query=client.from('papers').select(OVERVIEW_COLUMNS).eq('edition_year',edition.year).neq('status','draft').not('submitted_at','is',null).order('id');return isChief?query:query.in('track',[...tracks]).neq('owner_id',user.id);}),
@@ -255,8 +257,8 @@ async function start() {
     $('#chair-monitor').hidden=!role?.is_super_admin;
     document.querySelectorAll('[data-chief-only]').forEach(el=>el.hidden=!isChief);
     $('#chair-edition').textContent=`CO-R&BD ${edition.year} / ${isChief?'CHIEF EDITOR':'ASSOCIATE EDITOR'}`;
-    $('#committee-track').innerHTML=Object.entries(TRACKS).map(([key,label])=>`<option value="${key}">${label}</option>`).join('');
-    $('#chair-track-filter').innerHTML='<option value="all">전체 분야</option>'+Object.entries(TRACKS).map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
+    $('#committee-track').innerHTML=ACTIVE_TRACKS.map(([key,label])=>`<option value="${key}">${label}</option>`).join('');
+    $('#chair-track-filter').innerHTML='<option value="all">전체 분야</option>'+ACTIVE_TRACKS.map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
     await load();$('#chair-workspace').hidden=false;notice('현재 회차의 접수 원고를 불러왔습니다. 원고를 선택해 담당 분야의 심사 진행·판정을 확인하세요.');
   }catch(error){notice(friendly(error),true);}
 }
