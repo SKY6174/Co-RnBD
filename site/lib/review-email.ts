@@ -16,11 +16,12 @@ const CATEGORIES: Record<string, string> = { student: '학생·졸업생', facul
 const REGISTRATION_PAGE = 'https://co-rnbd.org/registration.html';
 
 type MailEvent = {
-  version: 1 | 2 | 3 | 4 | 5; eventId: string; kind: 'reviewer_assignment' | 'decision' | 'review_submitted' | 'paper_submitted' | 'paper_resubmitted' | 'author_submission_receipt' | 'author_resubmission_receipt' | RegistrationKind;
+  version: 1 | 2 | 3 | 4 | 5 | 6; eventId: string; kind: 'reviewer_assignment' | 'decision' | 'review_submitted' | 'paper_submitted' | 'paper_resubmitted' | 'author_submission_receipt' | 'author_resubmission_receipt' | RegistrationKind | 'announcement';
   recipient: string; recipientName: string; paperId: string; paperTitle: string;
   conferenceTitle: string; editionYear: number; track: string;
   replyTo?: typeof OFFICE_REPLY_TO | typeof CHAIR_REPLY_TO;
   registrationId?: string; registrationStatus?: string; category?: string; attendanceDays?: string[];
+  subject?: string; body?: string;
   submissionEventId?: string; manuscriptAt?: string; reviewId?: string; reviewFingerprint?: string; decision?: string | null; note: string; exceptionReason?: string; test?: boolean;
 };
 
@@ -42,6 +43,7 @@ export function parseMailEvent(value: unknown): MailEvent | null {
   if (e.replyTo !== undefined && e.replyTo !== OFFICE_REPLY_TO
     && !(e.replyTo === CHAIR_REPLY_TO && CHAIR_KINDS.has(String(e.kind)))) return null;
   if (Object.hasOwn(REGISTRATION_KINDS, String(e.kind))) return parseRegistrationEvent(e);
+  if (e.kind === 'announcement') return parseAnnouncementEvent(e);
   const paperSubmission = e.kind === 'paper_submitted' || e.kind === 'paper_resubmitted';
   const authorReceipt = e.kind === 'author_submission_receipt' || e.kind === 'author_resubmission_receipt';
   if (e.version !== (authorReceipt ? 4 : paperSubmission ? 3 : e.kind === 'review_submitted' ? 2 : 1) || !text(e.eventId, 36, 36) || !UUID.test(e.eventId)
@@ -68,6 +70,7 @@ const esc = (v: string) => v.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt
 // Keep version 1 rendering stable across retries; a future format uses a new version.
 export function renderMail(e: MailEvent) {
   if (Object.hasOwn(REGISTRATION_KINDS, e.kind)) return renderRegistration(e);
+  if (e.kind === 'announcement') return renderAnnouncement(e);
   if (e.kind === 'author_submission_receipt' || e.kind === 'author_resubmission_receipt') return renderAuthorReceipt(e);
   if (e.kind === 'review_submitted') return renderReviewSubmitted(e);
   if (e.kind === 'paper_submitted' || e.kind === 'paper_resubmitted') return renderPaperSubmitted(e);
@@ -202,4 +205,26 @@ function renderRegistration(e: MailEvent) {
   return { subject, text: lines.join('\n\n'), html: '<!doctype html><html lang="ko"><head><meta charset="UTF-8"></head><body><main style="font-family:Arial,sans-serif;max-width:640px;margin:auto;line-height:1.7;color:#14382e">'
     + `<h1 style="font-size:22px">${heading}</h1>` + lines.map(line => `<p style="white-space:pre-wrap">${esc(line)}</p>`).join('')
     + `<p><a href="${REGISTRATION_PAGE}">참가 신청 페이지 열기</a></p></main></body></html>` };
+}
+
+// v6 chair-approved operational announcement: the chair's subject and body, sent to one verified account.
+function parseAnnouncementEvent(e: Record<string, unknown>): MailEvent | null {
+  if (e.version !== 6 || !text(e.eventId, 36, 36) || !UUID.test(e.eventId)
+    || !text(e.recipient, 254, 3) || !EMAIL.test(e.recipient) || !text(e.recipientName, 120, 1)
+    || !text(e.conferenceTitle, 250, 1)
+    || !Number.isInteger(e.editionYear) || Number(e.editionYear) < 2020 || Number(e.editionYear) > 2200
+    || !text(e.subject, 120, 2) || /[\r\n]/.test(e.subject) || !text(e.body, 5000, 10)
+    || e.note !== '' || (e.test !== undefined && typeof e.test !== 'boolean')) return null;
+  return e as unknown as MailEvent;
+}
+
+function renderAnnouncement(e: MailEvent) {
+  const subject = `${e.test ? '[테스트] ' : ''}[T-VET Co-R&BD ${e.editionYear}] ${e.subject}`.replace(/[\r\n]/g, ' ');
+  const paragraphs = e.body!.replace(/\r\n?/g, '\n').split(/\n{2,}/).map(part => part.trim()).filter(Boolean);
+  const lines = [e.test ? '이 메일은 운영 공지 발송 전 확인용 테스트입니다. 대상자에게는 아직 발송되지 않았습니다.' : '',
+    `${e.recipientName}님,`, e.conferenceTitle, ...paragraphs,
+    `이 메일은 ${e.conferenceTitle} 운영 안내입니다. 이 메일에 회신하면 사무국으로 전달됩니다.`].filter(Boolean);
+  return { subject, text: lines.join('\n\n'), html: '<!doctype html><html lang="ko"><head><meta charset="UTF-8"></head><body><main style="font-family:Arial,sans-serif;max-width:640px;margin:auto;line-height:1.7;color:#14382e">'
+    + `<h1 style="font-size:22px">${esc(e.subject!)}</h1>` + lines.map(line => `<p style="white-space:pre-wrap">${esc(line)}</p>`).join('')
+    + '</main></body></html>' };
 }
