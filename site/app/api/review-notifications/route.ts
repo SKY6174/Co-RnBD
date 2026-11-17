@@ -1,4 +1,4 @@
-import { authorized, parseMailEvent, providerEndpoint, renderMail } from '../../../lib/review-email';
+import { authorized, inQuietHours, parseMailEvent, providerEndpoint, renderMail } from '../../../lib/review-email';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -20,6 +20,8 @@ export async function POST(request: Request) {
     event = parseMailEvent(JSON.parse(body));
   } catch { return Response.json({ error: 'Invalid event' }, { status: 400, headers }); }
   if (!event) return Response.json({ error: 'Invalid event' }, { status: 400, headers });
+  // Advertising is never sent at night; 503 lets the worker retry after 08:00 KST.
+  if (event.promotional && !event.test && inQuietHours()) return Response.json({ error: 'Quiet hours' }, { status: 503, headers });
   try {
     const result = await fetch(endpoint, {
       method: 'POST', headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json', 'Idempotency-Key': 'co-rnbd-review/' + event.eventId },

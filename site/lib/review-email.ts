@@ -7,6 +7,9 @@ const CHAIR_REPLY_TO = 'chair@co-rnbd.org';
 // Editorial mail is answered by the program chair; submission receipts and registrations by the secretariat.
 const CHAIR_KINDS = new Set(['reviewer_assignment', 'decision', 'review_submitted']);
 const PORTAL = 'https://co-rnbd.org/submission.html';
+const MYPAGE = 'https://co-rnbd.org/mypage.html';
+const UNSUBSCRIBE = 'https://co-rnbd.org/api/unsubscribe?t=';
+const SENDER = 'T-VET Co-R&BD 조직위원회';
 const DECISIONS: Record<string, string> = { accepted: 'Accept · 채택', revision: '수정 후 채택 검토 · 수정본 요청', rejected: 'Reject · 반려' };
 const TRACKS: Record<string, string> = { master_eng: '전문기술석사 공학', master_sci: '전문기술석사 자연과학', industry_joint: '산학공동기술개발과제', convergence_etc: '기타 산학융합과제', applied: '전문기술석사 응용연구', industry: '산학공동기술개발', convergence: '산업융합기술', education: 'T-VET 정책·교육연구' };
 
@@ -16,12 +19,13 @@ const CATEGORIES: Record<string, string> = { student: '학생·졸업생', facul
 const REGISTRATION_PAGE = 'https://co-rnbd.org/registration.html';
 
 type MailEvent = {
-  version: 1 | 2 | 3 | 4 | 5 | 6; eventId: string; kind: 'reviewer_assignment' | 'decision' | 'review_submitted' | 'paper_submitted' | 'paper_resubmitted' | 'author_submission_receipt' | 'author_resubmission_receipt' | RegistrationKind | 'announcement';
+  version: 1 | 2 | 3 | 4 | 5 | 6 | 7; eventId: string; kind: 'reviewer_assignment' | 'decision' | 'review_submitted' | 'paper_submitted' | 'paper_resubmitted' | 'author_submission_receipt' | 'author_resubmission_receipt' | RegistrationKind | 'announcement' | 'consent_notice';
   recipient: string; recipientName: string; paperId: string; paperTitle: string;
   conferenceTitle: string; editionYear: number; track: string;
   replyTo?: typeof OFFICE_REPLY_TO | typeof CHAIR_REPLY_TO;
   registrationId?: string; registrationStatus?: string; category?: string; attendanceDays?: string[];
-  subject?: string; body?: string;
+  subject?: string; body?: string; promotional?: boolean; consentedAt?: string; unsubscribeToken?: string;
+  action?: 'granted' | 'withdrawn'; source?: 'mypage' | 'registration' | 'unsubscribe_link'; processedAt?: string;
   submissionEventId?: string; manuscriptAt?: string; reviewId?: string; reviewFingerprint?: string; decision?: string | null; note: string; exceptionReason?: string; test?: boolean;
 };
 
@@ -44,6 +48,7 @@ export function parseMailEvent(value: unknown): MailEvent | null {
     && !(e.replyTo === CHAIR_REPLY_TO && CHAIR_KINDS.has(String(e.kind)))) return null;
   if (Object.hasOwn(REGISTRATION_KINDS, String(e.kind))) return parseRegistrationEvent(e);
   if (e.kind === 'announcement') return parseAnnouncementEvent(e);
+  if (e.kind === 'consent_notice') return parseConsentNotice(e);
   const paperSubmission = e.kind === 'paper_submitted' || e.kind === 'paper_resubmitted';
   const authorReceipt = e.kind === 'author_submission_receipt' || e.kind === 'author_resubmission_receipt';
   if (e.version !== (authorReceipt ? 4 : paperSubmission ? 3 : e.kind === 'review_submitted' ? 2 : 1) || !text(e.eventId, 36, 36) || !UUID.test(e.eventId)
@@ -71,6 +76,7 @@ const esc = (v: string) => v.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt
 export function renderMail(e: MailEvent) {
   if (Object.hasOwn(REGISTRATION_KINDS, e.kind)) return renderRegistration(e);
   if (e.kind === 'announcement') return renderAnnouncement(e);
+  if (e.kind === 'consent_notice') return renderConsentNotice(e);
   if (e.kind === 'author_submission_receipt' || e.kind === 'author_resubmission_receipt') return renderAuthorReceipt(e);
   if (e.kind === 'review_submitted') return renderReviewSubmitted(e);
   if (e.kind === 'paper_submitted' || e.kind === 'paper_resubmitted') return renderPaperSubmitted(e);
@@ -215,16 +221,65 @@ function parseAnnouncementEvent(e: Record<string, unknown>): MailEvent | null {
     || !Number.isInteger(e.editionYear) || Number(e.editionYear) < 2020 || Number(e.editionYear) > 2200
     || !text(e.subject, 120, 2) || /[\r\n]/.test(e.subject) || !text(e.body, 5000, 10)
     || e.note !== '' || (e.test !== undefined && typeof e.test !== 'boolean')) return null;
+  if (e.promotional !== undefined) {
+    // Advertising needs the consent date and a working unsubscribe link; only a chair's own test may lack them.
+    if (e.promotional !== true || (e.consentedAt !== undefined && (!text(e.consentedAt, 40, 20) || !Number.isFinite(Date.parse(e.consentedAt))))
+      || (e.unsubscribeToken !== undefined && (!text(e.unsubscribeToken, 36, 36) || !UUID.test(e.unsubscribeToken)))
+      || (e.test !== true && (e.consentedAt === undefined || e.unsubscribeToken === undefined))) return null;
+  } else if (e.consentedAt !== undefined || e.unsubscribeToken !== undefined) return null;
   return e as unknown as MailEvent;
 }
 
 function renderAnnouncement(e: MailEvent) {
-  const subject = `${e.test ? '[테스트] ' : ''}[T-VET Co-R&BD ${e.editionYear}] ${e.subject}`.replace(/[\r\n]/g, ' ');
+  const ad = e.promotional === true;
+  const subject = `${e.test ? '[테스트] ' : ''}${ad ? '(광고) ' : ''}[T-VET Co-R&BD ${e.editionYear}] ${e.subject}`.replace(/[\r\n]/g, ' ');
   const paragraphs = e.body!.replace(/\r\n?/g, '\n').split(/\n{2,}/).map(part => part.trim()).filter(Boolean);
-  const lines = [e.test ? '이 메일은 운영 공지 발송 전 확인용 테스트입니다. 대상자에게는 아직 발송되지 않았습니다.' : '',
-    `${e.recipientName}님,`, e.conferenceTitle, ...paragraphs,
-    `이 메일은 ${e.conferenceTitle} 운영 안내입니다. 이 메일에 회신하면 사무국으로 전달됩니다.`].filter(Boolean);
-  return { subject, text: lines.join('\n\n'), html: '<!doctype html><html lang="ko"><head><meta charset="UTF-8"></head><body><main style="font-family:Arial,sans-serif;max-width:640px;margin:auto;line-height:1.7;color:#14382e">'
+  const unsubscribe = e.unsubscribeToken ? UNSUBSCRIBE + e.unsubscribeToken : '';
+  const footer = ad ? [
+    e.consentedAt ? `이 메일은 ${kstDate(e.consentedAt)}에 광고성 정보 수신에 동의하신 분께 보내는 광고성 정보입니다.` : '이 메일은 광고성 정보 수신 동의자에게 보내는 광고성 정보입니다.',
+    `전송자: ${SENDER} · 연락처: ${OFFICE_REPLY_TO}`,
+    unsubscribe ? `수신을 원하지 않으면 무료로 수신거부할 수 있습니다: ${unsubscribe}` : '테스트 메일에는 수신거부 링크가 비활성화되어 있습니다. 마이페이지에서 동의를 철회할 수 있습니다.',
+  ] : [`이 메일은 ${e.conferenceTitle} 운영 안내입니다. 이 메일에 회신하면 사무국으로 전달됩니다.`];
+  const lines = [e.test ? '이 메일은 발송 전 확인용 테스트입니다. 대상자에게는 아직 발송되지 않았습니다.' : '',
+    `${e.recipientName}님,`, e.conferenceTitle, ...paragraphs, ...footer].filter(Boolean);
+  const html = '<!doctype html><html lang="ko"><head><meta charset="UTF-8"></head><body><main style="font-family:Arial,sans-serif;max-width:640px;margin:auto;line-height:1.7;color:#14382e">'
     + `<h1 style="font-size:22px">${esc(e.subject!)}</h1>` + lines.map(line => `<p style="white-space:pre-wrap">${esc(line)}</p>`).join('')
-    + '</main></body></html>' };
+    + (unsubscribe ? `<p><a href="${esc(unsubscribe)}">수신거부</a></p>` : '') + '</main></body></html>';
+  const headers = unsubscribe ? { 'List-Unsubscribe': `<${unsubscribe}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } : undefined;
+  return { subject, text: lines.join('\n\n'), html, ...(headers ? { headers } : {}) };
 }
+
+/** Advertising may not be sent 21:00–08:00 KST without separate night-time consent. */
+export function inQuietHours(at = new Date()): boolean {
+  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', hourCycle: 'h23' }).format(at));
+  return hour >= 21 || hour < 8;
+}
+
+// v7 notice of a processed consent change (required within 14 days of the change).
+function parseConsentNotice(e: Record<string, unknown>): MailEvent | null {
+  if (e.version !== 7 || !text(e.eventId, 36, 36) || !UUID.test(e.eventId)
+    || !text(e.recipient, 254, 3) || !EMAIL.test(e.recipient) || !text(e.recipientName, 120, 1)
+    || (e.action !== 'granted' && e.action !== 'withdrawn')
+    || !['mypage', 'registration', 'unsubscribe_link'].includes(String(e.source))
+    || !text(e.processedAt, 40, 20) || !Number.isFinite(Date.parse(e.processedAt))
+    || e.note !== '' || (e.test !== undefined && typeof e.test !== 'boolean')) return null;
+  return e as unknown as MailEvent;
+}
+
+function renderConsentNotice(e: MailEvent) {
+  const granted = e.action === 'granted';
+  const result = granted ? '광고성 정보 수신 동의' : '광고성 정보 수신 동의 철회';
+  const subject = `${e.test ? '[테스트] ' : ''}[T-VET Co-R&BD] ${result} 처리 결과`;
+  const via = { mypage: '마이페이지', registration: '참가 신청', unsubscribe_link: '메일의 수신거부 링크' }[e.source!];
+  const lines = [`${e.recipientName}님,`, `요청하신 ${result}가 처리되었습니다.`,
+    `전송자: ${SENDER}\n처리 일시: ${kstDateTime(e.processedAt!)}\n처리 결과: ${result}\n요청 경로: ${via}`,
+    granted ? '학회·행사 홍보 메일을 받게 됩니다. 원하지 않으면 마이페이지나 홍보 메일의 수신거부 링크로 언제든 철회할 수 있습니다.'
+      : '앞으로 홍보 메일을 보내지 않습니다. 참가 신청·투고·심사 등 서비스 이용에 필요한 안내 메일은 계속 발송됩니다.',
+    `마이페이지: ${MYPAGE}`, `문의: ${OFFICE_REPLY_TO}`];
+  return { subject, text: lines.join('\n\n'), html: '<!doctype html><html lang="ko"><head><meta charset="UTF-8"></head><body><main style="font-family:Arial,sans-serif;max-width:640px;margin:auto;line-height:1.7;color:#14382e">'
+    + `<h1 style="font-size:22px">${esc(result)} 처리 결과</h1>` + lines.map(line => `<p style="white-space:pre-wrap">${esc(line)}</p>`).join('')
+    + `<p><a href="${MYPAGE}">마이페이지 열기</a></p></main></body></html>` };
+}
+
+const kstDate = (value: string) => new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'long' }).format(new Date(value));
+const kstDateTime = (value: string) => new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'long', timeStyle: 'short' }).format(new Date(value)) + ' (KST)';
