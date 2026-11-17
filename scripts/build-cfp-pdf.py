@@ -180,7 +180,7 @@ def buildPdf(output, fontDir, background):
 
     y = heading("안내·문의", "MORE INFORMATION", right, y - 13)
     y = paragraph("<b>모집공고·투고 절차</b> co-rnbd.org/cfp.html<br/>"
-                  "<b>사무국</b> 052)230-0441", right, y)
+                  "<b>사무국</b> 052)230-0441 · office@co-rnbd.org", right, y)
     y = paragraph("논문 일정은 확정 후 안내합니다. 일반 참가신청과 발표자 등록은 별도 절차이며, 마감 시간은 KST 기준입니다.",
                   right, y - 12, size=8.6, leading=13)
     if y < 125:
