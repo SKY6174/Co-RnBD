@@ -43,3 +43,7 @@
 .issued-brand { display:flex; align-items:center; gap:12px; }.issued-brand img { width:48px; height:48px; max-width:none; }.issued-brand strong { font-size:22px; white-space:nowrap; }
 @media(max-width:760px){.issued-brand { gap:8px; }.issued-brand img { width:32px; height:32px; }.issued-brand strong { font-size:16px; }}
 @media print {.issued-brand img { width:42px; height:42px; }.issued-brand strong { font-size:22px; }}
+.issued-signatory { display:block; font-size:20px; margin:8px 0; letter-spacing:.04em; }
+.issued-verify { margin-top:22px !important; font-size:12px !important; color:#33473f; }
+.document-signatories { border:1px solid #d6dfd8; border-radius:8px; padding:12px 16px 4px; margin:0; }.document-signatories legend { font-weight:700; padding:0 6px; }.signatory-row { grid-template-columns:repeat(3,minmax(0,1fr)); }
+@media(max-width:760px){.signatory-row { grid-template-columns:1fr; }}
