@@ -411,3 +411,12 @@ h1, h2, h3, p { margin-top: 0; }
   .conference-context dl { grid-template-columns: 1fr; gap: 16px; }
   .conference-context-heading strong { font-size: 17px; }
 }
+/* Upcoming deadlines in the hero, so the first screen answers "until when?" */
+.hero-deadlines { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; margin-top: 22px; color: inherit; text-decoration: none; }
+.hero-deadline { display: grid; gap: 3px; padding: 10px 14px; border: 1px solid rgb(255 255 255 / .22); border-left: 3px solid var(--lime); border-radius: 6px; background: rgb(255 255 255 / .05); }
+.hero-deadline small { color: #bacdc3; font-size: 12px; letter-spacing: .02em; }
+.hero-deadline strong { color: #fff; font-size: 16px; font-weight: 700; white-space: nowrap; }
+.hero-deadline-more { align-self: center; color: var(--lime); font-size: 13px; font-weight: 700; }
+.hero-deadlines:hover .hero-deadline, .hero-deadlines:focus-visible .hero-deadline { border-color: rgb(255 255 255 / .45); border-left-color: var(--lime); }
+.hero-deadlines:focus-visible { outline: 2px solid var(--lime); outline-offset: 4px; border-radius: 6px; }
+@media (max-width: 560px) { .hero-deadline { flex: 1 1 140px; padding: 9px 12px; } .hero-deadline strong { font-size: 15px; } .hero-deadline-more { flex-basis: 100%; } }

@@ -18,6 +18,7 @@ const LEGACY_SLUGS = [
   "privacy",
   "terms",
   "cmt-reference",
+  "verify",
 ] as const;
 
 // Supabase project origin for API, Auth, Storage and Realtime. Falls back to any
@@ -61,6 +62,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Fonts and logo read by the PDF route at runtime.
+  outputFileTracingIncludes: {
+    "/api/documents/[id]/pdf": ["./lib/fonts/**", "./public/assets/t-vet-co-rbd-conference-logo.png"],
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

@@ -21,6 +21,7 @@ export const PAGE_IDS = [
   "privacy",
   "terms",
   "cmt-reference",
+  "verify",
 ] as const;
 
 export type PageId = (typeof PAGE_IDS)[number];
@@ -39,6 +40,7 @@ const PAGE_SCRIPTS: Partial<Record<PageId, string>> = {
   "session-chair": "session-chair.js",
   monitor: "monitor.js",
   staff: "staff.js",
+  verify: "verify.js",
 };
 
 const PAGE_METADATA: Record<PageId, Metadata> = {
@@ -73,6 +75,7 @@ const PAGE_METADATA: Record<PageId, Metadata> = {
   mypage: { title: "마이페이지 | Co-R&BD", robots: { index: false, follow: false } },
   "document-admin": { title: "증빙 발급 관리 | Co-R&BD", robots: { index: false, follow: false } },
   document: { title: "증빙 확인 | Co-R&BD", robots: { index: false, follow: false } },
+  verify: { title: "발급문서 진위 확인 | T-VET Co-R&BD Conference", description: "T-VET Co-R&BD Conference가 발급한 참가확인증 등 문서의 진위와 유효 상태를 문서확인번호로 확인합니다.", robots: { index: false, follow: false } },
   chair: {
     title: "원고 심사 관리 | T-VET Co-R&BD Conference",
     robots: { index: false, follow: false },
