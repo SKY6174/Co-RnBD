@@ -278,14 +278,15 @@ h1, h2, h3, p { margin-top: 0; }
 .cfp-spec-card strong { display: block; margin-bottom: 4px; color: var(--deep); font-size: 14px; letter-spacing: -.02em; }
 .cfp-spec-card p { margin: 0; color: #5d6f63; font-size: 12.5px; line-height: 1.55; }
 .cfp-footer { padding-bottom: 0; }
-.cfp-partners { --logo-row-center: calc(40px - 10pt); display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 36px; margin-top: 40px; padding: 32px; border: 1px solid #dfe5da; border-radius: 16px; background: white; box-shadow: 0 10px 28px rgba(16,40,37,.04); }
+.cfp-partners { --logo-row-center: calc(40px - 10pt); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2.6fr); gap: 36px; margin-top: 40px; padding: 32px; border: 1px solid #dfe5da; border-radius: 16px; background: white; box-shadow: 0 10px 28px rgba(16,40,37,.04); }
 .cfp-partner { display: flex; flex-direction: column; gap: 20px; }
 .cfp-partner > span { position: relative; top: 3pt; font-size: 12px; font-weight: 700; color: #627668; }
 .cfp-partner img { max-width: 100%; height: auto; flex-shrink: 0; object-fit: contain; }
 .cfp-host img { width: 152px; margin-top: calc(var(--logo-row-center) - 152px * 75.5 / 646); }
 .cfp-organizer img { width: 180px; margin-top: calc(var(--logo-row-center) - 180px * 445.5 / 3000); margin-left: 22.5px; }
-.cfp-supporters > div { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 24px; }
+.cfp-supporters > div { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px; }
 .cfp-logo-moe { --logo-width: 167px; width: var(--logo-width); margin-top: calc(var(--logo-row-center) - var(--logo-width) * 47 / 381); }
+.cfp-logo-kcce { --logo-width: 190px; width: var(--logo-width); margin-top: calc(var(--logo-row-center) - var(--logo-width) * 118 / 1813); }
 .cfp-logo-nrf { --logo-width: 151px; width: var(--logo-width); margin-top: calc(var(--logo-row-center) - var(--logo-width) * 216 / 1200); }
 .cfp-table-wrap { max-width: 100%; margin-bottom: 25px; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
 .cfp-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
@@ -329,6 +330,7 @@ h1, h2, h3, p { margin-top: 0; }
   .cfp-partners { grid-template-columns: 1fr; gap: 28px; padding: 26px 20px; }
   .cfp-supporters > div { flex-wrap: wrap; gap: 9px; }
   .cfp-logo-moe { --logo-width: 160px; }
+  .cfp-logo-kcce { --logo-width: 180px; }
   .cfp-logo-nrf { --logo-width: 145px; }
   .cfp-hero-facts { grid-template-columns: 1fr; gap: 18px; margin-top: 44px; }
   .cfp-page-layout { display: block; padding-top: 60px; padding-bottom: 80px; }

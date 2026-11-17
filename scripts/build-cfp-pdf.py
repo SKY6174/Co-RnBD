@@ -186,11 +186,11 @@ def buildPdf(output, fontDir, background):
     if y < 125:
         raise ValueError(f"Right column overlaps footer: {y:.1f}")
 
-    # Four institution logos, grouped clearly by the three requested roles.
+    # Five institution logos, grouped clearly by the three requested roles.
     footerTop = 121
     c.setStrokeColor(RULE)
     c.line(MARGIN, footerTop, W - MARGIN, footerTop)
-    widths = (121.5, 173.5, W - 2 * MARGIN - 295)
+    widths = (115, 140, W - 2 * MARGIN - 255)
     x = MARGIN
     for label, width in zip(("주최", "주관", "후원"), widths):
         text(label, x, footerTop - 22, size=8, font="Bold", color=MUTED)
@@ -199,9 +199,10 @@ def buildPdf(output, fontDir, background):
     # DigiTech scales to 80% inside its existing slot; other sizes stay the same.
     for filename, slotX, slotWidth, sizeFactor, visibleCenter in [
         ("ulsan-college.png", MARGIN, 107, 1, 75.5),
-        ("digitech.png", MARGIN + 121.5, 159, .8, 445.5),
-        ("ministry-of-education.png", MARGIN + 295, 118, 1, 47),
-        ("national-research-foundation.png", MARGIN + 427.5, 107, 1, 216),
+        ("digitech.png", MARGIN + 115, 140, .8, 445.5),
+        ("ministry-of-education.png", MARGIN + 255, 84, 1, 47),
+        ("kcce.png", MARGIN + 341, 104, 1, 118),
+        ("national-research-foundation.png", MARGIN + 465, 70, 1, 216),
     ]:
         logo = ImageReader(str(ASSETS / "organizers" / filename))
         iw, ih = logo.getSize()
