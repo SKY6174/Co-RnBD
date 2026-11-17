@@ -179,7 +179,7 @@ def buildPdf(output, fontDir, background):
     y = heading("안내·문의", "MORE INFORMATION", right, y - 13)
     y = paragraph("<b>모집공고·투고 절차</b> co-rnbd.org/cfp.html<br/>"
                   "<b>사무국</b> 052)230-0441 · office@co-rnbd.org", right, y)
-    y = paragraph("논문 일정은 확정 후 안내합니다. 일반 참가신청과 발표자 등록은 별도 절차이며, 마감 시간은 KST 기준입니다.",
+    y = paragraph("일반 참가신청과 발표자 등록은 별도 절차이며, 마감 시간은 KST 기준입니다.",
                   right, y - 12, size=8.6, leading=13)
     if y < 125:
         raise ValueError(f"Right column overlaps footer: {y:.1f}")
@@ -209,7 +209,7 @@ def buildPdf(output, fontDir, background):
         x = slotX + (slotWidth - width) / 2
         c.drawImage(logo, x, 70 - (ih - visibleCenter) * scale,
                     width=width, height=ih * scale, mask="auto")
-    text("논문 투고 일정 가안 · 마감 시간 KST 기준", MARGIN, 22, size=7.5, color=MUTED)
+    text("마감 시간 KST 기준", MARGIN, 22, size=7.5, color=MUTED)
     text("T-VET Co-R&BD Conference 2026", W - MARGIN - 151, 22, size=7.5, color=MUTED)
     c.showPage()
     c.save()
