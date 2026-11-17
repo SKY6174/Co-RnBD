@@ -39,7 +39,7 @@ export function cards(row, issuer) {
 }
 export function friendly(error) {
   const message=error?.message||'처리하지 못했습니다. 다시 시도해 주세요.';
-  const entries=[['Issuer configuration','발급기관 설정이 완료되지 않았습니다.'],['Confirmed registration','참가 확정 후 발급할 수 있습니다.'],['Attendance check-in','현장 체크인 확인 후 참가확인증을 발급할 수 있습니다.'],['opens after the event','참가확인증은 행사 종료 후부터 발급할 수 있습니다.'],['Verified payment','운영자의 실제 납부 확인 후 영수증을 발급할 수 있습니다.'],['fee configuration','등록비 내역을 먼저 설정해 주세요.'],['Chair permission','위원장 권한이 필요합니다.'],['Registration permission','본인의 참가 내역만 이용할 수 있습니다.'],['Payment date','납부 일시는 현재보다 미래일 수 없습니다.'],['immutable','발급된 문서는 수정할 수 없습니다. 발급 취소 후 다시 발급해 주세요.'],['Document changed','문서 상태가 변경되었습니다. 새로고침해 주세요.']];
+  const entries=[['Issuer configuration','발급기관 설정이 완료되지 않았습니다.'],['Confirmed registration','참가 확정 후 발급할 수 있습니다.'],['Attendance check-in','현장 체크인 확인 후 참가확인증을 발급할 수 있습니다.'],['opens after the event','참가확인증은 행사 종료 후부터 발급할 수 있습니다.'],['Verified payment','운영자의 실제 납부 확인 후 영수증을 발급할 수 있습니다.'],['fee configuration','등록비 내역을 먼저 설정해 주세요.'],['Chair permission','위원장 권한이 필요합니다.'],['Registration permission','본인의 참가 내역만 이용할 수 있습니다.'],['Payment date','납부 일시는 현재보다 미래일 수 없습니다.'],['immutable','발급된 문서는 수정할 수 없습니다. 발급 취소 후 다시 발급해 주세요.'],['Document changed','문서 상태가 변경되었습니다. 새로고침해 주세요.'],['permission denied','문서를 볼 수 없습니다. 발급받은 계정으로 로그인해 주세요.']];
   return entries.find(([key])=>message.includes(key))?.[1]||message;
 }
 export async function issue(client, registration, kind) {
