@@ -220,7 +220,14 @@ $('#registration-form').addEventListener('submit', async (event) => {
     } else {
       requireData(await client.from('attendee_registrations').insert({ ...values, user_id: user.id, edition_year: edition.year }));
     }
+    // Optional promotional consent is recorded only when ticked; leaving it unticked changes nothing.
+    let consentFailed = false;
+    if ($('#registration-marketing').checked) {
+      try { requireData(await client.rpc('set_marketing_consent', { p_consent: true, p_source: 'registration' })); }
+      catch { consentFailed = true; }
+    }
     await load();
+    if (consentFailed) notice('참가 신청은 저장했지만 홍보 메일 수신 동의는 저장하지 못했습니다. 마이페이지에서 다시 동의해 주세요.', true);
   } catch (error) { notice(error.message, true); }
   finally { button.disabled = false; }
 });

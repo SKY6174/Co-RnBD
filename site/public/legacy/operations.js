@@ -553,6 +553,7 @@ $('#staff-list').addEventListener('click', async (event) => {
 const SEGMENTS = {
   registrants_confirmed: '참가 확정자', registrants_active: '참가 신청자', authors_submitted: '투고자',
   authors_accepted: '채택 원고 투고자', authors_draft: '초안만 있는 회원', reviewers_active: '심사위원',
+  marketing_consented: '홍보 수신 동의자 (광고)',
 };
 const MAILS_PER_MINUTE = 2;
 let announcement = null;
@@ -579,6 +580,7 @@ function renderAnnouncementState() {
 async function previewAnnouncement() {
   const segment = $('#announcement-segment').value;
   $('#announcement-count').textContent = '수신자 수를 확인하는 중입니다.';
+  $('#announcement-ad-note').hidden = segment !== 'marketing_consented';
   try {
     announcementCount = requireData(await client.rpc('chair_announcement_preview', { p_segment: segment }));
     if (segment !== $('#announcement-segment').value) return;
