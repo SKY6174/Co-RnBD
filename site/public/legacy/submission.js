@@ -64,6 +64,7 @@ let client;
 let user;
 let profile;
 let isChair = false;
+let onReviewRoster = false;
 let submissionsOpen = false;
 let reReviewIds = new Set();
 // Reviews of a resubmitted manuscript use the re-review deadline when the chair set one.
@@ -109,7 +110,7 @@ const ERROR_TEXT = [
   ['revision resubmission deadline has passed', '수정본 재제출 기한이 지났습니다. 학술위원회에 문의해 주세요.'],
   ['Complete your name and affiliation', '원고 제출 전에 내 정보에서 이름·소속기관을 저장해 주세요.'],
   ['Name and affiliation are required', '내 정보에서 이름·소속기관을 저장해 주세요.'],
-  ['Complete your profile and expertise', '심사 제출 전에 내 정보에서 이름·소속과 전문 분야(1~3개)를 저장해 주세요.'],
+  ['Complete your profile and expertise', '심사 제출 전에 내 정보에서 이름·소속을 저장하고, 심사위원 명부에 없는 경우 전문 분야(1~3개)도 선택해 주세요.'],
   ['At least one author is required', '저자를 1명 이상 입력해 주세요.'],
   ['Provide 1 to 30 authors', '저자는 1~30명 입력해 주세요.'],
   ['Paper is not editable', '지금은 이 원고를 수정할 수 없습니다. 새로고침 후 상태를 확인해 주세요.'],
@@ -123,7 +124,7 @@ const ERROR_TEXT = [
   ['Previous manuscript reviews are read only', '이전 제출본에 대한 심사는 수정할 수 없습니다.'],
   ['Declined review assignments cannot be edited', '거절한 배정은 수정할 수 없습니다.'],
   ['Revoked assignments are read only', '해제된 배정은 수정할 수 없습니다.'],
-  ['papers_keywords', '키워드는 비워 두거나 쉼표로 구분해 2~5개 입력해 주세요.'],
+  ['papers_keywords', '키워드는 쉼표로 구분해 최대 5개까지 입력할 수 있습니다.'],
   ['The object exceeded the maximum allowed size', 'PDF는 20 MB 이하만 올릴 수 있습니다.'],
   ['row-level security', '권한이 없어 저장하지 못했습니다. 새로고침 후 다시 시도해 주세요.'],
   ['Failed to fetch', '네트워크 연결을 확인한 뒤 다시 시도해 주세요.'],
@@ -139,6 +140,10 @@ function check(result) {
   return result.data;
 }
 
+function needsExpertise() {
+  return !onReviewRoster && !(profile?.expertise_tracks || []).length;
+}
+
 function hasCompleteProfile() {
   return Boolean(profile?.full_name?.trim() && profile?.affiliation?.trim());
 }
@@ -149,7 +154,6 @@ function parseKeywords(value, forSubmission = false) {
   if (words.length > 5 || unique.size !== words.length || words.some((word) => word.length > 50)) {
     throw new Error('키워드는 중복 없이 50자 이하로 최대 5개 입력해 주세요.');
   }
-  if (forSubmission && words.length === 1) throw new Error('키워드를 입력할 경우 2~5개 적어 주세요. 비워두어도 제출할 수 있습니다.');
   return words;
 }
 
@@ -285,7 +289,10 @@ async function refreshWorkspace(generation) {
   document.querySelectorAll('[name="expertise-track"]').forEach((input) => {
     input.checked = normalizedExpertise.includes(input.value);
   });
-  $('#submission-chair-links').hidden = !isChair && !check(committeeResult).some(c=>c.active&&c.committee_role==='associate_editor'&&c.edition_year===edition.year);
+  const committeeRows = check(committeeResult);
+  // Reviewers on this year's active roster need no separate expertise selection (same rule as the DB).
+  onReviewRoster = committeeRows.some((c) => c.active && c.edition_year === edition.year);
+  $('#submission-chair-links').hidden = !isChair && !committeeRows.some(c=>c.active&&c.committee_role==='associate_editor'&&c.edition_year===edition.year);
   if (Object.hasOwn(RETURN_DESTINATIONS, returnTo) && !isRecovery) {
     try { sessionStorage.removeItem('co_rnbd_return_to'); } catch {}
     location.replace(RETURN_DESTINATIONS[returnTo]);
@@ -328,8 +335,8 @@ function renderWorkspaceOverview() {
   const pending = reviewRows.filter(pendingReview);
   $('#workspace-metrics').innerHTML = [['author','all','내 원고',myPapers.length],['author','revision','수정 요청',revisions.length],['reviewer','pending','남은 심사',pending.length]].map(([name,filter,label,count]) => `<button type="button" data-workspace-list="${name}" data-workspace-filter="${filter}"${name === 'reviewer' && !reviewRows.length ? ' disabled' : ''}><span>${label}</span><strong>${count}<small>편</small></strong><span class="metric-arrow" aria-hidden="true">↗</span></button>`).join('');
   let text, label;
-  if (!hasCompleteProfile() || (pending.length && !(profile.expertise_tracks || []).length)) {
-    text = '제출 전에 이름·소속기관을 저장해 주세요. 심사위원은 전문 분야도 필요합니다.';
+  if (!hasCompleteProfile() || (pending.length && needsExpertise())) {
+    text = hasCompleteProfile() ? '심사를 제출하려면 내 정보에서 전문 분야를 1~3개 선택해 주세요.' : '제출 전에 이름·소속기관을 저장해 주세요.';
     label = '내 정보 완성하기'; nextWorkspaceAction = () => {showTab('profile'); $('#profile-name').focus();};
   } else if (revisions.length) {
     text = revisionsOpen ? `수정 요청 원고 ${revisions.length}편이 있습니다. 판정 사유를 확인하고 같은 원고에 수정본을 제출하세요${settings.revision_deadline ? ` (마감 ${formatKst(settings.revision_deadline)})` : ''}.` : `수정 요청 원고 ${revisions.length}편이 있습니다. 수정본 재제출 기한이 지났습니다. 위원장에게 문의하세요.`;
@@ -751,7 +758,7 @@ $('#consent-save').addEventListener('click', async () => {
   finally { button.disabled = false; }
 });
 $('#cancel-review').addEventListener('click', () => { $('#review-form').hidden = true; });
-$('#sign-out').addEventListener('click', async () => { await client.auth.signOut(); user = null; isChair = false; $('#submission-operations-link').hidden = true; $('#workspace').hidden = true; $('#auth-panel').hidden = false; showAuthMode('login'); showTab('author'); });
+$('#sign-out').addEventListener('click', async () => { await client.auth.signOut(); user = null; isChair = false; onReviewRoster = false; $('#submission-operations-link').hidden = true; $('#workspace').hidden = true; $('#auth-panel').hidden = false; showAuthMode('login'); showTab('author'); });
 
 document.querySelectorAll('[data-auth-mode]').forEach((button) => button.addEventListener('click', () => {
   $('#auth-password').value = '';
@@ -857,8 +864,8 @@ $('#review-form').addEventListener('submit', async (event) => {
   try {
     const draft = event.submitter?.dataset.reviewAction === 'draft';
     const comments = $('#review-comments').value.trim();
-    if (!draft && (!hasCompleteProfile() || (profile.expertise_tracks || []).length === 0)) {
-      throw new Error('심사 제출 전에 내 정보에서 이름·소속기관과 전문 분야 1~3개를 저장해 주세요.');
+    if (!draft && (!hasCompleteProfile() || needsExpertise())) {
+      throw new Error(hasCompleteProfile() ? '심사 제출 전에 내 정보에서 전문 분야를 1~3개 선택해 주세요.' : '심사 제출 전에 내 정보에서 이름·소속기관을 저장해 주세요.');
     }
     if (!draft && (!$('#review-conflict').checked || !$('#review-recommendation').value || comments.length < 10)) {
       throw new Error('이해관계 확인, 권고, 10자 이상의 의견을 입력해 주세요.');
