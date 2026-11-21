@@ -44,6 +44,49 @@ changes, and `bkit_complete_phase` only when that phase actually progressed. Exi
 plans and designs are in `docs/01-plan/features/` and `docs/02-design/features/`. Do not create a
 full new plan for an obvious text correction.
 
+## Default cloud accounts and delivery workflow
+
+The user designated these existing connections on 2026-11-21. Automatically use them for this
+project's GitHub, database, and deployment work; do not ask the user to choose the account or
+project again when the verified target matches.
+
+| Service | Default account and project | Verified target |
+| --- | --- | --- |
+| GitHub | `SKY6174` / `SKY6174/Co-RnBD` (also written `SKY6174/co-rnbd`) | `https://github.com/SKY6174/Co-RnBD.git`; production branch `main` |
+| Supabase | GitHub login `SKY6174` / `Co-R&BD` | Project ref `lvtdnrmwunahgwutafhv`; organization `thjpgwydmljualcqnnse`; API `https://lvtdnrmwunahgwutafhv.supabase.co` |
+| Vercel | `song.kyoung.young@gmail.com` / team `SKY` (`ucsky6174`) / project `co-rnbd` | Team `team_4YIBigc2M47U1IrndTo6xlfF`; project `prj_swt0tnnUW6psSHARP5rrpO0GII6u`; root `site/`; production `https://co-rnbd.org` |
+
+- Before remote operations, verify the origin, authenticated account, project ID/ref, and target
+  environment using the available connectors or CLI. Prefer the connected GitHub identity
+  `SKY6174`; for `gh`, check `gh api user --jq .login` and select the already authenticated
+  account with `gh auth switch --hostname github.com --user SKY6174` if needed. If access or a
+  target cannot be verified, resolve that specific connection before the affected remote action.
+- For Vercel CLI work, check `vercel whoami --format json` and
+  `vercel project inspect --non-interactive` from the actual command directory. New worktrees
+  need their own verified context: explicitly link the existing `co-rnbd` project under
+  `ucsky6174` when required, then verify both IDs above before deploying or pulling environment
+  settings. Reuse existing authenticated connections and credentials; keep secrets out of rules,
+  source control, command output, PRs, and deployment uploads.
+- Resolve Supabase by the project ref above and confirm its name, organization, and health.
+  With the pinned CLI, use `sh scripts/supabase.sh` and an explicit
+  `--remote=lvtdnrmwunahgwutafhv` for remote commands; consult command help for the current syntax
+  and use `--read-only` for verification queries. Keep local test environments explicitly local.
+  Reuse the existing Vercel `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` settings, and verify
+  that `/api/config` points to this API URL. Apply only reviewed migrations required and
+  authorized by the task; a Git push or Vercel deployment alone does not apply DB migrations.
+- When the user requests `gh pr`, `merge`, `push`, and/or `deploy`, complete those authorized
+  steps with these targets: push the focused task branch, create/update its PR against
+  `SKY6174/Co-RnBD:main`, pass the applicable checks, merge when authorized, and verify delivery.
+  Existing authorization remains valid through that workflow; do not ask again at each step.
+- Vercel's existing Git integration owns automatic deployment from `main`. After a merge,
+  inspect the deployment for the merge SHA before considering a manual deployment. Use the
+  existing `.github/build-scope.json` and Ignored Build Step policy: an allowlisted rules/docs
+  change can intentionally skip a runtime build. Confirm the scope result and build logs;
+  report that skip accurately and avoid a duplicate or forced build without a runtime need.
+- Finish remote work by confirming the PR/merge SHA and the relevant deployment/domain and
+  API/database behavior. These defaults select the target; the approval, privacy, migration,
+  and rollback requirements below continue to govern consequential changes.
+
 ## Git and deployment
 
 - The primary checkout may be dirty or behind `origin/main`. Do not run `git switch main`,
