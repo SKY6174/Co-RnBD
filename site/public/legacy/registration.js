@@ -1,4 +1,4 @@
-import { conferenceClient, conferenceConfig, currentEdition, renderConferenceContext, escapeHtml, requireData } from './conference-client.js';
+import { conferenceClient, conferenceConfig, renderConferenceContext, escapeHtml, requireData } from './conference-client.js';
 import { registrationNo, depositorName } from './member-documents.js';
 
 const $ = (selector) => document.querySelector(selector);
@@ -87,16 +87,16 @@ $('#registration-login').addEventListener('click', async (event) => {
   }
 });
 
-async function load() {
+async function load(initialSettings) {
   const generation = authGeneration;
-  // 학회 참가 설정(conference_settings)과 로그인 사용자 확인(getUser)을 병렬(Promise.all)로 동시에 수행
+  // 첫 화면은 회차 조회의 설정을 재사용하고, 이후 재조회는 사용자 확인과 병렬로 수행한다.
   const [settingsResult, auth] = await Promise.all([
-    client.from('conference_settings')
+    initialSettings ?? client.from('conference_settings')
       .select('registration_open,registration_deadline,final_deadline').eq('edition_year', edition.year).single(),
     client.auth.getUser(),
   ]);
   if (generation !== authGeneration) return;
-  const settings = requireData(settingsResult);
+  const settings = initialSettings ?? requireData(settingsResult);
   open = Boolean(edition.start_date && settings.registration_open
     && Date.now() <= new Date(settings.registration_deadline).getTime());
   presenterOpen = Boolean(edition.start_date && (settings.final_deadline
@@ -236,8 +236,14 @@ async function start() {
   try {
     const config = await conferenceConfig();
     client = await conferenceClient(config);
-    [, edition] = await Promise.all([loadAuthAvailability(config), currentEdition(client)]);
-    await load();
+    const [, editionResult] = await Promise.all([
+      loadAuthAvailability(config),
+      client.from('conference_editions')
+        .select('year,title,start_date,end_date,venue,summary,status,conference_settings(registration_open,registration_deadline,final_deadline)')
+        .eq('status', 'current').single(),
+    ]);
+    edition = requireData(editionResult);
+    await load(edition.conference_settings);
     client.auth.onAuthStateChange((event, session) => {
       // Startup already loaded the account. Token refresh/focus must not reset an edited form.
       if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') return;
