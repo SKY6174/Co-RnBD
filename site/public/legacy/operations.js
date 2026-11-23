@@ -700,12 +700,12 @@ async function start() {
     if (!user) throw new Error('위원장 계정으로 로그인해 주세요. 상단의 투고·심사 관리에서 로그인할 수 있습니다.');
     // 권한 확인과 현재 학회 회차 조회를 병렬(Promise.all)로 동시에 수행
     const [roleResult, currentEditionData] = await Promise.all([
-      client.from('staff_roles').select('role,is_super_admin').eq('user_id', user.id).maybeSingle(),
+      client.from('staff_roles').select('role').eq('user_id', user.id).maybeSingle(),
       currentEdition(client),
     ]);
     const role = requireData(roleResult);
     if (role?.role !== 'chair') throw new Error('위원장 계정만 이 화면을 이용할 수 있습니다.');
-    $('#operations-monitor-link').hidden = !role.is_super_admin;
+    $('#operations-monitor-link').hidden = false;
     edition = currentEditionData;
     $('#operations-edition-label').textContent = `CO-R&BD ${edition.year} / CHAIR DESK`;
     $('#operations-intro').textContent = `${edition.title}의 논문투고·심사, 참가신청, 프로그램과 연도별 학회 기록을 관리합니다.`;

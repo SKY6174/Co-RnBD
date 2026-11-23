@@ -246,7 +246,7 @@ async function start() {
     if(auth.error&&!/Auth session missing/i.test(auth.error.message))throw auth.error;
     user=auth.data?.user;
     if(!user){$('#chair-access').hidden=false;notice('위원장 계정으로 로그인해 주세요.');return;}
-    const role=data(await client.from('staff_roles').select('role,is_super_admin').eq('user_id',user.id).maybeSingle());
+    const role=data(await client.from('staff_roles').select('role').eq('user_id',user.id).maybeSingle());
     isChief=role?.role==='chair';
     edition=await currentEdition(client);
     committee=data(await client.from('review_committee').select('*').eq('edition_year',edition.year));
@@ -254,7 +254,6 @@ async function start() {
     if(!isChief&&!isEditor){$('#chair-access').hidden=false;$('#chair-access-text').textContent='현재 계정에는 위원장 권한이 없습니다. 투고·심사 화면에서 계정을 확인해 주세요.';$('#chair-login').textContent='계정 확인';notice('심사위원장 또는 담당 분야 AE 계정만 이용할 수 있습니다.',true);return;}
     client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'||(event==='SIGNED_IN'&&session?.user?.id!==user.id)){papers=[];members=[];membersById.clear();$('#chair-workspace').hidden=true;location.reload();}});
     document.title=`원고 심사 관리 | ${edition.title}`;$('#chair-edition').textContent=`CO-R&BD ${edition.year} / CHAIR DESK`;
-    $('#chair-monitor').hidden=!role?.is_super_admin;
     document.querySelectorAll('[data-chief-only]').forEach(el=>el.hidden=!isChief);
     $('#chair-edition').textContent=`CO-R&BD ${edition.year} / ${isChief?'CHIEF EDITOR':'ASSOCIATE EDITOR'}`;
     $('#committee-track').innerHTML=ACTIVE_TRACKS.map(([key,label])=>`<option value="${key}">${label}</option>`).join('');

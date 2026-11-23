@@ -93,7 +93,7 @@ const PAGE_METADATA: Record<PageId, Metadata> = {
     robots: { index: false, follow: false },
   },
   staff: {
-    title: "운영진 명단 조회 | T-VET Co-R&BD Conference",
+    title: "운영 현황 | T-VET Co-R&BD Conference",
     robots: { index: false, follow: false },
   },
   privacy: {

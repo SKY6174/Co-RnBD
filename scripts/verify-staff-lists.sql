@@ -14,6 +14,8 @@ grant select, insert on fx to authenticated;
 do $$
 declare chair uuid := gen_random_uuid(); sec uuid := gen_random_uuid(); member uuid := gen_random_uuid();
   unverified uuid := gen_random_uuid(); att uuid := gen_random_uuid(); reg uuid;
+  reviewing uuid := gen_random_uuid();
+  abstract text := repeat('로컬 검증용 합성 초록입니다. ', 5);
 begin
   insert into auth.users (id, email, aud, role, email_confirmed_at, raw_user_meta_data) values
     (chair, 'st-chair@example.test', 'authenticated', 'authenticated', now(), '{}'),
@@ -31,6 +33,19 @@ begin
   update public.attendee_registrations set status = 'confirmed' where id = reg;
   insert into public.registration_billing (registration_id, amount, status, payment_method, paid_at, verified, updated_by)
     values (reg, 200000, 'paid', 'transfer', now(), true, chair);
+
+  alter table public.papers disable trigger user;
+  insert into public.papers (id, owner_id, edition_year, title, abstract, track, paper_type, preferred_presentation, final_presentation, status, contact_name, contact_email, submitted_at)
+  values
+    (gen_random_uuid(), att, 2026, '합성 채택', abstract, 'master_eng', 'research', 'oral', 'poster', 'accepted', '합성', 'st-attendee@example.test', now()),
+    (reviewing, att, 2026, '합성 심사', abstract, 'master_eng', 'research', 'oral', null, 'under_review', '합성', 'st-attendee@example.test', now()),
+    (gen_random_uuid(), att, 2026, '합성 초안', abstract, 'master_eng', 'research', 'poster', null, 'draft', '합성', 'st-attendee@example.test', null);
+  alter table public.papers enable trigger user;
+  alter table public.reviews disable trigger user;
+  insert into public.reviews (paper_id, reviewer_id, review_state, manuscript_submitted_at, recommendation, comments, conflict_confirmed, submitted_at)
+    values (reviewing, member, 'assigned', now(), null, '', false, null),
+      (reviewing, member, 'submitted', now() - interval '1 day', 'accept', '합성 심사 의견', true, now());
+  alter table public.reviews enable trigger user;
   insert into fx values ('chair', chair), ('sec', sec), ('member', member), ('att', att);
 end $$;
 
@@ -88,7 +103,11 @@ begin
   select * into r from public.staff_list_registrations(2026) where email = 'st-attendee@example.test';
   assert r.status = 'confirmed' and r.confirmed and r.payment_status = 'paid' and r.fee_amount = 200000 and r.payment_method = 'transfer'
     and r.paid_at is not null, 'Registration/payment status incomplete';
-  select count(*) into n from public.staff_list_submissions(2026);
+  select count(*) as submissions,
+    count(*) filter (where status = 'accepted' and preferred_presentation = 'oral' and final_presentation = 'poster') as accepted,
+    count(*) filter (where status = 'under_review' and final_presentation is null and reviewers_assigned = 1 and reviews_submitted = 0) as reviewing
+    into r from public.staff_list_submissions(2026);
+  assert r.submissions = 2 and r.accepted = 1 and r.reviewing = 1, 'Draft, current submission progress or final presentation incorrect';
   select count(*) into n from public.staff_list_reviewers(2026);
   select count(*) into n from public.staff_list_session_chairs(2026);
   raise notice 'PASS: secretariat sees registration status, fee amount, method and payment date, and the other three lists';
