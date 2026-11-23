@@ -1,26 +1,66 @@
 <a class="skip-link" href="#main">본문으로 바로가기</a>
 <header class="site-header operations-header"><div class="shell header-inner">
   <a class="brand" href="./index.html" aria-label="T-VET Co-R&BD 홈"><span class="brand-logo"><img src="./assets/t-vet-co-rbd-conference-logo.png" alt="T-VET Co-R&BD" width="2920" height="706" /></span></a>
-  <nav class="operations-header-nav" aria-label="주 메뉴"><a href="./index.html">행사 안내</a><a href="./submission.html">로그인·내 정보</a><a href="./staff.html" aria-current="page">운영진 명단</a></nav>
+  <nav class="operations-header-nav" aria-label="주 메뉴">
+    <a href="./index.html">행사 안내</a>
+    <a href="./submission.html">투고·심사</a>
+    <a href="./operations.html" id="staff-operations" hidden>운영 관리</a>
+    <a href="./staff.html" aria-current="page">운영 현황</a>
+  </nav>
 </div></header>
-<main id="main" class="operations-main"><div class="shell">
-  <div class="operations-intro"><p id="staff-edition-label" class="section-index">T-VET CO-R&amp;BD / ORGANIZING COMMITTEE</p><h1>운영진 명단 조회</h1><p>조직위원장·학술위원장·사무국이 등록자, 논문 제출자, 심사위원, 좌장 명단을 확인하는 화면입니다. 조회만 할 수 있으며 변경은 위원장 화면에서 합니다.</p></div>
-  <div id="staff-message" class="operations-note" role="status" aria-live="polite">권한을 확인하는 중입니다.</div>
-  <div id="staff-workspace" hidden>
-    <div class="operations-hint-block"><span>PRIVACY</span><strong>개인정보 열람 안내</strong><p>명단을 열 때마다 열람자·명단·건수·시각이 기록됩니다. 행사 운영 목적으로만 사용하고, 화면을 캡처하거나 외부로 전달하지 마세요. 원고 PDF, 심사의견, 심사위원별 배정 원고는 이 화면에 표시하지 않습니다.</p></div>
-    <p id="staff-access" class="operations-meta"></p>
-    <div class="operations-actions" role="tablist" aria-label="명단 종류">
-      <button type="button" class="operations-button secondary" role="tab" aria-selected="false" aria-controls="staff-panel" data-list="registrations">등록자</button>
-      <button type="button" class="operations-button secondary" role="tab" aria-selected="false" aria-controls="staff-panel" data-list="submissions">논문 제출자</button>
-      <button type="button" class="operations-button secondary" role="tab" aria-selected="false" aria-controls="staff-panel" data-list="reviewers">심사위원</button>
-      <button type="button" class="operations-button secondary" role="tab" aria-selected="false" aria-controls="staff-panel" data-list="session_chairs">좌장</button>
+<main id="main" class="operations-main staff-main" tabindex="-1"><div class="shell">
+  <header class="staff-hero">
+    <div>
+      <p id="staff-edition-label" class="section-index">T-VET CO-R&amp;BD</p>
+      <h1>운영 현황</h1>
+      <p>등록부터 심사·발표까지, 현재 회차의 진행 상황을 확인하세요.</p>
     </div>
-    <section id="staff-panel" class="operations-card full" role="tabpanel" aria-labelledby="staff-list-title" hidden>
-      <h2 id="staff-list-title"></h2>
-      <div id="staff-summary" class="operations-hint-block" aria-live="polite" hidden></div>
-      <div class="monitor-filters"><label>검색 <input id="staff-search" type="search" placeholder="이름, 소속, 이메일, 제목" /></label></div>
-      <p id="staff-count" class="operations-meta" aria-live="polite"></p>
-      <div class="legal-table-wrap"><table class="legal-table legal-table-wide"><thead id="staff-head"></thead><tbody id="staff-body"></tbody></table></div>
+    <div class="staff-access-card" id="staff-access-card" hidden>
+      <strong id="staff-access"></strong>
+      <span id="staff-access-period"></span>
+      <a href="./monitor.html" id="staff-admin-monitor" hidden>슈퍼 관리자 모니터 ↗</a>
+    </div>
+  </header>
+  <p id="staff-message" class="operations-note" role="status">권한을 확인하는 중입니다.</p>
+  <a class="operations-button" id="staff-login" href="./submission.html?returnTo=staff" hidden>로그인하기</a>
+  <div id="staff-workspace" hidden>
+    <nav class="staff-menu" aria-label="운영 현황 메뉴">
+      <a href="#registrations" data-list="registrations">등록 현황</a>
+      <a href="#submissions" data-list="submissions">논문 제출 현황</a>
+      <a href="#reviewers" data-list="reviewers">심사위원</a>
+      <a href="#session_chairs" data-list="session_chairs">좌장</a>
+    </nav>
+    <section class="staff-dashboard" aria-labelledby="staff-list-title">
+      <div class="staff-section-head">
+        <div><h2 id="staff-list-title"></h2><p id="staff-list-description"></p></div>
+        <div class="staff-toolbar">
+          <span id="staff-updated"></span>
+          <button id="staff-refresh" type="button" class="operations-button secondary">새로고침</button>
+        </div>
+      </div>
+      <p id="staff-loading" class="staff-feedback" role="status"></p>
+      <div id="staff-results" hidden>
+        <div id="staff-summary"></div>
+        <section id="staff-panel" class="operations-card staff-list" aria-labelledby="staff-detail-title">
+          <h3 id="staff-detail-title">상세 목록</h3>
+          <div class="staff-filters">
+            <label>검색 <input id="staff-search" type="search" autocomplete="off" /></label>
+            <div id="staff-filter-fields"></div>
+            <button id="staff-reset" type="button" class="operations-button secondary">초기화</button>
+          </div>
+          <p id="staff-count" class="operations-meta" role="status"></p>
+          <p class="staff-table-tip">표를 좌우로 스크롤해 모든 열을 볼 수 있습니다.</p>
+          <div id="staff-table-wrap" class="staff-table-wrap" role="region" aria-labelledby="staff-detail-title" tabindex="0">
+            <table class="staff-table"><thead id="staff-head"></thead><tbody id="staff-body"></tbody></table>
+          </div>
+          <nav id="staff-pagination" class="staff-pagination" aria-label="목록 페이지" hidden>
+            <button id="staff-prev" type="button" class="operations-button secondary">이전</button>
+            <span id="staff-page"></span>
+            <button id="staff-next" type="button" class="operations-button secondary">다음</button>
+          </nav>
+        </section>
+      </div>
     </section>
+    <p class="staff-privacy">명단 열람은 기록됩니다. 참가자 정보는 행사 운영 목적으로만 사용해 주세요.</p>
   </div>
 </div></main>

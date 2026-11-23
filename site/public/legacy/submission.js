@@ -50,7 +50,7 @@ const kstMediumDateFormatter = new Intl.DateTimeFormat('ko-KR', {
   timeZone: 'Asia/Seoul',
   dateStyle: 'medium',
 });
-const RETURN_DESTINATIONS = { chair: './chair.html', mypage: './mypage.html', 'document-admin': './document-admin.html', registration: './registration.html' };
+const RETURN_DESTINATIONS = { chair: './chair.html', mypage: './mypage.html', 'document-admin': './document-admin.html', registration: './registration.html', staff: './staff.html' };
 let returnTo = location.hash === '#chair' ? 'chair' : new URLSearchParams(location.search).get('returnTo');
 try {
   returnTo = returnTo || sessionStorage.getItem('co_rnbd_return_to');
@@ -263,19 +263,21 @@ async function refreshWorkspace(generation) {
   if (!user || isRecovery) {
     $('#workspace').hidden = true;
     $('#submission-operations-link').hidden = true;
+    $('#submission-staff-link').hidden = true;
     return;
   }
-  // 프로필(profiles)과 운영진 권한(staff_roles)을 병렬(Promise.all)로 동시에 조회하여 대기 시간 단축
-  const [profileResult, roleResult, committeeResult] = await Promise.all([
+  const [profileResult, roleResult, committeeResult, staffAccessResult] = await Promise.all([
     client.from('profiles').select('*').eq('user_id', user.id).single(),
     client.from('staff_roles').select('role,is_super_admin').eq('user_id', user.id).maybeSingle(),
     client.from('review_committee').select('committee_role,active,edition_year').eq('user_id', user.id),
+    client.rpc('staff_my_access', { p_year: edition.year }),
   ]);
   if (generation !== workspaceGeneration) return;
   profile = check(profileResult);
   const role = check(roleResult);
   isChair = role?.role === 'chair';
   $('#submission-operations-link').hidden = !isChair;
+  $('#submission-staff-link').hidden = !isChair && !staffAccessResult.data?.length;
   $('#welcome').textContent = `${profile.full_name || '회원'}님의 작업 공간`;
   $('#account-email').textContent = profile.email || user.email || '이메일 정보 없음';
   $('#profile-name').value = profile.full_name || '';
@@ -758,7 +760,7 @@ $('#consent-save').addEventListener('click', async () => {
   finally { button.disabled = false; }
 });
 $('#cancel-review').addEventListener('click', () => { $('#review-form').hidden = true; });
-$('#sign-out').addEventListener('click', async () => { await client.auth.signOut(); user = null; isChair = false; onReviewRoster = false; $('#submission-operations-link').hidden = true; $('#workspace').hidden = true; $('#auth-panel').hidden = false; showAuthMode('login'); showTab('author'); });
+$('#sign-out').addEventListener('click', async () => { await client.auth.signOut(); user = null; isChair = false; onReviewRoster = false; $('#submission-operations-link').hidden = true; $('#submission-staff-link').hidden = true; $('#workspace').hidden = true; $('#auth-panel').hidden = false; showAuthMode('login'); showTab('author'); });
 
 document.querySelectorAll('[data-auth-mode]').forEach((button) => button.addEventListener('click', () => {
   $('#auth-password').value = '';

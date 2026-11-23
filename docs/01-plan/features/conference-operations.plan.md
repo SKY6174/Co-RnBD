@@ -28,3 +28,7 @@ Add attendee registration, a published program, and chair-managed speakers/sessi
 ## Rollout
 
 Implement a versioned migration and static pages on a feature branch. Verify syntax, UI, schema/RLS, and a Vercel Preview. Production merge and migration remain a separate rollout decision.
+
+## 운영 현황 메뉴
+
+현재 회차의 위원장과 명단 열람 권한이 있는 운영진이 투고·심사 메뉴에서 등록 및 논문 현황으로 들어갈 수 있게 한다. 등록 상태, 납부, 체크인, 참가일과 심사 진행 단계, 판정, 희망·확정 발표 유형을 확인하고 상세 명단을 검색한다. 합성 데이터로 권한 차단, 집계, 검색, 모바일 화면을 검증한다.
