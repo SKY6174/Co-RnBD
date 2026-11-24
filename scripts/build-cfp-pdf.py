@@ -193,14 +193,14 @@ def buildPdf(output, fontDir, background):
     for label, width in zip(("주최", "주관", "후원"), widths):
         text(label, x, footerTop - 22, size=8, font="Bold", color=MUTED)
         x += width
-    # Center the visible artwork, excluding transparent padding in the PNGs.
+    # Center the visible artwork, excluding transparent or white PNG padding.
     # DigiTech scales to 80% inside its existing slot; other sizes stay the same.
     for filename, slotX, slotWidth, sizeFactor, visibleCenter in [
         ("ulsan-college.png", MARGIN, 107, 1, 75.5),
         ("digitech.png", MARGIN + 115, 140, .8, 445.5),
         ("ministry-of-education.png", MARGIN + 255, 84, 1, 47),
         ("kcce.png", MARGIN + 341, 104, 1, 118),
-        ("national-research-foundation.png", MARGIN + 465, 70, 1, 216),
+        ("national-research-foundation.png", MARGIN + 458.66, 82.13, 1, 134),
     ]:
         logo = ImageReader(str(ASSETS / "organizers" / filename))
         iw, ih = logo.getSize()

@@ -289,7 +289,7 @@ h1, h2, h3, p { margin-top: 0; }
 .cfp-supporters > div { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px; }
 .cfp-logo-moe { --logo-width: 167px; width: var(--logo-width); margin-top: calc(var(--logo-row-center) - var(--logo-width) * 47 / 381); margin-left: calc(var(--logo-width) * -86 / 381); }
 .cfp-logo-kcce { --logo-width: 190px; width: var(--logo-width); margin-top: calc(var(--logo-row-center) - var(--logo-width) * 118 / 1813); }
-.cfp-logo-nrf { --logo-width: 151px; width: var(--logo-width); margin-top: calc(var(--logo-row-center) - var(--logo-width) * 216 / 1200); }
+.cfp-logo-nrf { --logo-width: 171px; width: var(--logo-width); margin-top: calc(var(--logo-row-center) - var(--logo-width) * 134 / 738); }
 .cfp-table-wrap { max-width: 100%; margin-bottom: 25px; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
 .cfp-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
 .cfp-table th, .cfp-table td { padding: 16px 15px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -336,7 +336,7 @@ h1, h2, h3, p { margin-top: 0; }
   .cfp-supporters > div { flex-wrap: wrap; gap: 9px; }
   .cfp-logo-moe { --logo-width: 160px; }
   .cfp-logo-kcce { --logo-width: 180px; }
-  .cfp-logo-nrf { --logo-width: 145px; }
+  .cfp-logo-nrf { --logo-width: 165px; }
   .cfp-hero-facts { grid-template-columns: 1fr; gap: 18px; margin-top: 44px; }
   .cfp-page-layout { display: block; padding-top: 60px; padding-bottom: 80px; }
   .cfp-aside { position: static; flex-direction: row; flex-wrap: wrap; gap: 10px 16px; margin-bottom: 44px; }
