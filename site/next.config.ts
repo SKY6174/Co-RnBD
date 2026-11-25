@@ -67,7 +67,16 @@ const nextConfig: NextConfig = {
     "/api/documents/[id]/pdf": ["./lib/fonts/**", "./public/assets/t-vet-co-rbd-conference-logo.png"],
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+        ],
+      },
+    ];
   },
   async rewrites() {
     return [
