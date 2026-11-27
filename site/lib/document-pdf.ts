@@ -88,7 +88,7 @@ export async function renderDocumentPdf(doc: IssuedDocument, verifyBaseUrl: stri
 
   pdf.setTitle(`${title} ${doc.document_no}`);
   pdf.setSubject(`${c.title} ${title}`);
-  pdf.setAuthor("T-VET Co-R&BD Conference");
+  pdf.setAuthor("TVET Co-R&BD Conference");
   pdf.setCreator("co-rnbd.org");
   pdf.setKeywords([doc.document_no, `verification:${formatCode(doc.verification_code)}`]);
   pdf.setCreationDate(new Date(doc.issued_at));

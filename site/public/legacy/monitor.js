@@ -12,7 +12,7 @@ const TRACKS = {
   applied: '전문기술석사 응용연구',
   industry: '산학공동기술개발과제 성과발표',
   convergence: '산업융합기술',
-  education: 'T-VET 정책·교육연구',
+  education: 'TVET 정책·교육연구',
 };
 const LEGACY_TRACK_MAP = {
   applied: 'master_eng',
