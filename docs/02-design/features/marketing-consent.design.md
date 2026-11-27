@@ -24,7 +24,7 @@
 - payload v6에 `promotional: true`, `consentedAt`, `unsubscribeToken`(테스트에서 위원장이 동의하지 않았으면 없음)을 더한다.
 - 확정(`chair_announcement_confirm`): 홍보면 KST 08:00 이후이고, `현재 + ceil(n/2)분 + 30분`이 같은 날 21:00 이전일 때만 허용.
 - API: 홍보면 KST 21:00–08:00 요청을 503으로 돌려 worker가 나중에 재시도하게 한다(안전망). 테스트가 아닌 홍보에 토큰이 없으면 거부.
-  제목 `(광고) [T-VET Co-R&BD {연도}] {제목}`, 본문 끝에 동의 일자·전송자·연락처·수신거부 링크,
+  제목 `(광고) [TVET Co-R&BD {연도}] {제목}`, 본문 끝에 동의 일자·전송자·연락처·수신거부 링크,
   헤더 `List-Unsubscribe: <https://co-rnbd.org/api/unsubscribe?t=…>`, `List-Unsubscribe-Post: List-Unsubscribe=One-Click`.
 
 ## 수신거부 경로 `/api/unsubscribe`
@@ -35,7 +35,7 @@
 
 ## 처리 결과 메일 (v7 `consent_notice`)
 
-제목 `[T-VET Co-R&BD] 광고성 정보 수신 동의(또는 철회) 처리 결과`. 본문: 전송자, 처리 일시(KST), 처리 결과, 경로,
+제목 `[TVET Co-R&BD] 광고성 정보 수신 동의(또는 철회) 처리 결과`. 본문: 전송자, 처리 일시(KST), 처리 결과, 경로,
 변경 방법(마이페이지). Reply-To office@.
 
 ## 화면

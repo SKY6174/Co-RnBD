@@ -3,9 +3,9 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "T-VET Co-R&BD Conference",
+    name: "TVET Co-R&BD Conference",
     short_name: "Co-R&BD",
-    description: "T-VET Co-R&BD Conference 공식 웹사이트",
+    description: "TVET Co-R&BD Conference 공식 웹사이트",
     lang: "ko",
     start_url: "/",
     scope: "/",

@@ -9,9 +9,9 @@ const CHAIR_KINDS = new Set(['reviewer_assignment', 'decision', 'review_submitte
 const PORTAL = 'https://co-rnbd.org/submission.html';
 const MYPAGE = 'https://co-rnbd.org/mypage.html';
 const UNSUBSCRIBE = 'https://co-rnbd.org/api/unsubscribe?t=';
-const SENDER = 'T-VET Co-R&BD 조직위원회';
+const SENDER = 'TVET Co-R&BD 조직위원회';
 const DECISIONS: Record<string, string> = { accepted: 'Accept · 채택', revision: '수정 후 채택 검토 · 수정본 요청', rejected: 'Reject · 반려' };
-const TRACKS: Record<string, string> = { master_eng: '전문기술석사 공학', master_sci: '전문기술석사 자연과학', industry_joint: '산학공동기술개발과제', convergence_etc: '기타 산학융합과제', applied: '전문기술석사 응용연구', industry: '산학공동기술개발', convergence: '산업융합기술', education: 'T-VET 정책·교육연구' };
+const TRACKS: Record<string, string> = { master_eng: '전문기술석사 공학', master_sci: '전문기술석사 자연과학', industry_joint: '산학공동기술개발과제', convergence_etc: '기타 산학융합과제', applied: '전문기술석사 응용연구', industry: '산학공동기술개발', convergence: '산업융합기술', education: 'TVET 정책·교육연구' };
 
 type RegistrationKind = 'registration_received' | 'registration_confirmed' | 'registration_cancelled';
 const REGISTRATION_KINDS: Record<RegistrationKind, string> = { registration_received: 'applied', registration_confirmed: 'confirmed', registration_cancelled: 'cancelled' };
@@ -232,7 +232,7 @@ function parseAnnouncementEvent(e: Record<string, unknown>): MailEvent | null {
 
 function renderAnnouncement(e: MailEvent) {
   const ad = e.promotional === true;
-  const subject = `${e.test ? '[테스트] ' : ''}${ad ? '(광고) ' : ''}[T-VET Co-R&BD ${e.editionYear}] ${e.subject}`.replace(/[\r\n]/g, ' ');
+  const subject = `${e.test ? '[테스트] ' : ''}${ad ? '(광고) ' : ''}[TVET Co-R&BD ${e.editionYear}] ${e.subject}`.replace(/[\r\n]/g, ' ');
   const paragraphs = e.body!.replace(/\r\n?/g, '\n').split(/\n{2,}/).map(part => part.trim()).filter(Boolean);
   const unsubscribe = e.unsubscribeToken ? UNSUBSCRIBE + e.unsubscribeToken : '';
   const footer = ad ? [
@@ -269,7 +269,7 @@ function parseConsentNotice(e: Record<string, unknown>): MailEvent | null {
 function renderConsentNotice(e: MailEvent) {
   const granted = e.action === 'granted';
   const result = granted ? '광고성 정보 수신 동의' : '광고성 정보 수신 동의 철회';
-  const subject = `${e.test ? '[테스트] ' : ''}[T-VET Co-R&BD] ${result} 처리 결과`;
+  const subject = `${e.test ? '[테스트] ' : ''}[TVET Co-R&BD] ${result} 처리 결과`;
   const via = { mypage: '마이페이지', registration: '참가 신청', unsubscribe_link: '메일의 수신거부 링크' }[e.source!];
   const lines = [`${e.recipientName}님,`, `요청하신 ${result}가 처리되었습니다.`,
     `전송자: ${SENDER}\n처리 일시: ${kstDateTime(e.processedAt!)}\n처리 결과: ${result}\n요청 경로: ${via}`,

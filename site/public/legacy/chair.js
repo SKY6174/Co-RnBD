@@ -1,7 +1,7 @@
 import { conferenceClient, currentEdition, escapeHtml as esc, requireData as data } from './conference-client.js';
 
 const $ = (selector) => document.querySelector(selector);
-const TRACKS = { master_eng:'전문기술석사 (공학 분야)',master_sci:'전문기술석사 (자연과학 분야)',industry_joint:'산학공동기술개발과제',convergence_etc:'기타 산학융합과제',applied:'전문기술석사 응용연구',industry:'산학공동기술개발과제 성과발표',convergence:'산업융합기술',education:'T-VET 정책·교육연구' };
+const TRACKS = { master_eng:'전문기술석사 (공학 분야)',master_sci:'전문기술석사 (자연과학 분야)',industry_joint:'산학공동기술개발과제',convergence_etc:'기타 산학융합과제',applied:'전문기술석사 응용연구',industry:'산학공동기술개발과제 성과발표',convergence:'산업융합기술',education:'TVET 정책·교육연구' };
 // Retired track codes stay in TRACKS for labels only; pickers show the four current tracks.
 const ACTIVE_TRACKS = Object.entries(TRACKS).filter(([key]) => ['master_eng','master_sci','industry_joint','convergence_etc'].includes(key));
 const STATUS = {submitted:'제출 완료',under_review:'심사 중',revision:'수정 요청',accepted:'채택',rejected:'반려',withdrawn:'철회'};

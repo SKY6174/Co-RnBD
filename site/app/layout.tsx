@@ -8,7 +8,7 @@ import "../chair.css";
 import "../legal.css";
 
 export const metadata: Metadata = {
-  title: "T-VET Co-R&BD Conference",
+  title: "TVET Co-R&BD Conference",
   applicationName: "Co-R&BD",
   icons: {
     icon: "/favicon.png",

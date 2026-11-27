@@ -1,4 +1,4 @@
-# T-VET Co-R&BD Conference 2026 — 논문·현장사례 모집공고 초안
+# TVET Co-R&BD Conference 2026 — 논문·현장사례 모집공고 초안
 
 > **내부 검토용** · 행사일·캠퍼스·일반 참가신청 마감은 확정. 등록비(일반 100,000원·발표자 200,000원)도 확정. 논문 일정, 발표자 등록 절차와 세부 행사장은 게시 전 확정한다.
 
@@ -6,7 +6,7 @@
 
 ### 제1회 전문대학 산학공동 R&BD 컨퍼런스
 
-**T-VET Co-R&BD Conference 2026**<br>
+**TVET Co-R&BD Conference 2026**<br>
 *College–Industry Cooperation for Research and Business Development*<br>
 **전문기술석사 연구와 산학공동기술개발과제의 만남**
 
@@ -17,7 +17,7 @@
 1. 전문기술석사 응용연구: 학위 프로젝트, 현장 문제 해결, 실험·검증
 2. **산학공동기술개발과제 성과발표**: 기업 애로기술, 공동개발, 실증, 성과지표, 사업화 가능성
 3. 산업융합기술: AI·자동화·모빌리티·조선·에너지·환경·보건·바이오 등
-4. T-VET 정책·교육연구: 전문기술석사와 고등직업교육의 정책·제도, 교육과정 운영, 성과평가 및 산학협력 사례
+4. TVET 정책·교육연구: 전문기술석사와 고등직업교육의 정책·제도, 교육과정 운영, 성과평가 및 산학협력 사례
 
 **제출 유형**
 
@@ -56,8 +56,8 @@
 
 ### Call for Papers & Cases
 
-**T-VET Co-R&BD Conference 2026**<br>
-*The Inaugural T-VET Co-R&BD Conference*<br>
+**TVET Co-R&BD Conference 2026**<br>
+*The Inaugural TVET Co-R&BD Conference*<br>
 *College–Industry Cooperation for Research and Business Development*
 
 The conference invites applied research and practice cases from professional technical master's programs and industry–college collaborative R&D projects. We welcome students and graduates, college faculty and researchers, and industry collaborators.
@@ -67,7 +67,7 @@ The conference invites applied research and practice cases from professional tec
 1. Applied research in professional technical master's programs
 2. Outcomes of industry–college collaborative technology development projects
 3. Interdisciplinary industrial technologies and field validation
-4. T-VET policy research, including education and operation cases such as incumbent worker training and joint supervision
+4. TVET policy research, including education and operation cases such as incumbent worker training and joint supervision
 
 **Submission types:** a 2–4-page extended abstract for research; a 2-page report for a collaborative R&D or education practice case; or a 1-page summary for a work-in-progress poster or demonstration. Submit a PDF in Korean or English. At least one author must be affiliated with a college or be a collaborator in that college's joint project. Authors may indicate a preferred presentation format; the program committee will make the final assignment after review.
 

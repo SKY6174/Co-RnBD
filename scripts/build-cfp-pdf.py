@@ -42,8 +42,8 @@ def buildPdf(output, fontDir, background):
     pdfmetrics.registerFontFamily("Regular", normal="Regular", bold="Bold")
     output.parent.mkdir(parents=True, exist_ok=True)
     c = canvas.Canvas(str(output), pagesize=A4, pageCompression=1)
-    c.setTitle("T-VET Co-R&BD Conference 2026 | Call for Papers & Cases")
-    c.setAuthor("T-VET Co-R&BD Conference")
+    c.setTitle("TVET Co-R&BD Conference 2026 | Call for Papers & Cases")
+    c.setAuthor("TVET Co-R&BD Conference")
     c.setSubject("2027. 1. 20.-21. | 울산과학대학교 동부캠퍼스 행정본관 4층 | 논문·현장사례 모집")
 
     def text(value, x, y, size=9.4, font="Regular", color=INK):
@@ -132,7 +132,7 @@ def buildPdf(output, fontDir, background):
         ("전문기술석사 (공학 분야)", "공학 계열 학위 프로젝트·현장 애로기술 응용연구와 실증 성과"),
         ("전문기술석사 (자연과학 분야)", "자연과학·바이오·환경·보건·식품 계열 학위 연구와 실증 성과"),
         ("산학공동기술개발과제", "대학·기업 공동 기술개발, 현장 실증과 후속 사업화 사례"),
-        ("기타 산학융합과제(AI, AX 등 포함)", "AI·DX 산업융합 연구와 T-VET 교육·운영·산학협력 사례"),
+        ("기타 산학융합과제(AI, AX 등 포함)", "AI·DX 산업융합 연구와 TVET 교육·운영·산학협력 사례"),
     ]
     for index, (title, detail) in enumerate(tracks, 1):
         text(f"{index:02}", left, y - 10, size=9.5, font="Bold", color=BLUE)
@@ -210,7 +210,7 @@ def buildPdf(output, fontDir, background):
         c.drawImage(logo, x, 70 - (ih - visibleCenter) * scale,
                     width=width, height=ih * scale, mask="auto")
     text("마감 시간 KST 기준", MARGIN, 22, size=7.5, color=MUTED)
-    text("T-VET Co-R&BD Conference 2026", W - MARGIN - 151, 22, size=7.5, color=MUTED)
+    text("TVET Co-R&BD Conference 2026", W - MARGIN - 151, 22, size=7.5, color=MUTED)
     c.showPage()
     c.save()
     print(output)
